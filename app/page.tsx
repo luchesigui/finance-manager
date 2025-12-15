@@ -1,5 +1,5 @@
-import { FinanceProApp } from "@/components/FinanceProApp";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <FinanceProApp />;
+  redirect("/dashboard");
 }
