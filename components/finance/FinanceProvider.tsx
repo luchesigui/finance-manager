@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
@@ -47,91 +48,52 @@ type FinanceContextValue = {
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
 
-async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(path, { method: "GET" });
-  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, init);
+  if (!res.ok) {
+    throw new Error(`${init?.method ?? "GET"} ${path} failed: ${res.status}`);
+  }
   return (await res.json()) as T;
-}
-
-async function apiPatch<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`PATCH ${path} failed: ${res.status}`);
-  return (await res.json()) as T;
-}
-
-async function apiPost<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
-  return (await res.json()) as T;
-}
-
-async function apiDelete(path: string): Promise<void> {
-  const res = await fetch(path, { method: "DELETE" });
-  if (!res.ok) throw new Error(`DELETE ${path} failed: ${res.status}`);
 }
 
 export function FinanceProvider({ children }: Readonly<{ children: React.ReactNode }>) {
+  const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [people, setPeople] = useState<Person[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [defaultPayerId, setDefaultPayerId] = useState<string>("p1");
 
+  const peopleQuery = useQuery({
+    queryKey: ["people"],
+    queryFn: () => apiJson<Person[]>("/api/people"),
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => apiJson<Category[]>("/api/categories"),
+  });
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1;
+
+  const transactionsQuery = useQuery({
+    queryKey: ["transactions", year, month],
+    queryFn: () =>
+      apiJson<Transaction[]>(
+        `/api/transactions?year=${encodeURIComponent(String(year))}&month=${encodeURIComponent(
+          String(month),
+        )}`,
+      ),
+  });
+
+  const people = peopleQuery.data ?? [];
+  const categories = categoriesQuery.data ?? [];
+  const transactions = transactionsQuery.data ?? [];
+
+  // Keep default payer valid once people load/update.
   useEffect(() => {
-    let isCancelled = false;
-    (async () => {
-      try {
-        const [peopleData, categoriesData] = await Promise.all([
-          apiGet<Person[]>("/api/people"),
-          apiGet<Category[]>("/api/categories"),
-        ]);
-
-        if (isCancelled) return;
-        setPeople(peopleData);
-        setCategories(categoriesData);
-
-        setDefaultPayerId((prev) => {
-          if (peopleData.length === 0) return prev;
-          return peopleData.some((p) => p.id === prev) ? prev : peopleData[0].id;
-        });
-      } catch (error) {
-        console.error("Failed to load people/categories", error);
-      }
-    })();
-    return () => {
-      isCancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isCancelled = false;
-    (async () => {
-      try {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth() + 1;
-        const txs = await apiGet<Transaction[]>(
-          `/api/transactions?year=${encodeURIComponent(String(year))}&month=${encodeURIComponent(
-            String(month),
-          )}`,
-        );
-        if (isCancelled) return;
-        setTransactions(txs);
-      } catch (error) {
-        console.error("Failed to load transactions", error);
-      }
-    })();
-    return () => {
-      isCancelled = true;
-    };
-  }, [currentDate]);
+    if (people.length === 0) return;
+    if (people.some((p) => p.id === defaultPayerId)) return;
+    setDefaultPayerId(people[0].id);
+  }, [people, defaultPayerId]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -190,6 +152,77 @@ export function FinanceProvider({ children }: Readonly<{ children: React.ReactNo
     });
   }, [peopleShare, filteredTransactions, totalExpenses]);
 
+  const createTransactionsMutation = useMutation({
+    mutationFn: (payload: Array<Omit<Transaction, "id">>) =>
+      apiJson<Transaction[] | Transaction>("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).then((res) => (Array.isArray(res) ? res : [res])),
+    onSuccess: (created) => {
+      const inViewedMonth = created.filter((t) => {
+        const [ty, tm] = t.date.split("-");
+        return Number.parseInt(ty, 10) === year && Number.parseInt(tm, 10) === month;
+      });
+      if (inViewedMonth.length === 0) return;
+
+      queryClient.setQueryData<Transaction[]>(["transactions", year, month], (prev = []) => [
+        ...inViewedMonth,
+        ...prev,
+      ]);
+    },
+  });
+
+  const deleteTransactionMutation = useMutation({
+    mutationFn: (id: number) =>
+      fetch(`/api/transactions/${encodeURIComponent(String(id))}`, { method: "DELETE" }).then(
+        (res) => {
+          if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+        },
+      ),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["transactions", year, month] });
+      const previous = queryClient.getQueryData<Transaction[]>(["transactions", year, month]);
+      queryClient.setQueryData<Transaction[]>(["transactions", year, month], (prev = []) =>
+        prev.filter((t) => t.id !== id),
+      );
+      return { previous };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(["transactions", year, month], ctx.previous);
+      }
+    },
+  });
+
+  const updatePersonMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<Person, "id">> }) =>
+      apiJson<Person>(`/api/people/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Person[]>(["people"], (prev = []) =>
+        prev.map((p) => (p.id === updated.id ? updated : p)),
+      );
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<Omit<Category, "id">> }) =>
+      apiJson<Category>(`/api/categories/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Category[]>(["categories"], (prev = []) =>
+        prev.map((c) => (c.id === updated.id ? updated : c)),
+      );
+    },
+  });
+
   const addTransaction = useCallback(
     (form: NewTransactionFormState) => {
       if (!form.description || !form.amount) return;
@@ -238,70 +271,33 @@ export function FinanceProvider({ children }: Readonly<{ children: React.ReactNo
         });
       }
 
-      (async () => {
-        try {
-          const created = await apiPost<Transaction[]>(
-            "/api/transactions",
-            newTransactionsList.map(({ id: _id, ...rest }) => rest),
-          );
-
-          const year = currentDate.getFullYear();
-          const month = currentDate.getMonth() + 1;
-          const inCurrentMonth = created.filter((t) => {
-            const [ty, tm] = t.date.split("-");
-            return Number.parseInt(ty, 10) === year && Number.parseInt(tm, 10) === month;
-          });
-
-          if (inCurrentMonth.length > 0) {
-            setTransactions((prev) => [...inCurrentMonth, ...prev]);
-          }
-        } catch (error) {
-          console.error("Failed to create transactions", error);
-        }
-      })();
+      createTransactionsMutation.mutate(newTransactionsList.map(({ id: _id, ...rest }) => rest));
     },
-    [currentDate],
+    [createTransactionsMutation, currentDate],
   );
 
-  const deleteTransaction = useCallback((id: number) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-    (async () => {
-      try {
-        await apiDelete(`/api/transactions/${encodeURIComponent(String(id))}`);
-      } catch (error) {
-        console.error("Failed to delete transaction", error);
-      }
-    })();
-  }, []);
+  const deleteTransaction = useCallback(
+    (id: number) => {
+      deleteTransactionMutation.mutate(id);
+    },
+    [deleteTransactionMutation],
+  );
 
   const updatePerson = useCallback(
     <K extends keyof Person>(id: string, field: K, value: Person[K]) => {
-      setPeople((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
-      (async () => {
-        try {
-          await apiPatch<Person>(`/api/people/${encodeURIComponent(id)}`, { [field]: value });
-        } catch (error) {
-          console.error("Failed to update person", error);
-        }
-      })();
+      updatePersonMutation.mutate({ id, patch: { [field]: value } as Partial<Omit<Person, "id">> });
     },
-    [],
+    [updatePersonMutation],
   );
 
   const updateCategory = useCallback(
     <K extends keyof Category>(id: string, field: K, value: Category[K]) => {
-      setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
-      (async () => {
-        try {
-          await apiPatch<Category>(`/api/categories/${encodeURIComponent(id)}`, {
-            [field]: value,
-          });
-        } catch (error) {
-          console.error("Failed to update category", error);
-        }
-      })();
+      updateCategoryMutation.mutate({
+        id,
+        patch: { [field]: value } as Partial<Omit<Category, "id">>,
+      });
     },
-    [],
+    [updateCategoryMutation],
   );
 
   const value = useMemo<FinanceContextValue>(
