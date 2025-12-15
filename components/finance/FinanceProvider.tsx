@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { Category, NewTransactionFormState, Person, Transaction } from "@/lib/types";
 
@@ -47,83 +47,91 @@ type FinanceContextValue = {
 
 const FinanceContext = createContext<FinanceContextValue | null>(null);
 
-const today = new Date();
-const currentYear = today.getFullYear();
-const currentMonth = today.getMonth();
+async function apiGet<T>(path: string): Promise<T> {
+  const res = await fetch(path, { method: "GET" });
+  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
+  return (await res.json()) as T;
+}
 
-const INITIAL_PEOPLE: Person[] = [
-  { id: "p1", name: "Gui", income: 40000, color: "bg-blue-500" },
-  { id: "p2", name: "Amanda", income: 12000, color: "bg-pink-500" },
-];
+async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`PATCH ${path} failed: ${res.status}`);
+  return (await res.json()) as T;
+}
 
-const INITIAL_CATEGORIES: Category[] = [
-  { id: "c1", name: "Custos Fixos", targetPercent: 25, color: "text-red-600" },
-  { id: "c2", name: "Conforto", targetPercent: 15, color: "text-purple-600" },
-  { id: "c3", name: "Metas", targetPercent: 15, color: "text-green-600" },
-  { id: "c4", name: "Prazeres", targetPercent: 10, color: "text-yellow-600" },
-  {
-    id: "c5",
-    name: "Liberdade Financeira",
-    targetPercent: 30,
-    color: "text-indigo-600",
-  },
-  { id: "c6", name: "Conhecimento", targetPercent: 5, color: "text-cyan-600" },
-];
+async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  return (await res.json()) as T;
+}
 
-const INITIAL_TRANSACTIONS: Transaction[] = [
-  {
-    id: 1,
-    description: "Aluguel",
-    amount: 4100,
-    categoryId: "c1",
-    paidBy: "p1",
-    isRecurring: true,
-    date: new Date(currentYear, currentMonth, 1).toISOString().split("T")[0],
-  },
-  {
-    id: 2,
-    description: "Condomínio",
-    amount: 1025,
-    categoryId: "c1",
-    paidBy: "p1",
-    isRecurring: true,
-    date: new Date(currentYear, currentMonth, 5).toISOString().split("T")[0],
-  },
-  {
-    id: 3,
-    description: "Terapia Amanda",
-    amount: 1200,
-    categoryId: "c1",
-    paidBy: "p2",
-    isRecurring: true,
-    date: new Date(currentYear, currentMonth, 10).toISOString().split("T")[0],
-  },
-  {
-    id: 4,
-    description: "Escola da Chiara",
-    amount: 500,
-    categoryId: "c2",
-    paidBy: "p1",
-    isRecurring: true,
-    date: new Date(currentYear, currentMonth, 15).toISOString().split("T")[0],
-  },
-  {
-    id: 5,
-    description: "Mercado Mensal",
-    amount: 800,
-    categoryId: "c1",
-    paidBy: "p1",
-    isRecurring: false,
-    date: new Date(currentYear, currentMonth - 1, 10).toISOString().split("T")[0],
-  },
-];
+async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(path, { method: "DELETE" });
+  if (!res.ok) throw new Error(`DELETE ${path} failed: ${res.status}`);
+}
 
 export function FinanceProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  const [people, setPeople] = useState<Person[]>(INITIAL_PEOPLE);
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [defaultPayerId, setDefaultPayerId] = useState<string>("p1");
+
+  useEffect(() => {
+    let isCancelled = false;
+    (async () => {
+      try {
+        const [peopleData, categoriesData] = await Promise.all([
+          apiGet<Person[]>("/api/people"),
+          apiGet<Category[]>("/api/categories"),
+        ]);
+
+        if (isCancelled) return;
+        setPeople(peopleData);
+        setCategories(categoriesData);
+
+        setDefaultPayerId((prev) => {
+          if (peopleData.length === 0) return prev;
+          return peopleData.some((p) => p.id === prev) ? prev : peopleData[0].id;
+        });
+      } catch (error) {
+        console.error("Failed to load people/categories", error);
+      }
+    })();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    (async () => {
+      try {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+        const txs = await apiGet<Transaction[]>(
+          `/api/transactions?year=${encodeURIComponent(String(year))}&month=${encodeURIComponent(
+            String(month),
+          )}`,
+        );
+        if (isCancelled) return;
+        setTransactions(txs);
+      } catch (error) {
+        console.error("Failed to load transactions", error);
+      }
+    })();
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentDate]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
@@ -230,18 +238,52 @@ export function FinanceProvider({ children }: Readonly<{ children: React.ReactNo
         });
       }
 
-      setTransactions((prev) => [...newTransactionsList, ...prev]);
+      (async () => {
+        try {
+          const created = await apiPost<Transaction[]>(
+            "/api/transactions",
+            newTransactionsList.map(({ id: _id, ...rest }) => rest),
+          );
+
+          const year = currentDate.getFullYear();
+          const month = currentDate.getMonth() + 1;
+          const inCurrentMonth = created.filter((t) => {
+            const [ty, tm] = t.date.split("-");
+            return Number.parseInt(ty, 10) === year && Number.parseInt(tm, 10) === month;
+          });
+
+          if (inCurrentMonth.length > 0) {
+            setTransactions((prev) => [...inCurrentMonth, ...prev]);
+          }
+        } catch (error) {
+          console.error("Failed to create transactions", error);
+        }
+      })();
     },
     [currentDate],
   );
 
   const deleteTransaction = useCallback((id: number) => {
     setTransactions((prev) => prev.filter((t) => t.id !== id));
+    (async () => {
+      try {
+        await apiDelete(`/api/transactions/${encodeURIComponent(String(id))}`);
+      } catch (error) {
+        console.error("Failed to delete transaction", error);
+      }
+    })();
   }, []);
 
   const updatePerson = useCallback(
     <K extends keyof Person>(id: string, field: K, value: Person[K]) => {
       setPeople((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
+      (async () => {
+        try {
+          await apiPatch<Person>(`/api/people/${encodeURIComponent(id)}`, { [field]: value });
+        } catch (error) {
+          console.error("Failed to update person", error);
+        }
+      })();
     },
     [],
   );
@@ -249,6 +291,15 @@ export function FinanceProvider({ children }: Readonly<{ children: React.ReactNo
   const updateCategory = useCallback(
     <K extends keyof Category>(id: string, field: K, value: Category[K]) => {
       setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+      (async () => {
+        try {
+          await apiPatch<Category>(`/api/categories/${encodeURIComponent(id)}`, {
+            [field]: value,
+          });
+        } catch (error) {
+          console.error("Failed to update category", error);
+        }
+      })();
     },
     [],
   );
