@@ -2,19 +2,22 @@
 
 import { PieChart, Users } from "lucide-react";
 
-import { useFinance } from "@/components/finance/FinanceProvider";
+import { useCategories } from "@/components/finance/contexts/CategoriesContext";
+import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
+import { usePeople } from "@/components/finance/contexts/PeopleContext";
+import {
+  calculatePeopleShare,
+  calculateTotalIncome,
+} from "@/components/finance/hooks/useFinanceCalculations";
 import { formatPercent } from "@/lib/format";
 
 export function SettingsView() {
-  const {
-    people,
-    peopleShare,
-    categories,
-    defaultPayerId,
-    setDefaultPayerId,
-    updatePerson,
-    updateCategory,
-  } = useFinance();
+  const { people, updatePersonField } = usePeople();
+  const { categories, updateCategoryField } = useCategories();
+  const { defaultPayerId, setDefaultPayerId } = useDefaultPayer();
+
+  const totalIncome = calculateTotalIncome(people);
+  const peopleWithShare = calculatePeopleShare(people, totalIncome);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -25,7 +28,7 @@ export function SettingsView() {
         </h2>
 
         <div className="space-y-4">
-          {peopleShare.map((person) => (
+          {peopleWithShare.map((person) => (
             <div
               key={person.id}
               className="flex flex-col md:flex-row gap-3 items-end md:items-center p-3 bg-slate-50 rounded-lg"
@@ -41,7 +44,7 @@ export function SettingsView() {
                   id={`person-name-${person.id}`}
                   type="text"
                   value={person.name}
-                  onChange={(e) => updatePerson(person.id, "name", e.target.value)}
+                  onChange={(event) => updatePersonField(person.id, "name", event.target.value)}
                   className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
                 />
               </div>
@@ -59,8 +62,12 @@ export function SettingsView() {
                     id={`person-income-${person.id}`}
                     type="number"
                     value={person.income}
-                    onChange={(e) =>
-                      updatePerson(person.id, "income", Number.parseFloat(e.target.value) || 0)
+                    onChange={(event) =>
+                      updatePersonField(
+                        person.id,
+                        "income",
+                        Number.parseFloat(event.target.value) || 0,
+                      )
                     }
                     className="w-full bg-white border border-slate-300 rounded px-2 py-1 pl-8 text-sm"
                   />
@@ -114,15 +121,19 @@ export function SettingsView() {
               <input
                 type="text"
                 value={cat.name}
-                onChange={(e) => updateCategory(cat.id, "name", e.target.value)}
+                onChange={(event) => updateCategoryField(cat.id, "name", event.target.value)}
                 className={`flex-1 font-medium bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-500 focus:outline-none py-1 ${cat.color}`}
               />
               <div className="flex items-center gap-2 w-32">
                 <input
                   type="number"
                   value={cat.targetPercent}
-                  onChange={(e) =>
-                    updateCategory(cat.id, "targetPercent", Number.parseFloat(e.target.value))
+                  onChange={(event) =>
+                    updateCategoryField(
+                      cat.id,
+                      "targetPercent",
+                      Number.parseFloat(event.target.value),
+                    )
                   }
                   className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
                 />

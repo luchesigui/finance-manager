@@ -2,19 +2,39 @@
 
 import { ArrowRightLeft, PieChart } from "lucide-react";
 
-import { useFinance } from "@/components/finance/FinanceProvider";
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
+import { useCategories } from "@/components/finance/contexts/CategoriesContext";
+import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
+import { usePeople } from "@/components/finance/contexts/PeopleContext";
+import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import {
+  calculateCategorySummary,
+  calculatePeopleShare,
+  calculateSettlementData,
+  calculateTotalExpenses,
+  calculateTotalIncome,
+} from "@/components/finance/hooks/useFinanceCalculations";
 import { formatCurrency, formatMonthYear, formatPercent } from "@/lib/format";
 
 export function DashboardView() {
-  const {
-    currentDate,
-    filteredTransactions,
-    totalIncome,
+  const { selectedMonthDate } = useCurrentMonth();
+  const { people } = usePeople();
+  const { categories } = useCategories();
+  const { transactionsForSelectedMonth } = useTransactions();
+
+  const totalIncome = calculateTotalIncome(people);
+  const peopleWithShare = calculatePeopleShare(people, totalIncome);
+  const totalExpenses = calculateTotalExpenses(transactionsForSelectedMonth);
+  const settlementData = calculateSettlementData(
+    peopleWithShare,
+    transactionsForSelectedMonth,
     totalExpenses,
-    settlementData,
-    categorySummary,
-  } = useFinance();
+  );
+  const categorySummary = calculateCategorySummary(
+    categories,
+    transactionsForSelectedMonth,
+    totalIncome,
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -27,7 +47,7 @@ export function DashboardView() {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <h3 className="text-slate-500 text-sm font-medium mb-1">
-            Total Gasto ({formatMonthYear(currentDate)})
+            Total Gasto ({formatMonthYear(selectedMonthDate)})
           </h3>
           <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
         </div>
@@ -43,11 +63,11 @@ export function DashboardView() {
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <h2 className="font-semibold text-slate-700 flex items-center gap-2">
             <ArrowRightLeft size={18} />
-            Distribuição Justa ({formatMonthYear(currentDate)})
+            Distribuição Justa ({formatMonthYear(selectedMonthDate)})
           </h2>
         </div>
         <div className="p-6">
-          {filteredTransactions.length === 0 ? (
+          {transactionsForSelectedMonth.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum gasto registrado neste mês para calcular.
             </div>

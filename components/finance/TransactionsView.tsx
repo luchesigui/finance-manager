@@ -3,22 +3,23 @@
 import { BrainCircuit, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { useFinance } from "@/components/finance/FinanceProvider";
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
+import { useCategories } from "@/components/finance/contexts/CategoriesContext";
+import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
+import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
+import { usePeople } from "@/components/finance/contexts/PeopleContext";
+import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import type { NewTransactionFormState } from "@/lib/types";
 
 export function TransactionsView() {
-  const {
-    categories,
-    people,
-    filteredTransactions,
-    currentDate,
-    defaultPayerId,
-    addTransaction,
-    deleteTransaction,
-  } = useFinance();
+  const { selectedMonthDate } = useCurrentMonth();
+  const { people } = usePeople();
+  const { categories } = useCategories();
+  const { defaultPayerId } = useDefaultPayer();
+  const { transactionsForSelectedMonth, addTransactionsFromFormState, deleteTransactionById } =
+    useTransactions();
 
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
@@ -47,7 +48,7 @@ export function TransactionsView() {
 
   const handleAddTransaction = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-    addTransaction(newTrans);
+    addTransactionsFromFormState(newTrans);
 
     setNewTrans({
       description: "",
@@ -339,54 +340,58 @@ Retorne APENAS o JSON, sem markdown.
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
           <h2 className="font-semibold text-slate-700">
-            Histórico de {formatMonthYear(currentDate)}
+            Histórico de {formatMonthYear(selectedMonthDate)}
           </h2>
           <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
-            {filteredTransactions.length} itens
+            {transactionsForSelectedMonth.length} itens
           </span>
         </div>
         <div className="divide-y divide-slate-100">
-          {filteredTransactions.length === 0 ? (
+          {transactionsForSelectedMonth.length === 0 ? (
             <div className="p-8 text-center text-slate-500">Nenhum lançamento neste mês.</div>
           ) : (
-            filteredTransactions.map((t) => {
-              const cat = categories.find((c) => c.id === t.categoryId);
-              const person = people.find((p) => p.id === t.paidBy);
+            transactionsForSelectedMonth.map((transaction) => {
+              const selectedCategory = categories.find(
+                (category) => category.id === transaction.categoryId,
+              );
+              const selectedPerson = people.find((person) => person.id === transaction.paidBy);
               return (
                 <div
-                  key={t.id}
+                  key={transaction.id}
                   className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${
-                        person?.color ?? "bg-gray-400"
+                        selectedPerson?.color ?? "bg-gray-400"
                       }`}
                     >
-                      {(person?.name.substring(0, 2) ?? "?").toUpperCase()}
+                      {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}
                     </div>
                     <div>
                       <h4 className="font-medium text-slate-800 flex items-center gap-2">
-                        {t.description}
-                        {t.isRecurring && (
+                        {transaction.description}
+                        {transaction.isRecurring && (
                           <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
                             <RefreshCw size={10} /> Recorrente
                           </span>
                         )}
                       </h4>
                       <p className="text-xs text-slate-500 flex gap-2">
-                        <span>{cat?.name}</span>
+                        <span>{selectedCategory?.name}</span>
                         <span>•</span>
-                        <span>{new Date(t.date).toLocaleDateString("pt-BR")}</span>
+                        <span>{new Date(transaction.date).toLocaleDateString("pt-BR")}</span>
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="font-bold text-slate-700">{formatCurrency(t.amount)}</span>
-                    {!t.isRecurring ? (
+                    <span className="font-bold text-slate-700">
+                      {formatCurrency(transaction.amount)}
+                    </span>
+                    {!transaction.isRecurring ? (
                       <button
                         type="button"
-                        onClick={() => deleteTransaction(t.id)}
+                        onClick={() => deleteTransactionById(transaction.id)}
                         className="text-slate-300 hover:text-red-500 p-2 transition-all"
                         title="Excluir"
                       >

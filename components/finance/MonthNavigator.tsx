@@ -2,18 +2,24 @@
 
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
-import { useFinance } from "@/components/finance/FinanceProvider";
+import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
+import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { formatMonthYear } from "@/lib/format";
 
 export function MonthNavigator() {
-  const { currentDate, setCurrentDate, filteredTransactions } = useFinance();
+  const { selectedMonthDate, setSelectedMonthDate } = useCurrentMonth();
+  const { transactionsForSelectedMonth } = useTransactions();
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    setSelectedMonthDate(
+      new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() - 1, 1),
+    );
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    setSelectedMonthDate(
+      new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 1),
+    );
   };
 
   return (
@@ -28,10 +34,10 @@ export function MonthNavigator() {
       <div className="text-center">
         <h2 className="text-lg font-bold text-slate-800 capitalize flex items-center gap-2 justify-center">
           <Calendar size={20} className="text-indigo-600" />
-          {formatMonthYear(currentDate)}
+          {formatMonthYear(selectedMonthDate)}
         </h2>
         <span className="text-xs text-slate-400 font-medium">
-          {filteredTransactions.length} lançamentos neste mês
+          {transactionsForSelectedMonth.length} lançamentos neste mês
         </span>
       </div>
       <button

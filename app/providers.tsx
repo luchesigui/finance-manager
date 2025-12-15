@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type React from "react";
 import { useState } from "react";
 
-import { FinanceProvider } from "@/components/finance/FinanceProvider";
+import { FinanceProviders } from "@/components/finance/FinanceProviders";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,7 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <FinanceProvider>{children}</FinanceProvider>
+      <FinanceProviders>{children}</FinanceProviders>
     </QueryClientProvider>
   );
 }
