@@ -1,3 +1,5 @@
+"use client";
+
 import {
   ArrowRightLeft,
   BrainCircuit,
@@ -17,71 +19,41 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-// --- Configuração da API Gemini ---
-const apiKey = ""; // A chave será injetada pelo ambiente de execução
+import { formatCurrency, formatMonthYear, formatPercent } from "@/lib/format";
+import type { Category, NewTransactionFormState, Person, Transaction } from "@/lib/types";
 
-async function generateGeminiContent(prompt) {
+async function generateGeminiContent(prompt: string): Promise<string | null> {
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      }
-    );
+    const response = await fetch("/api/gemini", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
 
     if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
+      throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json();
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Não foi possível gerar uma resposta."
-    );
+    const data = (await response.json()) as { text?: string };
+    return data.text ?? "Não foi possível gerar uma resposta.";
   } catch (error) {
     console.error("Erro ao chamar Gemini:", error);
     return null;
   }
 }
 
-// --- Utilitários ---
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-};
+const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = today.getMonth();
 
-const formatPercent = (value) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "percent",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(value / 100);
-};
-
-const formatMonthYear = (date) => {
-  return new Intl.DateTimeFormat("pt-BR", {
-    month: "long",
-    year: "numeric",
-  }).format(date);
-};
-
-// --- Dados Iniciais (Mock) ---
-const INITIAL_PEOPLE = [
+const INITIAL_PEOPLE: Person[] = [
   { id: "p1", name: "Gui", income: 40000, color: "bg-blue-500" },
   { id: "p2", name: "Amanda", income: 12000, color: "bg-pink-500" },
 ];
 
-const INITIAL_CATEGORIES = [
+const INITIAL_CATEGORIES: Category[] = [
   { id: "c1", name: "Custos Fixos", targetPercent: 25, color: "text-red-600" },
   { id: "c2", name: "Conforto", targetPercent: 15, color: "text-purple-600" },
   { id: "c3", name: "Metas", targetPercent: 15, color: "text-green-600" },
@@ -95,11 +67,7 @@ const INITIAL_CATEGORIES = [
   { id: "c6", name: "Conhecimento", targetPercent: 5, color: "text-cyan-600" },
 ];
 
-const today = new Date();
-const currentYear = today.getFullYear();
-const currentMonth = today.getMonth();
-
-const INITIAL_TRANSACTIONS = [
+const INITIAL_TRANSACTIONS: Transaction[] = [
   {
     id: 1,
     description: "Aluguel",
@@ -143,26 +111,24 @@ const INITIAL_TRANSACTIONS = [
     categoryId: "c1",
     paidBy: "p1",
     isRecurring: false,
-    date: new Date(currentYear, currentMonth - 1, 10)
-      .toISOString()
-      .split("T")[0],
+    date: new Date(currentYear, currentMonth - 1, 10).toISOString().split("T")[0],
   },
 ];
 
-export default function App() {
-  // --- Estados ---
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [people, setPeople] = useState(INITIAL_PEOPLE);
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
-  const [defaultPayerId, setDefaultPayerId] = useState("p1");
+export function FinanceProApp() {
+  const [activeTab, setActiveTab] = useState<"dashboard" | "transactions" | "settings">(
+    "dashboard",
+  );
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [people, setPeople] = useState<Person[]>(INITIAL_PEOPLE);
+  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
+  const [defaultPayerId, setDefaultPayerId] = useState<string>("p1");
 
-  // Estados AI
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
 
-  const [newTrans, setNewTrans] = useState({
+  const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
     description: "",
     amount: "",
     categoryId: "c1",
@@ -177,35 +143,25 @@ export default function App() {
     setNewTrans((prev) => ({ ...prev, paidBy: defaultPayerId }));
   }, [defaultPayerId]);
 
-  // --- Navegação Temporal ---
   const handlePrevMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-    );
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
-    );
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  // --- Filtros ---
   const filteredTransactions = useMemo(() => {
     return transactions.filter((t) => {
       const [year, month] = t.date.split("-");
       return (
-        parseInt(year) === currentDate.getFullYear() &&
-        parseInt(month) === currentDate.getMonth() + 1
+        Number.parseInt(year, 10) === currentDate.getFullYear() &&
+        Number.parseInt(month, 10) === currentDate.getMonth() + 1
       );
     });
   }, [transactions, currentDate]);
 
-  // --- Cálculos ---
-  const totalIncome = useMemo(
-    () => people.reduce((acc, p) => acc + p.income, 0),
-    [people]
-  );
+  const totalIncome = useMemo(() => people.reduce((acc, p) => acc + p.income, 0), [people]);
 
   const peopleShare = useMemo(() => {
     return people.map((p) => ({
@@ -215,13 +171,12 @@ export default function App() {
   }, [people, totalIncome]);
 
   const categorySummary = useMemo(() => {
-    const summary = categories.map((cat) => {
+    return categories.map((cat) => {
       const totalSpent = filteredTransactions
         .filter((t) => t.categoryId === cat.id)
         .reduce((acc, t) => acc + t.amount, 0);
 
-      const realPercentOfIncome =
-        totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
+      const realPercentOfIncome = totalIncome > 0 ? (totalSpent / totalIncome) * 100 : 0;
 
       return {
         ...cat,
@@ -229,13 +184,9 @@ export default function App() {
         realPercentOfIncome,
       };
     });
-    return summary;
   }, [categories, filteredTransactions, totalIncome]);
 
-  const totalExpenses = filteredTransactions.reduce(
-    (acc, t) => acc + t.amount,
-    0
-  );
+  const totalExpenses = filteredTransactions.reduce((acc, t) => acc + t.amount, 0);
 
   const settlementData = useMemo(() => {
     return peopleShare.map((person) => {
@@ -255,8 +206,7 @@ export default function App() {
     });
   }, [peopleShare, filteredTransactions, totalExpenses]);
 
-  // --- Handlers ---
-  const handleAddTransaction = (e) => {
+  const handleAddTransaction = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (!newTrans.description || !newTrans.amount) return;
 
@@ -267,12 +217,12 @@ export default function App() {
       baseDateStr = `${year}-${month}-01`;
     }
 
-    const newTransactionsList = [];
-    const amountVal = parseFloat(newTrans.amount);
+    const newTransactionsList: Transaction[] = [];
+    const amountVal = Number.parseFloat(newTrans.amount);
 
     if (newTrans.isInstallment && newTrans.installments > 1) {
       const installmentValue = amountVal / newTrans.installments;
-      const baseDateObj = new Date(baseDateStr + "T12:00:00");
+      const baseDateObj = new Date(`${baseDateStr}T12:00:00`);
 
       for (let i = 0; i < newTrans.installments; i++) {
         const dateObj = new Date(baseDateObj);
@@ -284,9 +234,7 @@ export default function App() {
 
         newTransactionsList.push({
           id: Date.now() + i,
-          description: `${newTrans.description} (${i + 1}/${
-            newTrans.installments
-          })`,
+          description: `${newTrans.description} (${i + 1}/${newTrans.installments})`,
           amount: installmentValue,
           categoryId: newTrans.categoryId,
           paidBy: newTrans.paidBy,
@@ -311,87 +259,86 @@ export default function App() {
     setNewTrans({
       description: "",
       amount: "",
-      categoryId: categories[0].id,
+      categoryId: categories[0]?.id ?? "c1",
       paidBy: defaultPayerId,
       isRecurring: false,
       date: "",
       isInstallment: false,
       installments: 2,
     });
-    setSmartInput(""); // Limpa input smart
+    setSmartInput("");
   };
 
-  const deleteTransaction = (id) => {
+  const deleteTransaction = (id: number) => {
     setTransactions(transactions.filter((t) => t.id !== id));
   };
 
-  const updatePerson = (id, field, value) => {
+  const updatePerson = <K extends keyof Person>(id: string, field: K, value: Person[K]) => {
     setPeople(people.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
   };
 
-  const updateCategory = (id, field, value) => {
-    setCategories(
-      categories.map((c) => (c.id === id ? { ...c, [field]: value } : c))
-    );
+  const updateCategory = <K extends keyof Category>(id: string, field: K, value: Category[K]) => {
+    setCategories(categories.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
   };
 
-  // --- Funcionalidades AI ---
-
-  // 1. Preenchimento Inteligente de Transação
   const handleSmartFill = async () => {
     if (!smartInput.trim()) return;
     setAiLoading(true);
 
-    const categoriesPrompt = categories
-      .map((c) => `${c.id}:${c.name}`)
-      .join(", ");
+    const categoriesPrompt = categories.map((c) => `${c.id}:${c.name}`).join(", ");
     const peoplePrompt = people.map((p) => `${p.id}:${p.name}`).join(", ");
     const todayStr = new Date().toISOString().split("T")[0];
 
     const prompt = `
-      Analise o seguinte texto de despesa: "${smartInput}".
-      Data de hoje: ${todayStr}.
-      
-      Extraia os dados para JSON com as chaves: 
-      - description (string)
-      - amount (number)
-      - categoryId (string, escolha o ID mais adequado de: ${categoriesPrompt})
-      - paidBy (string, escolha o ID mais adequado de: ${peoplePrompt}. Se não mencionado, use null)
-      - date (string, formato YYYY-MM-DD. Se "hoje", use ${todayStr}. Se "ontem", calcule.)
-      
-      Retorne APENAS o JSON, sem markdown.
-    `;
+Analise o seguinte texto de despesa: "${smartInput}".
+Data de hoje: ${todayStr}.
+
+Extraia os dados para JSON com as chaves:
+- description (string)
+- amount (number)
+- categoryId (string, escolha o ID mais adequado de: ${categoriesPrompt})
+- paidBy (string, escolha o ID mais adequado de: ${peoplePrompt}. Se não mencionado, use null)
+- date (string, formato YYYY-MM-DD. Se "hoje", use ${todayStr}. Se "ontem", calcule.)
+
+Retorne APENAS o JSON, sem markdown.
+`;
 
     try {
       const result = await generateGeminiContent(prompt);
       if (result) {
-        // Limpar markdown se houver
         const cleanJson = result
           .replace(/```json/g, "")
           .replace(/```/g, "")
           .trim();
-        const data = JSON.parse(cleanJson);
+
+        const data = JSON.parse(cleanJson) as {
+          description?: string;
+          amount?: number;
+          categoryId?: string;
+          paidBy?: string | null;
+          date?: string;
+        };
 
         setNewTrans((prev) => ({
           ...prev,
-          description: data.description || prev.description,
-          amount: data.amount || prev.amount,
-          categoryId: data.categoryId || prev.categoryId,
-          paidBy: data.paidBy || defaultPayerId, // Usa padrão se AI não detectar
-          date: data.date || prev.date,
+          description: data.description ?? prev.description,
+          amount: data.amount != null ? String(data.amount) : prev.amount,
+          categoryId: data.categoryId ?? prev.categoryId,
+          paidBy: data.paidBy ?? defaultPayerId,
+          date: data.date ?? prev.date,
         }));
       }
-    } catch (e) {
-      console.error("Erro parsing AI JSON", e);
+    } catch (error) {
+      console.error("Erro parsing AI JSON", error);
     } finally {
       setAiLoading(false);
     }
   };
 
-  // --- Componentes UI ---
   const MonthNavigator = () => (
     <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
       <button
+        type="button"
         onClick={handlePrevMonth}
         className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
       >
@@ -407,6 +354,7 @@ export default function App() {
         </span>
       </div>
       <button
+        type="button"
         onClick={handleNextMonth}
         className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
       >
@@ -419,35 +367,25 @@ export default function App() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <MonthNavigator />
 
-      {/* Resumo Renda */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm font-medium mb-1">
-            Renda Total Familiar
-          </h3>
-          <p className="text-2xl font-bold text-slate-800">
-            {formatCurrency(totalIncome)}
-          </p>
+          <h3 className="text-slate-500 text-sm font-medium mb-1">Renda Total Familiar</h3>
+          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalIncome)}</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <h3 className="text-slate-500 text-sm font-medium mb-1">
             Total Gasto ({formatMonthYear(currentDate)})
           </h3>
-          <p className="text-2xl font-bold text-red-600">
-            {formatCurrency(totalExpenses)}
-          </p>
+          <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm font-medium mb-1">
-            Saldo Livre
-          </h3>
+          <h3 className="text-slate-500 text-sm font-medium mb-1">Saldo Livre</h3>
           <p className="text-2xl font-bold text-green-600">
             {formatCurrency(totalIncome - totalExpenses)}
           </p>
         </div>
       </div>
 
-      {/* COMPENSAÇÃO / SETTLEMENT */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
           <h2 className="font-semibold text-slate-700 flex items-center gap-2">
@@ -466,9 +404,7 @@ export default function App() {
                 <div key={person.id} className="relative">
                   <div className="flex justify-between items-end mb-2">
                     <div>
-                      <span className="font-medium text-lg text-slate-800">
-                        {person.name}
-                      </span>
+                      <span className="font-medium text-lg text-slate-800">{person.name}</span>
                       <span className="text-xs text-slate-500 ml-2">
                         (Renda: {formatPercent(person.sharePercent * 100)})
                       </span>
@@ -490,13 +426,11 @@ export default function App() {
                       className="h-full bg-slate-300 opacity-50 transition-all duration-500"
                       style={{
                         width: `${
-                          totalExpenses > 0
-                            ? (person.fairShareAmount / totalExpenses) * 100
-                            : 0
+                          totalExpenses > 0 ? (person.fairShareAmount / totalExpenses) * 100 : 0
                         }%`,
                       }}
                       title="Parte Justa"
-                    ></div>
+                    />
                   </div>
 
                   <div className="mt-2 text-xs text-slate-500 flex justify-between">
@@ -526,10 +460,8 @@ export default function App() {
                       .map((creditor) => (
                         <p key={`${debtor.id}-${creditor.id}`}>
                           👉 <strong>{debtor.name}</strong> precisa transferir{" "}
-                          <strong>
-                            {formatCurrency(Math.abs(debtor.balance))}
-                          </strong>{" "}
-                          para <strong>{creditor.name}</strong>.
+                          <strong>{formatCurrency(Math.abs(debtor.balance))}</strong> para{" "}
+                          <strong>{creditor.name}</strong>.
                         </p>
                       ));
                   })}
@@ -542,7 +474,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Categorias */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200">
         <div className="p-4 border-b border-slate-100 bg-slate-50">
           <h2 className="font-semibold text-slate-700 flex items-center gap-2">
@@ -563,22 +494,15 @@ export default function App() {
             </thead>
             <tbody>
               {categorySummary.map((cat) => {
-                const isOverBudget =
-                  cat.realPercentOfIncome > cat.targetPercent;
+                const isOverBudget = cat.realPercentOfIncome > cat.targetPercent;
                 return (
                   <tr
                     key={cat.id}
                     className="border-b border-slate-50 last:border-0 hover:bg-slate-50"
                   >
-                    <td className={`px-4 py-3 font-medium ${cat.color}`}>
-                      {cat.name}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {formatCurrency(cat.totalSpent)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {cat.targetPercent}%
-                    </td>
+                    <td className={`px-4 py-3 font-medium ${cat.color}`}>{cat.name}</td>
+                    <td className="px-4 py-3 text-right">{formatCurrency(cat.totalSpent)}</td>
+                    <td className="px-4 py-3 text-center">{cat.targetPercent}%</td>
                     <td className="px-4 py-3 text-center font-bold">
                       {cat.realPercentOfIncome.toFixed(1)}%
                     </td>
@@ -598,17 +522,12 @@ export default function App() {
               })}
               <tr className="bg-slate-50 font-bold">
                 <td className="px-4 py-3">TOTAL</td>
-                <td className="px-4 py-3 text-right">
-                  {formatCurrency(totalExpenses)}
-                </td>
+                <td className="px-4 py-3 text-right">{formatCurrency(totalExpenses)}</td>
                 <td className="px-4 py-3 text-center">100%</td>
                 <td className="px-4 py-3 text-center">
-                  {totalIncome > 0
-                    ? ((totalExpenses / totalIncome) * 100).toFixed(1)
-                    : 0}
-                  %
+                  {totalIncome > 0 ? ((totalExpenses / totalIncome) * 100).toFixed(1) : 0}%
                 </td>
-                <td></td>
+                <td />
               </tr>
             </tbody>
           </table>
@@ -621,16 +540,18 @@ export default function App() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <MonthNavigator />
 
-      {/* Formulário de Adição */}
       <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-100 relative overflow-hidden">
-        {/* AI Quick Add Section */}
         <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <label className="text-xs font-bold text-indigo-600 flex items-center gap-1 mb-2">
+          <label
+            htmlFor="smart-input"
+            className="text-xs font-bold text-indigo-600 flex items-center gap-1 mb-2"
+          >
             <Sparkles size={14} />
             PREENCHIMENTO INTELIGENTE (BETA)
           </label>
           <div className="flex gap-2">
             <input
+              id="smart-input"
               type="text"
               value={smartInput}
               onChange={(e) => setSmartInput(e.target.value)}
@@ -639,6 +560,7 @@ export default function App() {
               onKeyDown={(e) => e.key === "Enter" && handleSmartFill()}
             />
             <button
+              type="button"
               onClick={handleSmartFill}
               disabled={aiLoading || !smartInput}
               className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -653,10 +575,7 @@ export default function App() {
         </div>
 
         <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Plus
-            className="bg-indigo-600 text-white rounded-full p-1"
-            size={24}
-          />
+          <Plus className="bg-indigo-600 text-white rounded-full p-1" size={24} />
           Nova Despesa Manual
         </h3>
         <form
@@ -664,46 +583,52 @@ export default function App() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
         >
           <div className="lg:col-span-2">
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label
+              htmlFor="transaction-description"
+              className="block text-xs font-medium text-slate-500 mb-1"
+            >
               Descrição
             </label>
             <input
+              id="transaction-description"
               type="text"
               placeholder="Ex: Luz, Mercado, iFood..."
               className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.description}
-              onChange={(e) =>
-                setNewTrans({ ...newTrans, description: e.target.value })
-              }
+              onChange={(e) => setNewTrans({ ...newTrans, description: e.target.value })}
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label
+              htmlFor="transaction-amount"
+              className="block text-xs font-medium text-slate-500 mb-1"
+            >
               Valor (R$)
             </label>
             <input
+              id="transaction-amount"
               type="number"
               step="0.01"
               placeholder="0,00"
               className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.amount}
-              onChange={(e) =>
-                setNewTrans({ ...newTrans, amount: e.target.value })
-              }
+              onChange={(e) => setNewTrans({ ...newTrans, amount: e.target.value })}
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label
+              htmlFor="transaction-category"
+              className="block text-xs font-medium text-slate-500 mb-1"
+            >
               Categoria
             </label>
             <select
+              id="transaction-category"
               className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.categoryId}
-              onChange={(e) =>
-                setNewTrans({ ...newTrans, categoryId: e.target.value })
-              }
+              onChange={(e) => setNewTrans({ ...newTrans, categoryId: e.target.value })}
             >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -714,29 +639,33 @@ export default function App() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label
+              htmlFor="transaction-date"
+              className="block text-xs font-medium text-slate-500 mb-1"
+            >
               Data (Opcional)
             </label>
             <input
+              id="transaction-date"
               type="date"
               className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600"
               value={newTrans.date}
-              onChange={(e) =>
-                setNewTrans({ ...newTrans, date: e.target.value })
-              }
+              onChange={(e) => setNewTrans({ ...newTrans, date: e.target.value })}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-500 mb-1">
+            <label
+              htmlFor="transaction-paid-by"
+              className="block text-xs font-medium text-slate-500 mb-1"
+            >
               Pago por
             </label>
             <select
+              id="transaction-paid-by"
               className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.paidBy}
-              onChange={(e) =>
-                setNewTrans({ ...newTrans, paidBy: e.target.value })
-              }
+              onChange={(e) => setNewTrans({ ...newTrans, paidBy: e.target.value })}
             >
               {people.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -746,7 +675,6 @@ export default function App() {
             </select>
           </div>
 
-          {/* Opções Extras: Recorrente ou Parcelado */}
           <div className="lg:col-span-2 flex items-center gap-6 pb-2">
             {!newTrans.isInstallment && (
               <div className="flex items-center gap-2">
@@ -754,9 +682,7 @@ export default function App() {
                   type="checkbox"
                   id="recurring"
                   checked={newTrans.isRecurring}
-                  onChange={(e) =>
-                    setNewTrans({ ...newTrans, isRecurring: e.target.checked })
-                  }
+                  onChange={(e) => setNewTrans({ ...newTrans, isRecurring: e.target.checked })}
                   className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                 />
                 <label
@@ -796,13 +722,13 @@ export default function App() {
                 <span className="text-sm text-slate-500">x</span>
                 <input
                   type="number"
-                  min="2"
-                  max="60"
+                  min={2}
+                  max={60}
                   value={newTrans.installments}
                   onChange={(e) =>
                     setNewTrans({
                       ...newTrans,
-                      installments: parseInt(e.target.value) || 2,
+                      installments: Number.parseInt(e.target.value, 10) || 2,
                     })
                   }
                   className="w-16 border border-slate-300 rounded px-2 py-1 text-sm"
@@ -826,7 +752,6 @@ export default function App() {
         </form>
       </div>
 
-      {/* Lista de Transações */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
           <h2 className="font-semibold text-slate-700">
@@ -838,9 +763,7 @@ export default function App() {
         </div>
         <div className="divide-y divide-slate-100">
           {filteredTransactions.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              Nenhum lançamento neste mês.
-            </div>
+            <div className="p-8 text-center text-slate-500">Nenhum lançamento neste mês.</div>
           ) : (
             filteredTransactions.map((t) => {
               const cat = categories.find((c) => c.id === t.categoryId);
@@ -853,10 +776,10 @@ export default function App() {
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${
-                        person?.color || "bg-gray-400"
+                        person?.color ?? "bg-gray-400"
                       }`}
                     >
-                      {person?.name.substring(0, 2).toUpperCase()}
+                      {(person?.name.substring(0, 2) ?? "?").toUpperCase()}
                     </div>
                     <div>
                       <h4 className="font-medium text-slate-800 flex items-center gap-2">
@@ -870,18 +793,15 @@ export default function App() {
                       <p className="text-xs text-slate-500 flex gap-2">
                         <span>{cat?.name}</span>
                         <span>•</span>
-                        <span>
-                          {new Date(t.date).toLocaleDateString("pt-BR")}
-                        </span>
+                        <span>{new Date(t.date).toLocaleDateString("pt-BR")}</span>
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="font-bold text-slate-700">
-                      {formatCurrency(t.amount)}
-                    </span>
+                    <span className="font-bold text-slate-700">{formatCurrency(t.amount)}</span>
                     {!t.isRecurring ? (
                       <button
+                        type="button"
                         onClick={() => deleteTransaction(t.id)}
                         className="text-slate-300 hover:text-red-500 p-2 transition-all"
                         title="Excluir"
@@ -889,7 +809,7 @@ export default function App() {
                         <Trash2 size={16} />
                       </button>
                     ) : (
-                      <div className="w-8"></div> // Spacer para alinhar
+                      <div className="w-8" />
                     )}
                   </div>
                 </div>
@@ -903,48 +823,47 @@ export default function App() {
 
   const SettingsView = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Configuração de Pessoas */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
           <Users size={20} />
           Participantes & Salários
         </h2>
         <div className="space-y-4">
-          {people.map((person) => (
+          {peopleShare.map((person) => (
             <div
               key={person.id}
               className="flex flex-col md:flex-row gap-3 items-end md:items-center p-3 bg-slate-50 rounded-lg"
             >
               <div className="flex-1 w-full">
-                <label className="text-xs text-slate-500 font-medium">
+                <label
+                  htmlFor={`person-name-${person.id}`}
+                  className="text-xs text-slate-500 font-medium"
+                >
                   Nome
                 </label>
                 <input
+                  id={`person-name-${person.id}`}
                   type="text"
                   value={person.name}
-                  onChange={(e) =>
-                    updatePerson(person.id, "name", e.target.value)
-                  }
+                  onChange={(e) => updatePerson(person.id, "name", e.target.value)}
                   className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
                 />
               </div>
               <div className="w-full md:w-48">
-                <label className="text-xs text-slate-500 font-medium">
+                <label
+                  htmlFor={`person-income-${person.id}`}
+                  className="text-xs text-slate-500 font-medium"
+                >
                   Renda Mensal
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2 top-1.5 text-slate-400 text-sm">
-                    R$
-                  </span>
+                  <span className="absolute left-2 top-1.5 text-slate-400 text-sm">R$</span>
                   <input
+                    id={`person-income-${person.id}`}
                     type="number"
                     value={person.income}
                     onChange={(e) =>
-                      updatePerson(
-                        person.id,
-                        "income",
-                        parseFloat(e.target.value) || 0
-                      )
+                      updatePerson(person.id, "income", Number.parseFloat(e.target.value) || 0)
                     }
                     className="w-full bg-white border border-slate-300 rounded px-2 py-1 pl-8 text-sm"
                   />
@@ -958,9 +877,9 @@ export default function App() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-slate-100">
-          <label className="block text-sm font-medium text-slate-700 mb-2">
+          <p className="block text-sm font-medium text-slate-700 mb-2">
             Responsável Padrão (Pré-selecionado)
-          </label>
+          </p>
           <div className="flex gap-4">
             {people.map((p) => (
               <label
@@ -985,7 +904,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Configuração de Categorias */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
           <PieChart size={20} />
@@ -1005,11 +923,7 @@ export default function App() {
                   type="number"
                   value={cat.targetPercent}
                   onChange={(e) =>
-                    updateCategory(
-                      cat.id,
-                      "targetPercent",
-                      parseFloat(e.target.value)
-                    )
+                    updateCategory(cat.id, "targetPercent", Number.parseFloat(e.target.value))
                   }
                   className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
                 />
@@ -1018,9 +932,7 @@ export default function App() {
             </div>
           ))}
           <div className="flex justify-between items-center pt-4 border-t border-slate-100 mt-4">
-            <span className="font-semibold text-slate-600">
-              Total Planejado
-            </span>
+            <span className="font-semibold text-slate-600">Total Planejado</span>
             <span
               className={`font-bold ${
                 categories.reduce((a, c) => a + c.targetPercent, 0) === 100
@@ -1039,7 +951,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans pb-20 md:pb-0">
       <div className="max-w-5xl mx-auto min-h-screen flex flex-col">
-        {/* Header */}
         <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
@@ -1050,15 +961,17 @@ export default function App() {
                 Finanças<span className="text-indigo-600">Pro</span>
               </h1>
             </div>
-            {/* Desktop Nav */}
             <nav className="hidden md:flex bg-slate-100 p-1 rounded-lg">
-              {[
-                { id: "dashboard", label: "Resumo", icon: TrendingUp },
-                { id: "transactions", label: "Lançamentos", icon: DollarSign },
-                { id: "settings", label: "Configurações", icon: Settings },
-              ].map((tab) => (
+              {(
+                [
+                  { id: "dashboard", label: "Resumo", icon: TrendingUp },
+                  { id: "transactions", label: "Lançamentos", icon: DollarSign },
+                  { id: "settings", label: "Configurações", icon: Settings },
+                ] as const
+              ).map((tab) => (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
                     activeTab === tab.id
@@ -1074,22 +987,23 @@ export default function App() {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 p-4 md:p-6">
           {activeTab === "dashboard" && <DashboardView />}
           {activeTab === "transactions" && <TransactionsView />}
           {activeTab === "settings" && <SettingsView />}
         </main>
 
-        {/* Mobile Nav */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-around z-20">
-          {[
-            { id: "dashboard", label: "Resumo", icon: TrendingUp },
-            { id: "transactions", label: "Lançamentos", icon: Plus },
-            { id: "settings", label: "Config", icon: Settings },
-          ].map((tab) => (
+          {(
+            [
+              { id: "dashboard", label: "Resumo", icon: TrendingUp },
+              { id: "transactions", label: "Lançamentos", icon: Plus },
+              { id: "settings", label: "Config", icon: Settings },
+            ] as const
+          ).map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`flex flex-col items-center gap-1 ${
                 activeTab === tab.id ? "text-indigo-600" : "text-slate-400"
