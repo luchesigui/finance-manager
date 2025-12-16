@@ -1,6 +1,6 @@
 import "server-only";
 
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/server/supabase";
 import type { Category, Person, Transaction } from "@/lib/types";
 
 // Helper to convert snake_case DB result to camelCase
