@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { getState, setState } from "@/lib/server/financeStore";
+import { getPeople, updatePerson } from "@/lib/server/financeStore";
 import { readJsonBody, validateUpdateByIdBody } from "@/lib/server/requestBodyValidation";
 import type { Person } from "@/lib/types";
 
 export async function GET() {
-  return NextResponse.json(getState().people);
+  const people = await getPeople();
+  return NextResponse.json(people);
 }
 
 export async function PATCH(request: Request) {
@@ -19,23 +20,14 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const state = getState();
-  const personIndex = state.people.findIndex(
-    (person) => person.id === validationResult.value.entityId,
-  );
-
-  if (personIndex < 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  try {
+    const updatedPerson = await updatePerson(
+      validationResult.value.entityId,
+      validationResult.value.patch as Partial<Person>,
+    );
+    return NextResponse.json(updatedPerson);
+  } catch (error) {
+    console.error("Failed to update person", error);
+    return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
-
-  const updatedPerson = {
-    ...state.people[personIndex],
-    ...validationResult.value.patch,
-  } satisfies Person;
-  const nextPeople = state.people.slice();
-  nextPeople[personIndex] = updatedPerson;
-
-  setState({ ...state, people: nextPeople });
-
-  return NextResponse.json(updatedPerson);
 }

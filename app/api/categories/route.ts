@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { getState, setState } from "@/lib/server/financeStore";
+import { getCategories, updateCategory } from "@/lib/server/financeStore";
 import { readJsonBody, validateUpdateByIdBody } from "@/lib/server/requestBodyValidation";
 import type { Category } from "@/lib/types";
 
 export async function GET() {
-  return NextResponse.json(getState().categories);
+  const categories = await getCategories();
+  return NextResponse.json(categories);
 }
 
 export async function PATCH(request: Request) {
@@ -19,24 +20,14 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const state = getState();
-  const categoryIndex = state.categories.findIndex(
-    (category) => category.id === validationResult.value.entityId,
-  );
-
-  if (categoryIndex < 0) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  try {
+    const updatedCategory = await updateCategory(
+      validationResult.value.entityId,
+      validationResult.value.patch as Partial<Category>,
+    );
+    return NextResponse.json(updatedCategory);
+  } catch (error) {
+    console.error("Failed to update category", error);
+    return NextResponse.json({ error: "Failed to update" }, { status: 500 });
   }
-
-  const updatedCategory = {
-    ...state.categories[categoryIndex],
-    ...validationResult.value.patch,
-  } satisfies Category;
-
-  const nextCategories = state.categories.slice();
-  nextCategories[categoryIndex] = updatedCategory;
-
-  setState({ ...state, categories: nextCategories });
-
-  return NextResponse.json(updatedCategory);
 }

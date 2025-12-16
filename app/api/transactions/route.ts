@@ -1,27 +1,25 @@
 import { NextResponse } from "next/server";
 
-import { getState, setState } from "@/lib/server/financeStore";
+import { createTransaction, getTransactions } from "@/lib/server/financeStore";
 import { readJsonBody, validateCreateTransactionsBody } from "@/lib/server/requestBodyValidation";
 import type { Transaction } from "@/lib/types";
 
 export async function GET(request: Request) {
-  const state = getState();
   const url = new URL(request.url);
 
-  const year = url.searchParams.get("year");
-  const month = url.searchParams.get("month");
+  const yearParam = url.searchParams.get("year");
+  const monthParam = url.searchParams.get("month");
 
-  if (year && month) {
-    const y = Number.parseInt(year, 10);
-    const m = Number.parseInt(month, 10);
-    const filtered = state.transactions.filter((t) => {
-      const [ty, tm] = t.date.split("-");
-      return Number.parseInt(ty, 10) === y && Number.parseInt(tm, 10) === m;
-    });
-    return NextResponse.json(filtered);
+  let year: number | undefined;
+  let month: number | undefined;
+
+  if (yearParam && monthParam) {
+    year = Number.parseInt(yearParam, 10);
+    month = Number.parseInt(monthParam, 10);
   }
 
-  return NextResponse.json(state.transactions);
+  const transactions = await getTransactions(year, month);
+  return NextResponse.json(transactions);
 }
 
 export async function POST(request: Request) {
@@ -35,20 +33,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const createdTransactions: Transaction[] = validationResult.value.transactions.map(
-    (transactionCreatePayload, payloadIndex) => ({
-      id: Date.now() + payloadIndex,
-      ...transactionCreatePayload,
-    }),
-  );
+  try {
+    const createdTransactions = await Promise.all(
+      validationResult.value.transactions.map((t) => createTransaction(t)),
+    );
 
-  const state = getState();
-  setState({ ...state, transactions: [...createdTransactions, ...state.transactions] });
-
-  return NextResponse.json(
-    validationResult.value.isBatch ? createdTransactions : createdTransactions[0],
-    {
-      status: 201,
-    },
-  );
+    return NextResponse.json(
+      validationResult.value.isBatch ? createdTransactions : createdTransactions[0],
+      {
+        status: 201,
+      },
+    );
+  } catch (error) {
+    console.error("Failed to create transactions", error);
+    return NextResponse.json({ error: "Failed to create transactions" }, { status: 500 });
+  }
 }

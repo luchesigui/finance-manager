@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getState, setState } from "@/lib/server/financeStore";
+import { deleteTransaction, getTransaction } from "@/lib/server/financeStore";
 
 function parseTransactionId(transactionIdParam: string): number | null {
   const parsed = Number(transactionIdParam);
@@ -13,17 +13,16 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  const state = getState();
-  const hasTransaction = state.transactions.some((transaction) => transaction.id === transactionId);
+  try {
+    const transaction = await getTransaction(transactionId);
+    if (!transaction) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-  if (!hasTransaction) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    await deleteTransaction(transactionId);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Failed to delete transaction", error);
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
-
-  setState({
-    ...state,
-    transactions: state.transactions.filter((transaction) => transaction.id !== transactionId),
-  });
-
-  return NextResponse.json({ ok: true });
 }
