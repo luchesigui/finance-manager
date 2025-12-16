@@ -39,14 +39,14 @@ alter table public.household_members enable row level security;
 -- We add columns as nullable first, then we can enforce not null after data migration if needed
 -- But for new app usage, we will enforce it via RLS.
 
-alter table public.people 
+alter table public.people
   add column if not exists household_id uuid references public.households(id) on delete cascade,
   add column if not exists linked_user_id uuid references public.profiles(id) on delete set null;
 
-alter table public.categories 
+alter table public.categories
   add column if not exists household_id uuid references public.households(id) on delete cascade;
 
-alter table public.transactions 
+alter table public.transactions
   add column if not exists household_id uuid references public.households(id) on delete cascade;
 
 -- RLS Policies
@@ -208,13 +208,13 @@ begin
   -- Create default person for the user
   insert into public.people (name, income, color, household_id, linked_user_id)
   values (
-    split_part(new.email, '@', 1), 
-    0, 
-    'bg-blue-500', 
-    new_household_id, 
+    split_part(new.email, '@', 1),
+    0,
+    'bg-blue-500',
+    new_household_id,
     new.id
   );
-  
+
   -- Create default categories
   INSERT INTO public.categories (name, target_percent, color, household_id) VALUES
   ('Custos Fixos', 50, 'text-red-600', new_household_id),
