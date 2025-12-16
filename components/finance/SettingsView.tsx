@@ -9,6 +9,7 @@ import {
   calculatePeopleShare,
   calculateTotalIncome,
 } from "@/components/finance/hooks/useFinanceCalculations";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { formatPercent } from "@/lib/format";
 
 export function SettingsView() {
@@ -57,19 +58,14 @@ export function SettingsView() {
                   Renda Mensal
                 </label>
                 <div className="relative">
-                  <span className="absolute left-2 top-1.5 text-slate-400 text-sm">R$</span>
-                  <input
+                  <CurrencyInput
                     id={`person-income-${person.id}`}
-                    type="number"
                     value={person.income}
-                    onChange={(event) =>
-                      updatePersonField(
-                        person.id,
-                        "income",
-                        Number.parseFloat(event.target.value) || 0,
-                      )
+                    onValueChange={(nextIncomeValue) =>
+                      updatePersonField(person.id, "income", nextIncomeValue ?? 0)
                     }
-                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 pl-8 text-sm"
+                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
+                    placeholder="R$ 0,00"
                   />
                 </div>
               </div>

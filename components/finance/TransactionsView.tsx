@@ -9,6 +9,7 @@ import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthConte
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import type { NewTransactionFormState } from "@/lib/types";
@@ -26,7 +27,7 @@ export function TransactionsView() {
 
   const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
     description: "",
-    amount: "",
+    amount: null,
     categoryId: categories[0]?.id ?? "c1",
     paidBy: defaultPayerId,
     isRecurring: false,
@@ -52,7 +53,7 @@ export function TransactionsView() {
 
     setNewTrans({
       description: "",
-      amount: "",
+      amount: null,
       categoryId: categories[0]?.id ?? "c1",
       paidBy: defaultPayerId,
       isRecurring: false,
@@ -68,8 +69,10 @@ export function TransactionsView() {
     if (!smartInput.trim()) return;
     setAiLoading(true);
 
-    const categoriesPrompt = categories.map((c) => `${c.id}:${c.name}`).join(", ");
-    const peoplePrompt = people.map((p) => `${p.id}:${p.name}`).join(", ");
+    const categoriesPrompt = categories
+      .map((category) => `${category.id}:${category.name}`)
+      .join(", ");
+    const peoplePrompt = people.map((person) => `${person.id}:${person.name}`).join(", ");
     const todayStr = new Date().toISOString().split("T")[0];
 
     const prompt = `
@@ -105,7 +108,7 @@ Retorne APENAS o JSON, sem markdown.
         setNewTrans((prev) => ({
           ...prev,
           description: data.description ?? prev.description,
-          amount: data.amount != null ? String(data.amount) : prev.amount,
+          amount: data.amount ?? prev.amount,
           categoryId: data.categoryId ?? prev.categoryId,
           paidBy: data.paidBy ?? defaultPayerId,
           date: data.date ?? prev.date,
@@ -190,14 +193,12 @@ Retorne APENAS o JSON, sem markdown.
             >
               Valor (R$)
             </label>
-            <input
+            <CurrencyInput
               id="transaction-amount"
-              type="number"
-              step="0.01"
-              placeholder="0,00"
+              placeholder="R$ 0,00"
               className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.amount}
-              onChange={(e) => setNewTrans({ ...newTrans, amount: e.target.value })}
+              onValueChange={(amountValue) => setNewTrans({ ...newTrans, amount: amountValue })}
               required
             />
           </div>

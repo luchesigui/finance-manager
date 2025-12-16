@@ -104,7 +104,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     TransactionsContextValue["addTransactionsFromFormState"]
   >(
     (newTransactionFormState) => {
-      if (!newTransactionFormState.description || !newTransactionFormState.amount) return;
+      if (!newTransactionFormState.description || newTransactionFormState.amount == null) return;
 
       let baseDateString = newTransactionFormState.date;
       if (!baseDateString) {
@@ -114,7 +114,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       }
 
       const newTransactionsPayload: Array<Omit<Transaction, "id">> = [];
-      const amountValue = Number.parseFloat(newTransactionFormState.amount);
+      const amountValue = newTransactionFormState.amount;
 
       if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
         const installmentAmountValue = amountValue / newTransactionFormState.installments;

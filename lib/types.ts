@@ -25,7 +25,7 @@ export type Transaction = {
 
 export type NewTransactionFormState = {
   description: string;
-  amount: string;
+  amount: number | null;
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;

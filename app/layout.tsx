@@ -16,11 +16,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <Providers>
           <div className="min-h-screen bg-slate-100 text-slate-800 font-sans pb-20 md:pb-0">
-            <div className="max-w-5xl mx-auto min-h-screen flex flex-col">
-              <AppHeader />
-              <main className="flex-1 p-4 md:p-6">{children}</main>
-              <MobileNav />
-            </div>
+            <AppHeader />
+            <main className="flex-1 p-4 md:p-6">
+              <div className="max-w-5xl mx-auto">{children}</div>
+            </main>
+            <MobileNav />
           </div>
         </Providers>
       </body>
