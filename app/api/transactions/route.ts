@@ -1,21 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { getState, setState } from "@/lib/server/financeStore";
+import { readJsonBody, validateCreateTransactionsBody } from "@/lib/server/requestBodyValidation";
 import type { Transaction } from "@/lib/types";
-
-function isTransactionLike(input: unknown): input is Omit<Transaction, "id"> {
-  if (!input || typeof input !== "object") return false;
-  const record = input as Record<string, unknown>;
-
-  return (
-    typeof record.description === "string" &&
-    typeof record.amount === "number" &&
-    typeof record.categoryId === "string" &&
-    typeof record.paidBy === "string" &&
-    typeof record.isRecurring === "boolean" &&
-    typeof record.date === "string"
-  );
-}
 
 export async function GET(request: Request) {
   const state = getState();
@@ -38,30 +25,30 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as unknown;
+  const body = await readJsonBody(request);
+  const validationResult = validateCreateTransactionsBody(body);
 
-  const payloadItems = Array.isArray(body) ? body : [body];
-  if (payloadItems.length === 0) {
-    return NextResponse.json({ error: "Empty payload" }, { status: 400 });
+  if (!validationResult.isValid) {
+    return NextResponse.json(
+      { error: validationResult.errorMessage },
+      { status: validationResult.statusCode ?? 400 },
+    );
   }
 
-  const createdTransactions: Transaction[] = [];
-
-  for (let payloadIndex = 0; payloadIndex < payloadItems.length; payloadIndex++) {
-    const payloadItem = payloadItems[payloadIndex] as unknown;
-    if (!isTransactionLike(payloadItem)) {
-      return NextResponse.json(
-        { error: `Invalid transaction at index ${payloadIndex}` },
-        { status: 400 },
-      );
-    }
-    createdTransactions.push({ id: Date.now() + payloadIndex, ...payloadItem });
-  }
+  const createdTransactions: Transaction[] = validationResult.value.transactions.map(
+    (transactionCreatePayload, payloadIndex) => ({
+      id: Date.now() + payloadIndex,
+      ...transactionCreatePayload,
+    }),
+  );
 
   const state = getState();
   setState({ ...state, transactions: [...createdTransactions, ...state.transactions] });
 
-  return NextResponse.json(Array.isArray(body) ? createdTransactions : createdTransactions[0], {
-    status: 201,
-  });
+  return NextResponse.json(
+    validationResult.value.isBatch ? createdTransactions : createdTransactions[0],
+    {
+      status: 201,
+    },
+  );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getState, setState } from "@/lib/server/financeStore";
+import { readJsonBody, validateUpdateByIdBody } from "@/lib/server/requestBodyValidation";
 import type { Category } from "@/lib/types";
 
 export async function GET() {
@@ -8,26 +9,20 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const body = (await request.json().catch(() => null)) as unknown;
+  const body = await readJsonBody(request);
+  const validationResult = validateUpdateByIdBody(body, "categoryId");
 
-  if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
-  const { categoryId, patch } = body as {
-    categoryId?: unknown;
-    patch?: unknown;
-  };
-
-  if (typeof categoryId !== "string" || !patch || typeof patch !== "object") {
+  if (!validationResult.isValid) {
     return NextResponse.json(
-      { error: "Expected { categoryId: string, patch: object }" },
-      { status: 400 },
+      { error: validationResult.errorMessage },
+      { status: validationResult.statusCode ?? 400 },
     );
   }
 
   const state = getState();
-  const categoryIndex = state.categories.findIndex((category) => category.id === categoryId);
+  const categoryIndex = state.categories.findIndex(
+    (category) => category.id === validationResult.value.entityId,
+  );
 
   if (categoryIndex < 0) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -35,7 +30,7 @@ export async function PATCH(request: Request) {
 
   const updatedCategory = {
     ...state.categories[categoryIndex],
-    ...(patch as object),
+    ...validationResult.value.patch,
   } satisfies Category;
 
   const nextCategories = state.categories.slice();
