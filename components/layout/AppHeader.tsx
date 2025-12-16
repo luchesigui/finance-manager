@@ -1,9 +1,9 @@
 "use client";
 
+import { createClient } from "@/lib/supabase/client";
 import { DollarSign, LogOut, Settings, TrendingUp, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 const tabs = [
   { href: "/dashboard", label: "Resumo", icon: TrendingUp },
@@ -61,6 +61,7 @@ export function AppHeader() {
           </nav>
 
           <button
+            type="button"
             onClick={handleSignOut}
             className="p-2 text-slate-500 hover:text-red-600 transition-colors"
             title="Sair"

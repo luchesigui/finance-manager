@@ -36,7 +36,7 @@ const toTransaction = (row: any): Transaction => ({
 });
 
 async function getPrimaryHouseholdId() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -51,7 +51,7 @@ async function getPrimaryHouseholdId() {
     .single();
 
   if (error || !data) {
-    // If no household found, maybe creation failed or race condition. 
+    // If no household found, maybe creation failed or race condition.
     // Return null or throw? Throwing ensures we don't write orphaned data.
     throw new Error("No household found for user");
   }
@@ -59,14 +59,14 @@ async function getPrimaryHouseholdId() {
 }
 
 export async function getPeople(): Promise<Person[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("people").select("*").order("name");
   if (error) throw error;
   return data.map(toPerson);
 }
 
 export async function updatePerson(id: string, patch: Partial<Person>): Promise<Person> {
-  const supabase = createClient();
+  const supabase = await createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
@@ -85,14 +85,14 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("categories").select("*").order("name");
   if (error) throw error;
   return data.map(toCategory);
 }
 
 export async function updateCategory(id: string, patch: Partial<Category>): Promise<Category> {
-  const supabase = createClient();
+  const supabase = await createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
@@ -111,7 +111,7 @@ export async function updateCategory(id: string, patch: Partial<Category>): Prom
 }
 
 export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
-  const supabase = createClient();
+  const supabase = await createClient();
   let query = supabase.from("transactions").select("*");
 
   if (year !== undefined && month !== undefined) {
@@ -127,9 +127,9 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 }
 
 export async function createTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
-  
+
   const dbRow = {
     description: t.description,
     amount: t.amount,
@@ -147,7 +147,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
 }
 
 export async function updateTransaction(id: number, t: Partial<Transaction>): Promise<Transaction> {
-  const supabase = createClient();
+  const supabase = await createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (t.description !== undefined) dbPatch.description = t.description;
@@ -169,13 +169,13 @@ export async function updateTransaction(id: number, t: Partial<Transaction>): Pr
 }
 
 export async function deleteTransaction(id: number): Promise<void> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
   if (error) return null;
   return toTransaction(data);
