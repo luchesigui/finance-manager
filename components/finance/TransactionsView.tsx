@@ -10,6 +10,7 @@ import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerConte
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import type { NewTransactionFormState } from "@/lib/types";
@@ -126,38 +127,40 @@ Retorne APENAS o JSON, sem markdown.
       <MonthNavigator />
 
       <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-100 relative overflow-hidden">
-        <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-          <label
-            htmlFor="smart-input"
-            className="text-xs font-bold text-indigo-600 flex items-center gap-1 mb-2"
-          >
-            <Sparkles size={14} />
-            PREENCHIMENTO INTELIGENTE (BETA)
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="smart-input"
-              type="text"
-              value={smartInput}
-              onChange={(e) => setSmartInput(e.target.value)}
-              placeholder="Ex: Almoço com Amanda hoje custou 45 reais"
-              className="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              onKeyDown={(e) => e.key === "Enter" && handleSmartFill()}
-            />
-            <button
-              type="button"
-              onClick={handleSmartFill}
-              disabled={aiLoading || !smartInput}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        {isSmartFillEnabled && (
+          <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <label
+              htmlFor="smart-input"
+              className="text-xs font-bold text-indigo-600 flex items-center gap-1 mb-2"
             >
-              {aiLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                <BrainCircuit size={18} />
-              )}
-            </button>
+              <Sparkles size={14} />
+              PREENCHIMENTO INTELIGENTE (BETA)
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="smart-input"
+                type="text"
+                value={smartInput}
+                onChange={(event) => setSmartInput(event.target.value)}
+                placeholder="Ex: Almoço com Amanda hoje custou 45 reais"
+                className="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                onKeyDown={(event) => event.key === "Enter" && handleSmartFill()}
+              />
+              <button
+                type="button"
+                onClick={handleSmartFill}
+                disabled={aiLoading || !smartInput}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {aiLoading ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <BrainCircuit size={18} />
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
           <Plus className="bg-indigo-600 text-white rounded-full p-1" size={24} />
