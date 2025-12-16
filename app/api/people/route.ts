@@ -4,6 +4,8 @@ import { getPeople, updatePerson } from "@/lib/server/financeStore";
 import { readJsonBody, validateUpdateByIdBody } from "@/lib/server/requestBodyValidation";
 import type { Person } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const people = await getPeople();
   return NextResponse.json(people);

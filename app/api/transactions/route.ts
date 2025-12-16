@@ -4,6 +4,8 @@ import { createTransaction, getTransactions } from "@/lib/server/financeStore";
 import { readJsonBody, validateCreateTransactionsBody } from "@/lib/server/requestBodyValidation";
 import type { Transaction } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
 

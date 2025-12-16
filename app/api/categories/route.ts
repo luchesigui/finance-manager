@@ -4,6 +4,8 @@ import { getCategories, updateCategory } from "@/lib/server/financeStore";
 import { readJsonBody, validateUpdateByIdBody } from "@/lib/server/requestBodyValidation";
 import type { Category } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const categories = await getCategories();
   return NextResponse.json(categories);
