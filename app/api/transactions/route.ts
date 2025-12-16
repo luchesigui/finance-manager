@@ -3,18 +3,18 @@ import { NextResponse } from "next/server";
 import { getState, setState } from "@/lib/server/financeStore";
 import type { Transaction } from "@/lib/types";
 
-function isValidTransactionPatch(input: unknown): input is Partial<Omit<Transaction, "id">> {
+function isTransactionLike(input: unknown): input is Omit<Transaction, "id"> {
   if (!input || typeof input !== "object") return false;
-  const obj = input as Record<string, unknown>;
+  const record = input as Record<string, unknown>;
 
-  if ("description" in obj && typeof obj.description !== "string") return false;
-  if ("amount" in obj && typeof obj.amount !== "number") return false;
-  if ("categoryId" in obj && typeof obj.categoryId !== "string") return false;
-  if ("paidBy" in obj && typeof obj.paidBy !== "string") return false;
-  if ("isRecurring" in obj && typeof obj.isRecurring !== "boolean") return false;
-  if ("date" in obj && typeof obj.date !== "string") return false;
-
-  return true;
+  return (
+    typeof record.description === "string" &&
+    typeof record.amount === "number" &&
+    typeof record.categoryId === "string" &&
+    typeof record.paidBy === "string" &&
+    typeof record.isRecurring === "boolean" &&
+    typeof record.date === "string"
+  );
 }
 
 export async function GET(request: Request) {
@@ -40,44 +40,28 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as unknown;
 
-  const items = Array.isArray(body) ? body : [body];
-  if (items.length === 0) {
+  const payloadItems = Array.isArray(body) ? body : [body];
+  if (payloadItems.length === 0) {
     return NextResponse.json({ error: "Empty payload" }, { status: 400 });
   }
 
-  const required: Array<keyof Omit<Transaction, "id">> = [
-    "description",
-    "amount",
-    "categoryId",
-    "paidBy",
-    "isRecurring",
-    "date",
-  ];
+  const createdTransactions: Transaction[] = [];
 
-  const nextTransactions: Transaction[] = [];
-
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i] as unknown;
-    if (!isValidTransactionPatch(item)) {
-      return NextResponse.json({ error: `Invalid item at index ${i}` }, { status: 400 });
+  for (let payloadIndex = 0; payloadIndex < payloadItems.length; payloadIndex++) {
+    const payloadItem = payloadItems[payloadIndex] as unknown;
+    if (!isTransactionLike(payloadItem)) {
+      return NextResponse.json(
+        { error: `Invalid transaction at index ${payloadIndex}` },
+        { status: 400 },
+      );
     }
-    for (const k of required) {
-      if (!(k in (item as Record<string, unknown>))) {
-        return NextResponse.json(
-          { error: `Missing field: ${String(k)} (item ${i})` },
-          { status: 400 },
-        );
-      }
-    }
-
-    const data = item as Omit<Transaction, "id">;
-    nextTransactions.push({ id: Date.now() + i, ...data });
+    createdTransactions.push({ id: Date.now() + payloadIndex, ...payloadItem });
   }
 
   const state = getState();
-  setState({ ...state, transactions: [...nextTransactions, ...state.transactions] });
+  setState({ ...state, transactions: [...createdTransactions, ...state.transactions] });
 
-  return NextResponse.json(Array.isArray(body) ? nextTransactions : nextTransactions[0], {
+  return NextResponse.json(Array.isArray(body) ? createdTransactions : createdTransactions[0], {
     status: 201,
   });
 }

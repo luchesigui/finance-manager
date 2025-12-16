@@ -42,10 +42,10 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
       personId: string;
       patch: Partial<Omit<Person, "id">>;
     }) =>
-      fetchJson<Person>(`/api/people/${encodeURIComponent(personId)}`, {
+      fetchJson<Person>("/api/people", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify({ personId, patch }),
       }),
     onSuccess: (updatedPerson) => {
       queryClient.setQueryData<Person[]>(["people"], (existingPeople = []) =>

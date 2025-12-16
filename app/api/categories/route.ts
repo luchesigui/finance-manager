@@ -3,42 +3,45 @@ import { NextResponse } from "next/server";
 import { getState, setState } from "@/lib/server/financeStore";
 import type { Category } from "@/lib/types";
 
-function isValidCategoryPatch(input: unknown): input is Partial<Omit<Category, "id">> {
-  if (!input || typeof input !== "object") return false;
-  const obj = input as Record<string, unknown>;
-
-  if ("name" in obj && typeof obj.name !== "string") return false;
-  if ("targetPercent" in obj && typeof obj.targetPercent !== "number") return false;
-  if ("color" in obj && typeof obj.color !== "string") return false;
-
-  return true;
-}
-
 export async function GET() {
-  const state = getState();
-  return NextResponse.json(state.categories);
+  return NextResponse.json(getState().categories);
 }
 
-export async function POST(request: Request) {
+export async function PATCH(request: Request) {
   const body = (await request.json().catch(() => null)) as unknown;
 
-  if (!isValidCategoryPatch(body) || typeof body.name !== "string") {
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
+  }
+
+  const { categoryId, patch } = body as {
+    categoryId?: unknown;
+    patch?: unknown;
+  };
+
+  if (typeof categoryId !== "string" || !patch || typeof patch !== "object") {
     return NextResponse.json(
-      { error: "Invalid body. Expected at least { name: string }." },
+      { error: "Expected { categoryId: string, patch: object }" },
       { status: 400 },
     );
   }
 
   const state = getState();
-  const nextId = `c${crypto.randomUUID().slice(0, 8)}`;
+  const categoryIndex = state.categories.findIndex((category) => category.id === categoryId);
 
-  const category: Category = {
-    id: nextId,
-    name: body.name,
-    targetPercent: typeof body.targetPercent === "number" ? body.targetPercent : 0,
-    color: typeof body.color === "string" ? body.color : "text-slate-600",
-  };
+  if (categoryIndex < 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
-  setState({ ...state, categories: [category, ...state.categories] });
-  return NextResponse.json(category, { status: 201 });
+  const updatedCategory = {
+    ...state.categories[categoryIndex],
+    ...(patch as object),
+  } satisfies Category;
+
+  const nextCategories = state.categories.slice();
+  nextCategories[categoryIndex] = updatedCategory;
+
+  setState({ ...state, categories: nextCategories });
+
+  return NextResponse.json(updatedCategory);
 }

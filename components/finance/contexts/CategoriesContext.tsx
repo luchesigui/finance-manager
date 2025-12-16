@@ -42,10 +42,10 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
       categoryId: string;
       patch: Partial<Omit<Category, "id">>;
     }) =>
-      fetchJson<Category>(`/api/categories/${encodeURIComponent(categoryId)}`, {
+      fetchJson<Category>("/api/categories", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify({ categoryId, patch }),
       }),
     onSuccess: (updatedCategory) => {
       queryClient.setQueryData<Category[]>(["categories"], (existingCategories = []) =>
