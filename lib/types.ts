@@ -5,6 +5,7 @@ export type Person = {
   color: string;
   householdId?: string;
   linkedUserId?: string;
+  email?: string;
 };
 
 export type Category = {

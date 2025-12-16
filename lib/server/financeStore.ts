@@ -12,6 +12,7 @@ const toPerson = (row: any): Person => ({
   color: row.color,
   householdId: row.household_id,
   linkedUserId: row.linked_user_id,
+  email: row.email,
 });
 
 // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
@@ -72,6 +73,7 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.income !== undefined) dbPatch.income = patch.income;
   if (patch.color !== undefined) dbPatch.color = patch.color;
+  if (patch.email !== undefined) dbPatch.email = patch.email;
 
   const { data, error } = await supabase
     .from("people")
@@ -82,6 +84,16 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
 
   if (error) throw error;
   return toPerson(data);
+}
+
+export async function getCurrentUserId(): Promise<string> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+  return user.id;
 }
 
 export async function getCategories(): Promise<Category[]> {
@@ -179,4 +191,49 @@ export async function getTransaction(id: number): Promise<Transaction | null> {
   const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
   if (error) return null;
   return toTransaction(data);
+}
+
+export async function createPerson(data: {
+  name: string;
+  income: number;
+}): Promise<Person> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  // Get a random color for the new person
+  const colors = [
+    "bg-blue-500",
+    "bg-pink-500",
+    "bg-green-500",
+    "bg-purple-500",
+    "bg-yellow-500",
+    "bg-indigo-500",
+    "bg-red-500",
+    "bg-teal-500",
+  ];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+  // Create the person record
+  const dbRow = {
+    name: data.name,
+    income: data.income,
+    color: randomColor,
+    household_id: householdId,
+    linked_user_id: null,
+  };
+
+  const { data: personData, error: personError } = await supabase
+    .from("people")
+    .insert(dbRow)
+    .select()
+    .single();
+
+  if (personError) throw personError;
+  return toPerson(personData);
+}
+
+export async function deletePerson(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("people").delete().eq("id", id);
+  if (error) throw error;
 }
