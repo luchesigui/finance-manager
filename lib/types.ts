@@ -3,6 +3,8 @@ export type Person = {
   name: string;
   income: number;
   color: string;
+  householdId?: string;
+  linkedUserId?: string;
 };
 
 export type Category = {
@@ -10,6 +12,7 @@ export type Category = {
   name: string;
   targetPercent: number;
   color: string;
+  householdId?: string;
 };
 
 export type Transaction = {
@@ -21,6 +24,7 @@ export type Transaction = {
   isRecurring: boolean;
   /** YYYY-MM-DD */
   date: string;
+  householdId?: string;
 };
 
 export type NewTransactionFormState = {

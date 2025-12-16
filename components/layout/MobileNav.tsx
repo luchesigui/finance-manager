@@ -13,6 +13,10 @@ const tabs = [
 export function MobileNav() {
   const pathname = usePathname();
 
+  if (pathname === "/login" || pathname === "/signup") {
+    return null;
+  }
+
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-around z-20">
       {tabs.map((tab) => {

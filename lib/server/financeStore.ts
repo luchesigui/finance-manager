@@ -1,6 +1,6 @@
 import "server-only";
 
-import { supabase } from "@/lib/server/supabase";
+import { createClient } from "@/lib/supabase/server";
 import type { Category, Person, Transaction } from "@/lib/types";
 
 // Helper to convert snake_case DB result to camelCase
@@ -10,6 +10,8 @@ const toPerson = (row: any): Person => ({
   name: row.name,
   income: Number(row.income),
   color: row.color,
+  householdId: row.household_id,
+  linkedUserId: row.linked_user_id,
 });
 
 // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
@@ -18,6 +20,7 @@ const toCategory = (row: any): Category => ({
   name: row.name,
   targetPercent: Number(row.target_percent),
   color: row.color,
+  householdId: row.household_id,
 });
 
 // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
@@ -29,15 +32,41 @@ const toTransaction = (row: any): Transaction => ({
   paidBy: row.paid_by,
   isRecurring: row.is_recurring,
   date: row.date,
+  householdId: row.household_id,
 });
 
+async function getPrimaryHouseholdId() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { data, error } = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    // If no household found, maybe creation failed or race condition. 
+    // Return null or throw? Throwing ensures we don't write orphaned data.
+    throw new Error("No household found for user");
+  }
+  return data.household_id;
+}
+
 export async function getPeople(): Promise<Person[]> {
+  const supabase = createClient();
   const { data, error } = await supabase.from("people").select("*").order("name");
   if (error) throw error;
   return data.map(toPerson);
 }
 
 export async function updatePerson(id: string, patch: Partial<Person>): Promise<Person> {
+  const supabase = createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
@@ -56,12 +85,14 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
 }
 
 export async function getCategories(): Promise<Category[]> {
+  const supabase = createClient();
   const { data, error } = await supabase.from("categories").select("*").order("name");
   if (error) throw error;
   return data.map(toCategory);
 }
 
 export async function updateCategory(id: string, patch: Partial<Category>): Promise<Category> {
+  const supabase = createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
@@ -80,22 +111,11 @@ export async function updateCategory(id: string, patch: Partial<Category>): Prom
 }
 
 export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
+  const supabase = createClient();
   let query = supabase.from("transactions").select("*");
 
   if (year !== undefined && month !== undefined) {
-    // Construct start and end date for the month
-    // Note: month is 0-indexed in JS Date, but usually 1-indexed in API params?
-    // Let's check how it's used. In route.ts: Number.parseInt(month, 10).
-    // Usually people pass 1-12. But JS Date uses 0-11.
-    // The current implementation does: t.date.split("-")[1] === m.
-    // If date is "2023-05-01", split gives "05", parseInt gives 5.
-    // So if user passes 5, it matches May.
-
-    // Postgres dates are YYYY-MM-DD.
-    // We can use filters.
-
     const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
-    // Last day of month
     const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
 
     query = query.gte("date", startDate).lte("date", endDate);
@@ -107,6 +127,9 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 }
 
 export async function createTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
+  const supabase = createClient();
+  const householdId = await getPrimaryHouseholdId();
+  
   const dbRow = {
     description: t.description,
     amount: t.amount,
@@ -114,6 +137,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
     date: t.date,
+    household_id: householdId,
   };
 
   const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();
@@ -123,6 +147,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
 }
 
 export async function updateTransaction(id: number, t: Partial<Transaction>): Promise<Transaction> {
+  const supabase = createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (t.description !== undefined) dbPatch.description = t.description;
@@ -144,12 +169,14 @@ export async function updateTransaction(id: number, t: Partial<Transaction>): Pr
 }
 
 export async function deleteTransaction(id: number): Promise<void> {
+  const supabase = createClient();
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) throw error;
 }
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
+  const supabase = createClient();
   const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
-  if (error) return null; // Handle not found gracefully?
+  if (error) return null;
   return toTransaction(data);
 }
