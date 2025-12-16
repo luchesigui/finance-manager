@@ -224,44 +224,7 @@ Retorne APENAS o JSON, sem markdown.
             </select>
           </div>
 
-          <div>
-            <label
-              htmlFor="transaction-date"
-              className="block text-xs font-medium text-slate-500 mb-1"
-            >
-              Data (Opcional)
-            </label>
-            <input
-              id="transaction-date"
-              type="date"
-              className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600"
-              value={newTrans.date}
-              onChange={(e) => setNewTrans({ ...newTrans, date: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="transaction-paid-by"
-              className="block text-xs font-medium text-slate-500 mb-1"
-            >
-              Pago por
-            </label>
-            <select
-              id="transaction-paid-by"
-              className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              value={newTrans.paidBy}
-              onChange={(e) => setNewTrans({ ...newTrans, paidBy: e.target.value })}
-            >
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="lg:col-span-2 flex items-center gap-6 pb-2">
+          <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
             {!newTrans.isInstallment && (
               <div className="flex items-center gap-2">
                 <input
@@ -323,6 +286,51 @@ Retorne APENAS o JSON, sem markdown.
               </div>
             )}
           </div>
+
+          <details className="lg:col-span-4 rounded-lg border border-slate-200 bg-slate-50">
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-slate-700">
+              Informações adicionais
+              <span className="ml-2 text-xs font-normal text-slate-500">(Data, Pago por)</span>
+            </summary>
+            <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="transaction-date"
+                  className="block text-xs font-medium text-slate-500 mb-1"
+                >
+                  Data (Opcional)
+                </label>
+                <input
+                  id="transaction-date"
+                  type="date"
+                  className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600 bg-white"
+                  value={newTrans.date}
+                  onChange={(e) => setNewTrans({ ...newTrans, date: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="transaction-paid-by"
+                  className="block text-xs font-medium text-slate-500 mb-1"
+                >
+                  Pago por
+                </label>
+                <select
+                  id="transaction-paid-by"
+                  className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  value={newTrans.paidBy}
+                  onChange={(e) => setNewTrans({ ...newTrans, paidBy: e.target.value })}
+                >
+                  {people.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </details>
 
           <div className="lg:col-span-4 mt-2">
             <button
