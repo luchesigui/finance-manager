@@ -63,12 +63,13 @@ export function SettingsView() {
   // Get current user ID
   const { data: userData } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => fetchJson<{ userId: string; isAnonymous: boolean; anonymousId?: string }>("/api/user"),
+    queryFn: () => fetchJson<{ userId: string; isAnonymous: boolean; anonymousId?: string; hasServiceKey?: boolean }>("/api/user"),
   });
 
   const currentUserId = userData?.userId;
   const isAnonymous = userData?.isAnonymous;
   const anonymousId = userData?.anonymousId;
+  const hasServiceKey = userData?.hasServiceKey;
 
   // Initialize edits from people data
   useEffect(() => {
@@ -305,6 +306,11 @@ export function SettingsView() {
                 Se você limpar os cookies, perderá todos os dados.
                 {anonymousId && <span className="block mt-1 text-xs opacity-70 font-mono">ID: {anonymousId.slice(0, 8)}...</span>}
               </p>
+              {hasServiceKey === false && (
+                <p className="text-sm text-red-600 font-bold mt-2">
+                   ERRO: SUPABASE_SERVICE_ROLE_KEY não configurada. O salvamento de dados falhará.
+                </p>
+              )}
             </div>
             <a
               href="/signup"

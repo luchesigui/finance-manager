@@ -14,8 +14,17 @@ export async function GET() {
     if (userId && anonymousId) {
        shouldMerge = true;
     }
+    
+    // Debug: Check if Service Role Key is set
+    const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    return NextResponse.json({ userId, isAnonymous: !userId, shouldMerge, anonymousId });
+    return NextResponse.json({ 
+      userId, 
+      isAnonymous: !userId, 
+      shouldMerge, 
+      anonymousId,
+      hasServiceKey 
+    });
   } catch (error) {
     console.error("Failed to get current user", error);
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
