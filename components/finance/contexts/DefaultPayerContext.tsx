@@ -5,6 +5,7 @@ import type React from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo } from "react";
 
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
+import { getGuestDefaultPayerId, setGuestDefaultPayerId } from "@/lib/guestStorage";
 
 async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
   const response = await fetch(url, requestInit);
@@ -29,10 +30,11 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   // Get current user ID to find owner's person
   const { data: userData } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => fetchJson<{ userId: string }>("/api/user"),
+    queryFn: () => fetchJson<{ userId: string | null; isGuest: boolean }>("/api/user"),
   });
 
-  const currentUserId = userData?.userId;
+  const isGuest = userData?.isGuest ?? true;
+  const currentUserId = !isGuest ? (userData?.userId ?? null) : null;
 
   // Find the owner's person (person with linkedUserId matching current user)
   const ownerPerson = useMemo(() => {
@@ -43,6 +45,7 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   // Fetch default payer from database
   const { data: defaultPayerData, isLoading } = useQuery({
     queryKey: ["defaultPayer"],
+    enabled: !isGuest,
     queryFn: () => fetchJson<{ defaultPayerId: string | null }>("/api/default-payer"),
     // Always fetch fresh data when the component mounts to ensure we have the latest from DB
     refetchOnMount: true,
@@ -51,6 +54,10 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   // Update default payer mutation
   const updateMutation = useMutation({
     mutationFn: async (personId: string) => {
+      if (isGuest) {
+        setGuestDefaultPayerId(personId);
+        return personId;
+      }
       await fetchJson<{ success: boolean }>("/api/default-payer", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -72,6 +79,16 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
 
   // Determine the effective default payer ID
   const defaultPayerId = useMemo(() => {
+    if (isGuest) {
+      const stored = getGuestDefaultPayerId();
+      if (stored && people.some((p) => p.id === stored)) return stored;
+      if (people.length > 0) {
+        setGuestDefaultPayerId(people[0].id);
+        return people[0].id;
+      }
+      return "";
+    }
+
     // Always prioritize the database value if it exists and is valid
     if (defaultPayerData?.defaultPayerId) {
       const personExists = people.some((p) => p.id === defaultPayerData.defaultPayerId);
@@ -94,7 +111,7 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
 
     // Default fallback (shouldn't happen in practice)
     return "";
-  }, [defaultPayerData?.defaultPayerId, people, ownerPerson]);
+  }, [defaultPayerData?.defaultPayerId, isGuest, people, ownerPerson]);
 
   // Set default payer with database persistence
   const setDefaultPayerId = useCallback(
@@ -113,13 +130,21 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   // Auto-set default payer to owner if not set and owner exists
   // Only do this once when data is loaded and no default payer is set
   useEffect(() => {
+    if (isGuest) return;
     if (isLoading || !ownerPerson || updateMutation.isPending) return;
     // Only set if we don't have a default payer yet and we have people loaded
     if (!defaultPayerData?.defaultPayerId && ownerPerson && people.length > 0) {
       // Use the mutation directly to avoid infinite loops
       updateMutation.mutate(ownerPerson.id);
     }
-  }, [isLoading, defaultPayerData?.defaultPayerId, ownerPerson, people.length, updateMutation]);
+  }, [
+    isGuest,
+    isLoading,
+    defaultPayerData?.defaultPayerId,
+    ownerPerson,
+    people.length,
+    updateMutation,
+  ]);
 
   const contextValue = useMemo<DefaultPayerContextValue>(
     () => ({

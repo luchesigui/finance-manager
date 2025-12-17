@@ -2,8 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
+import {
+  ensureGuestPeople,
+  getGuestTransactions,
+  setGuestPeople,
+  setGuestTransactions,
+} from "@/lib/guestStorage";
 import type { Person } from "@/lib/types";
 
 async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
@@ -34,8 +40,25 @@ const PeopleContext = createContext<PeopleContextValue | null>(null);
 export function PeopleProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const queryClient = useQueryClient();
 
+  const sessionQuery = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: () => fetchJson<{ userId: string | null; isGuest: boolean }>("/api/user"),
+  });
+  const isGuest = sessionQuery.data?.isGuest ?? true;
+
+  const [guestPeople, setGuestPeopleState] = useState<Person[]>([]);
+  const [guestLoaded, setGuestLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isGuest) return;
+    const people = ensureGuestPeople().map((p) => ({ ...p }) as Person);
+    setGuestPeopleState(people);
+    setGuestLoaded(true);
+  }, [isGuest]);
+
   const peopleQuery = useQuery({
     queryKey: ["people"],
+    enabled: !isGuest,
     queryFn: () => fetchJson<Person[]>("/api/people"),
   });
 
@@ -61,12 +84,20 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
 
   const updatePersonField = useCallback<PeopleContextValue["updatePersonField"]>(
     (personId, fieldName, fieldValue) => {
+      if (isGuest) {
+        setGuestPeopleState((prev) => {
+          const next = prev.map((p) => (p.id === personId ? { ...p, [fieldName]: fieldValue } : p));
+          setGuestPeople(next.map(({ id, name, income }) => ({ id, name, income })));
+          return next;
+        });
+        return;
+      }
       updatePersonMutation.mutate({
         personId,
         patch: { [fieldName]: fieldValue } as Partial<Omit<Person, "id">>,
       });
     },
-    [updatePersonMutation],
+    [isGuest, updatePersonMutation],
   );
 
   const createPersonMutation = useMutation({
@@ -86,9 +117,22 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
 
   const createPerson = useCallback<PeopleContextValue["createPerson"]>(
     async (data) => {
+      if (isGuest) {
+        const created: Person = {
+          id: `g:${crypto.randomUUID()}`,
+          name: data.name,
+          income: data.income,
+        };
+        setGuestPeopleState((prev) => {
+          const next = [...prev, created];
+          setGuestPeople(next.map(({ id, name, income }) => ({ id, name, income })));
+          return next;
+        });
+        return created;
+      }
       return createPersonMutation.mutateAsync(data);
     },
-    [createPersonMutation],
+    [isGuest, createPersonMutation],
   );
 
   const deletePersonMutation = useMutation({
@@ -105,13 +149,45 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
 
   const deletePerson = useCallback<PeopleContextValue["deletePerson"]>(
     async (personId) => {
+      if (isGuest) {
+        // Reassign guest transactions to first remaining person (or keep if none).
+        setGuestPeopleState((prev) => {
+          const nextPeople = prev.filter((p) => p.id !== personId);
+          setGuestPeople(nextPeople.map(({ id, name, income }) => ({ id, name, income })));
+
+          const remainingId = nextPeople[0]?.id;
+          if (remainingId) {
+            const txs = getGuestTransactions();
+            const updatedTxs = txs.map((t) =>
+              t.paidBy === personId ? { ...t, paidBy: remainingId } : t,
+            );
+            setGuestTransactions(updatedTxs);
+          }
+          return nextPeople;
+        });
+        return;
+      }
       await deletePersonMutation.mutateAsync(personId);
     },
-    [deletePersonMutation],
+    [isGuest, deletePersonMutation],
   );
 
   const updatePeople = useCallback<PeopleContextValue["updatePeople"]>(
     async (updates) => {
+      if (isGuest) {
+        setGuestPeopleState((prev) => {
+          const byId = new Map(prev.map((p) => [p.id, p]));
+          for (const update of updates) {
+            const existing = byId.get(update.personId);
+            if (!existing) continue;
+            byId.set(update.personId, { ...existing, ...update.patch });
+          }
+          const next = Array.from(byId.values());
+          setGuestPeople(next.map(({ id, name, income }) => ({ id, name, income })));
+          return next;
+        });
+        return;
+      }
       // Update all people sequentially
       const updatedPeople = await Promise.all(
         updates.map(({ personId, patch }) =>
@@ -129,21 +205,25 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
         return existingPeople.map((person) => updatedMap.get(person.id) ?? person);
       });
     },
-    [queryClient],
+    [isGuest, queryClient],
   );
 
   const contextValue = useMemo<PeopleContextValue>(
     () => ({
-      people: peopleQuery.data ?? [],
-      isPeopleLoading: peopleQuery.isLoading,
+      people: isGuest ? guestPeople : (peopleQuery.data ?? []),
+      isPeopleLoading: isGuest ? !guestLoaded : peopleQuery.isLoading || sessionQuery.isLoading,
       updatePersonField,
       updatePeople,
       createPerson,
       deletePerson,
     }),
     [
+      guestLoaded,
+      guestPeople,
+      isGuest,
       peopleQuery.data,
       peopleQuery.isLoading,
+      sessionQuery.isLoading,
       updatePersonField,
       updatePeople,
       createPerson,

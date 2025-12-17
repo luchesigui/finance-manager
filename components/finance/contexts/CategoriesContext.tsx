@@ -5,6 +5,7 @@ import type React from "react";
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 import { DEFAULT_CATEGORIES } from "@/lib/defaultCategories";
+import { getGuestCategoryOverridesByName } from "@/lib/guestStorage";
 import type { Category } from "@/lib/types";
 
 async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
@@ -13,27 +14,6 @@ async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> 
     throw new Error(`${requestInit?.method ?? "GET"} ${url} failed: ${response.status}`);
   }
   return (await response.json()) as T;
-}
-
-const GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY = "fp_guest_category_overrides_by_name_v1";
-
-function readGuestCategoryOverridesByName(): Record<string, number> {
-  try {
-    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object") return {};
-
-    const out: Record<string, number> = {};
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (typeof key !== "string" || key.length === 0) continue;
-      if (typeof value !== "number" || !Number.isFinite(value)) continue;
-      out[key] = value;
-    }
-    return out;
-  } catch {
-    return {};
-  }
 }
 
 type CategoriesContextValue = {
@@ -59,8 +39,11 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
     queryFn: () => fetchJson<{ userId: string | null; isGuest: boolean }>("/api/user"),
   });
 
+  const isGuest = sessionQuery.data?.isGuest ?? true;
+
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
+    enabled: !isGuest,
     queryFn: () => fetchJson<Category[]>("/api/categories"),
   });
 
@@ -118,17 +101,11 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
     [queryClient],
   );
 
-  const [guestOverridesByName] = useState<Record<string, number>>(() => {
-    try {
-      return readGuestCategoryOverridesByName();
-    } catch {
-      return {};
-    }
-  });
+  const [guestOverridesByName] = useState<Record<string, number>>(() =>
+    getGuestCategoryOverridesByName(),
+  );
 
   const contextValue = useMemo<CategoriesContextValue>(() => {
-    const isGuest = sessionQuery.data?.isGuest ?? true;
-
     const fromApi = categoriesQuery.data ?? [];
     const baseCategories: Category[] =
       fromApi.length > 0
@@ -159,7 +136,7 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
     categoriesQuery.data,
     categoriesQuery.isLoading,
     guestOverridesByName,
-    sessionQuery.data?.isGuest,
+    isGuest,
     sessionQuery.isLoading,
     updateCategoryField,
     updateCategories,

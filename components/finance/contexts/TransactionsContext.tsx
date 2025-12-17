@@ -2,10 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { parseDateString } from "@/lib/format";
+import { getGuestTransactions, setGuestTransactions } from "@/lib/guestStorage";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
 async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
@@ -80,6 +81,12 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   const queryClient = useQueryClient();
   const { selectedYear, selectedMonthNumber, selectedMonthDate } = useCurrentMonth();
 
+  const sessionQuery = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: () => fetchJson<{ userId: string | null; isGuest: boolean }>("/api/user"),
+  });
+  const isGuest = sessionQuery.data?.isGuest ?? true;
+
   const transactionsQueryKey = useMemo(
     () => ["transactions", selectedYear, selectedMonthNumber] as const,
     [selectedYear, selectedMonthNumber],
@@ -87,6 +94,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
 
   const transactionsQuery = useQuery({
     queryKey: transactionsQueryKey,
+    enabled: !isGuest,
     queryFn: () =>
       fetchJson<Transaction[]>(
         `/api/transactions?year=${encodeURIComponent(
@@ -94,6 +102,15 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
         )}&month=${encodeURIComponent(String(selectedMonthNumber))}`,
       ),
   });
+
+  const [guestAllTransactions, setGuestAllTransactions] = useState<Transaction[]>([]);
+  const [guestLoaded, setGuestLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!isGuest) return;
+    setGuestAllTransactions(getGuestTransactions());
+    setGuestLoaded(true);
+  }, [isGuest]);
 
   const createTransactionsMutation = useMutation({
     mutationFn: async (newTransactionsPayload: Array<Omit<Transaction, "id">>) => {
@@ -157,6 +174,37 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     },
   });
 
+  const guestTransactionsForSelectedMonth = useMemo(() => {
+    if (!isGuest) return [];
+
+    const monthStart = new Date(Date.UTC(selectedYear, selectedMonthNumber - 1, 1))
+      .toISOString()
+      .split("T")[0];
+    const monthEnd = new Date(Date.UTC(selectedYear, selectedMonthNumber, 0))
+      .toISOString()
+      .split("T")[0];
+
+    const inMonth = guestAllTransactions.filter((t) => t.date >= monthStart && t.date <= monthEnd);
+    const recurring = guestAllTransactions.filter((t) => t.isRecurring && t.date < monthStart);
+
+    const virtualTransactions = recurring.map((t) => {
+      const originalDate = new Date(t.date);
+      const day = originalDate.getUTCDate();
+      const targetDate = new Date(Date.UTC(selectedYear, selectedMonthNumber - 1, day));
+      if (targetDate.getUTCMonth() !== selectedMonthNumber - 1) {
+        const lastDayOfMonth = new Date(Date.UTC(selectedYear, selectedMonthNumber, 0));
+        targetDate.setUTCFullYear(lastDayOfMonth.getUTCFullYear());
+        targetDate.setUTCMonth(lastDayOfMonth.getUTCMonth());
+        targetDate.setUTCDate(lastDayOfMonth.getUTCDate());
+      }
+      return { ...t, date: targetDate.toISOString().split("T")[0] };
+    });
+
+    const all = [...inMonth, ...virtualTransactions];
+    all.sort((a, b) => b.date.localeCompare(a.date));
+    return all;
+  }, [guestAllTransactions, isGuest, selectedMonthNumber, selectedYear]);
+
   const addTransactionsFromFormState = useCallback<
     TransactionsContextValue["addTransactionsFromFormState"]
   >(
@@ -214,28 +262,57 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
         });
       }
 
+      if (isGuest) {
+        const createdNow = newTransactionsPayload.map((t) => ({
+          ...t,
+          id: Date.now() + Math.floor(Math.random() * 1000),
+        }));
+        setGuestAllTransactions((prev) => {
+          const nextAll = [...createdNow, ...prev];
+          setGuestTransactions(nextAll);
+          return nextAll;
+        });
+        return;
+      }
+
       createTransactionsMutation.mutate(newTransactionsPayload);
     },
-    [createTransactionsMutation, selectedMonthDate],
+    [createTransactionsMutation, isGuest, selectedMonthDate],
   );
 
   const deleteTransactionById = useCallback<TransactionsContextValue["deleteTransactionById"]>(
     (transactionId) => {
+      if (isGuest) {
+        setGuestAllTransactions((prev) => {
+          const next = prev.filter((t) => t.id !== transactionId);
+          setGuestTransactions(next);
+          return next;
+        });
+        return;
+      }
       deleteTransactionMutation.mutate(transactionId);
     },
-    [deleteTransactionMutation],
+    [deleteTransactionMutation, isGuest],
   );
 
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
-      transactionsForSelectedMonth: transactionsQuery.data ?? [],
-      isTransactionsLoading: transactionsQuery.isLoading,
+      transactionsForSelectedMonth: isGuest
+        ? guestTransactionsForSelectedMonth
+        : (transactionsQuery.data ?? []),
+      isTransactionsLoading: isGuest
+        ? !guestLoaded
+        : transactionsQuery.isLoading || sessionQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
     }),
     [
       addTransactionsFromFormState,
       deleteTransactionById,
+      guestLoaded,
+      guestTransactionsForSelectedMonth,
+      isGuest,
+      sessionQuery.isLoading,
       transactionsQuery.data,
       transactionsQuery.isLoading,
     ],
