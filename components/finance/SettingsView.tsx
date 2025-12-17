@@ -40,7 +40,11 @@ type CategoryEdits = {
 export function SettingsView() {
   const { people, updatePeople, createPerson, deletePerson } = usePeople();
   const { categories, updateCategories } = useCategories();
-  const { defaultPayerId, setDefaultPayerId } = useDefaultPayer();
+  const {
+    defaultPayerId,
+    setDefaultPayerId,
+    isUpdating: isUpdatingDefaultPayer,
+  } = useDefaultPayer();
 
   const [newPersonName, setNewPersonName] = useState("");
   const [newPersonIncome, setNewPersonIncome] = useState<number | null>(null);
@@ -499,9 +503,12 @@ export function SettingsView() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-slate-100">
-          <p className="block text-sm font-medium text-slate-700 mb-2">
-            Responsável Padrão (Pré-selecionado)
-          </p>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="block text-sm font-medium text-slate-700">
+              Responsável Padrão (Pré-selecionado)
+            </p>
+            {isUpdatingDefaultPayer && <span className="text-xs text-slate-500">Salvando...</span>}
+          </div>
           <div className="flex gap-4">
             {people.map((p) => (
               <label
@@ -510,14 +517,19 @@ export function SettingsView() {
                   defaultPayerId === p.id
                     ? "border-indigo-500 bg-indigo-50 text-indigo-700"
                     : "border-slate-200 hover:bg-slate-50"
-                }`}
+                } ${isUpdatingDefaultPayer ? "opacity-50 cursor-wait" : ""}`}
               >
                 <input
                   type="radio"
                   name="defaultPayer"
                   checked={defaultPayerId === p.id}
-                  onChange={() => setDefaultPayerId(p.id)}
-                  className="text-indigo-600 focus:ring-indigo-500"
+                  onChange={() => {
+                    if (!isUpdatingDefaultPayer) {
+                      setDefaultPayerId(p.id);
+                    }
+                  }}
+                  disabled={isUpdatingDefaultPayer}
+                  className="text-indigo-600 focus:ring-indigo-500 disabled:cursor-wait"
                 />
                 {p.name}
               </label>

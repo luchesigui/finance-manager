@@ -234,6 +234,121 @@ export async function createPerson(data: {
 
 export async function deletePerson(id: string): Promise<void> {
   const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  // Check if there are any transactions referencing this person
+  const { data: transactions, error: checkError } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("paid_by", id);
+
+  if (checkError) throw checkError;
+
+  // If there are transactions, reassign them to another person
+  if (transactions && transactions.length > 0) {
+    // Get the default payer for the household
+    const defaultPayerId = await getDefaultPayerId();
+
+    // Find a replacement person (default payer or first other person in household)
+    let replacementPersonId: string | null = null;
+
+    if (defaultPayerId && defaultPayerId !== id) {
+      // Verify the default payer still exists
+      const { data: defaultPayer } = await supabase
+        .from("people")
+        .select("id")
+        .eq("id", defaultPayerId)
+        .eq("household_id", householdId)
+        .single();
+
+      if (defaultPayer) {
+        replacementPersonId = defaultPayerId;
+      }
+    }
+
+    // If no valid default payer, get the first other person in the household
+    if (!replacementPersonId) {
+      const { data: otherPeople, error: peopleError } = await supabase
+        .from("people")
+        .select("id")
+        .eq("household_id", householdId)
+        .neq("id", id)
+        .limit(1);
+
+      if (peopleError) throw peopleError;
+
+      if (!otherPeople || otherPeople.length === 0) {
+        const error = new Error(
+          "Cannot delete person because they have transactions and there are no other people to reassign them to.",
+        );
+        // @ts-expect-error - Adding error code for API route handling
+        error.code = "NO_REPLACEMENT_PERSON";
+        throw error;
+      }
+
+      replacementPersonId = otherPeople[0].id;
+    }
+
+    // Reassign all transactions to the replacement person
+    const { error: updateError } = await supabase
+      .from("transactions")
+      .update({ paid_by: replacementPersonId })
+      .eq("paid_by", id);
+
+    if (updateError) throw updateError;
+  }
+
+  // Now delete the person
   const { error } = await supabase.from("people").delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function getDefaultPayerId(): Promise<string | null> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const { data, error } = await supabase
+    .from("households")
+    .select("default_payer_id")
+    .eq("id", householdId)
+    .single();
+
+  if (error) throw error;
+  return data?.default_payer_id ?? null;
+}
+
+export async function updateDefaultPayerId(personId: string): Promise<void> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  // Verify that the person belongs to the household
+  const { data: personData, error: personError } = await supabase
+    .from("people")
+    .select("id, household_id")
+    .eq("id", personId)
+    .eq("household_id", householdId)
+    .single();
+
+  if (personError || !personData) {
+    console.error("Person validation error:", personError);
+    throw new Error("Person not found in household");
+  }
+
+  const { data: updateData, error } = await supabase
+    .from("households")
+    .update({ default_payer_id: personId })
+    .eq("id", householdId)
+    .select();
+
+  if (error) {
+    console.error("Failed to update default_payer_id:", error);
+    throw error;
+  }
+
+  if (!updateData || updateData.length === 0) {
+    console.error("Update returned no rows. RLS might be blocking the update.");
+    throw new Error("Failed to update default payer - no rows updated");
+  }
+
+  console.log("Successfully updated default_payer_id:", updateData);
 }

@@ -57,6 +57,37 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete person", error);
+
+    // Handle custom errors
+    if (error && typeof error === "object" && "code" in error) {
+      if (error.code === "NO_REPLACEMENT_PERSON") {
+        const errorMessage =
+          "message" in error && typeof error.message === "string"
+            ? error.message
+            : "Cannot delete person because they have transactions and there are no other people to reassign them to.";
+        return NextResponse.json({ error: errorMessage }, { status: 400 });
+      }
+
+      if (error.code === "HAS_TRANSACTIONS") {
+        const errorMessage =
+          "message" in error && typeof error.message === "string"
+            ? error.message
+            : "Cannot delete person because they have transactions associated with them.";
+        return NextResponse.json({ error: errorMessage }, { status: 400 });
+      }
+
+      // Handle PostgreSQL foreign key constraint error (fallback)
+      if (error.code === "23503") {
+        return NextResponse.json(
+          {
+            error:
+              "Cannot delete person because they are referenced by transactions. Please delete or update those transactions first.",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
     return NextResponse.json({ error: "Failed to delete person" }, { status: 500 });
   }
 }

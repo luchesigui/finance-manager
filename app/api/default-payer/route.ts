@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { getDefaultPayerId, updateDefaultPayerId } from "@/lib/server/financeStore";
+import {
+  getDefaultPayerId,
+  updateDefaultPayerId,
+} from "@/lib/server/financeStore";
 import { readJsonBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +14,10 @@ export async function GET() {
     return NextResponse.json({ defaultPayerId });
   } catch (error) {
     console.error("Failed to get default payer", error);
-    return NextResponse.json({ error: "Failed to get default payer" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to get default payer" },
+      { status: 500 }
+    );
   }
 }
 
@@ -19,7 +25,10 @@ export async function PATCH(request: Request) {
   const body = await readJsonBody(request);
 
   if (!body || typeof body !== "object" || !("personId" in body)) {
-    return NextResponse.json({ error: "Expected { personId: string }" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Expected { personId: string }" },
+      { status: 400 }
+    );
   }
 
   const { personId } = body as { personId: unknown };
@@ -27,7 +36,7 @@ export async function PATCH(request: Request) {
   if (typeof personId !== "string") {
     return NextResponse.json(
       { error: "Invalid type. Expected { personId: string }" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -38,13 +47,14 @@ export async function PATCH(request: Request) {
     const updatedDefaultPayerId = await getDefaultPayerId();
     if (updatedDefaultPayerId !== personId) {
       console.error(
-        `Update verification failed: expected ${personId}, got ${updatedDefaultPayerId}`,
+        `Update verification failed: expected ${personId}, got ${updatedDefaultPayerId}`
       );
       return NextResponse.json(
         {
-          error: "Update verification failed - database may not have been updated",
+          error:
+            "Update verification failed - database may not have been updated",
         },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -54,10 +64,11 @@ export async function PATCH(request: Request) {
     });
   } catch (error) {
     console.error("Failed to update default payer", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { error: "Failed to update default payer", details: errorMessage },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
