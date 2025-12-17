@@ -16,6 +16,57 @@ async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> 
   return (await response.json()) as T;
 }
 
+function looksLikeUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function resolveTransactionForeignKeys(
+  transaction: Omit<Transaction, "id">,
+): Promise<Omit<Transaction, "id">> {
+  let resolvedCategoryId = transaction.categoryId;
+  let resolvedPaidBy = transaction.paidBy;
+
+  // Category: if we used the guest fallback id (default:<name>), map it to the real DB category id by name.
+  if (resolvedCategoryId.startsWith("default:")) {
+    const categoryName = resolvedCategoryId.slice("default:".length);
+    const categories = await fetchJson<Array<{ id: string; name: string }>>("/api/categories");
+    const matched = categories.find((c) => c.name === categoryName);
+    if (!matched) {
+      throw new Error(`Unknown category "${categoryName}"`);
+    }
+    resolvedCategoryId = matched.id;
+  }
+
+  // If category id still isn't a UUID, refresh from the server and try to match by exact name if possible.
+  if (!looksLikeUuid(resolvedCategoryId)) {
+    const categories = await fetchJson<Array<{ id: string; name: string }>>("/api/categories");
+    const matched = categories.find((c) => c.id === resolvedCategoryId);
+    if (!matched) {
+      throw new Error("Invalid category id");
+    }
+  }
+
+  // Payer: if not set yet (common on first load as guest), resolve to DB default payer.
+  if (!resolvedPaidBy || !looksLikeUuid(resolvedPaidBy)) {
+    const { defaultPayerId } = await fetchJson<{ defaultPayerId: string | null }>(
+      "/api/default-payer",
+    );
+
+    if (defaultPayerId && looksLikeUuid(defaultPayerId)) {
+      resolvedPaidBy = defaultPayerId;
+    } else {
+      const people = await fetchJson<Array<{ id: string }>>("/api/people");
+      const first = people[0]?.id;
+      if (!first || !looksLikeUuid(first)) {
+        throw new Error("No payer available");
+      }
+      resolvedPaidBy = first;
+    }
+  }
+
+  return { ...transaction, categoryId: resolvedCategoryId, paidBy: resolvedPaidBy };
+}
+
 type TransactionsContextValue = {
   transactionsForSelectedMonth: Transaction[];
   isTransactionsLoading: boolean;
@@ -45,16 +96,21 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   });
 
   const createTransactionsMutation = useMutation({
-    mutationFn: (newTransactionsPayload: Array<Omit<Transaction, "id">>) =>
-      fetchJson<Transaction[] | Transaction>("/api/transactions", {
+    mutationFn: async (newTransactionsPayload: Array<Omit<Transaction, "id">>) => {
+      const resolvedPayload = await Promise.all(
+        newTransactionsPayload.map((t) => resolveTransactionForeignKeys(t)),
+      );
+
+      return fetchJson<Transaction[] | Transaction>("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTransactionsPayload),
+        body: JSON.stringify(resolvedPayload),
       }).then((createdTransactionsResponse) =>
         Array.isArray(createdTransactionsResponse)
           ? createdTransactionsResponse
           : [createdTransactionsResponse],
-      ),
+      );
+    },
     onSuccess: (createdTransactions) => {
       const createdTransactionsInSelectedMonth = createdTransactions.filter(
         (createdTransaction) => {
