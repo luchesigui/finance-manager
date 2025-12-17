@@ -133,7 +133,7 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
     const baseCategories: Category[] =
       fromApi.length > 0
         ? fromApi
-        : isGuest && !categoriesQuery.isLoading
+        : isGuest
           ? DEFAULT_CATEGORIES.map((c) => ({
               id: `default:${c.name}`,
               name: c.name,
