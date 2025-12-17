@@ -92,7 +92,9 @@ export function SettingsView() {
   }, [categories]);
 
   // Separate current user from other participants
-  const currentUserPerson = people.find((p) => p.linkedUserId === currentUserId);
+  const currentUserPerson = people.find(
+    (p) => p.linkedUserId === currentUserId
+  );
   const otherPeople = people.filter((p) => p.linkedUserId !== currentUserId);
 
   // Use edited values for calculations
@@ -111,7 +113,9 @@ export function SettingsView() {
   const currentUserWithShare = currentUserPerson
     ? peopleWithShare.find((p) => p.id === currentUserPerson.id)
     : null;
-  const otherPeopleWithShare = peopleWithShare.filter((p) => p.linkedUserId !== currentUserId);
+  const otherPeopleWithShare = peopleWithShare.filter(
+    (p) => p.linkedUserId !== currentUserId
+  );
 
   // Check if there are unsaved changes for people
   const hasUnsavedChanges = useMemo(() => {
@@ -142,7 +146,11 @@ export function SettingsView() {
     }, 0);
   }, [categories, categoryEdits]);
 
-  const updatePersonEdit = (personId: string, field: "name" | "income", value: string | number) => {
+  const updatePersonEdit = (
+    personId: string,
+    field: "name" | "income",
+    value: string | number
+  ) => {
     setPersonEdits((prev) => ({
       ...prev,
       [personId]: {
@@ -155,7 +163,8 @@ export function SettingsView() {
   const updateCategoryEdit = (categoryId: string, value: number) => {
     setCategoryEdits((prev) => {
       const currentEdit = prev[categoryId] || {
-        targetPercent: categories.find((c) => c.id === categoryId)?.targetPercent ?? 0,
+        targetPercent:
+          categories.find((c) => c.id === categoryId)?.targetPercent ?? 0,
       };
 
       // Validate that total doesn't exceed 100%
@@ -190,7 +199,8 @@ export function SettingsView() {
         .map((person) => {
           const edits = personEdits[person.id];
           if (!edits) return null;
-          if (edits.name === person.name && edits.income === person.income) return null;
+          if (edits.name === person.name && edits.income === person.income)
+            return null;
           return {
             personId: person.id,
             patch: {
@@ -199,7 +209,9 @@ export function SettingsView() {
             } as Partial<Omit<Person, "id">>,
           };
         })
-        .filter((update): update is NonNullable<typeof update> => update !== null);
+        .filter(
+          (update): update is NonNullable<typeof update> => update !== null
+        );
 
       if (updates.length > 0) {
         await updatePeople(updates);
@@ -235,7 +247,9 @@ export function SettingsView() {
             } as Partial<Omit<Category, "id">>,
           };
         })
-        .filter((update): update is NonNullable<typeof update> => update !== null);
+        .filter(
+          (update): update is NonNullable<typeof update> => update !== null
+        );
 
       if (updates.length > 0) {
         await updateCategories(updates);
@@ -328,7 +342,11 @@ export function SettingsView() {
                   type="text"
                   value={personEdits[currentUserWithShare.id]?.name ?? ""}
                   onChange={(event) =>
-                    updatePersonEdit(currentUserWithShare.id, "name", event.target.value)
+                    updatePersonEdit(
+                      currentUserWithShare.id,
+                      "name",
+                      event.target.value
+                    )
                   }
                   className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-sm"
                 />
@@ -346,7 +364,11 @@ export function SettingsView() {
                     id={`person-income-${currentUserWithShare.id}`}
                     value={personEdits[currentUserWithShare.id]?.income ?? 0}
                     onValueChange={(nextIncomeValue) =>
-                      updatePersonEdit(currentUserWithShare.id, "income", nextIncomeValue ?? 0)
+                      updatePersonEdit(
+                        currentUserWithShare.id,
+                        "income",
+                        nextIncomeValue ?? 0
+                      )
                     }
                     className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-sm"
                     placeholder="R$ 0,00"
@@ -355,7 +377,8 @@ export function SettingsView() {
               </div>
 
               <div className="w-full md:w-auto text-xs text-indigo-700 px-2 py-[6px] bg-white border border-indigo-200 rounded font-medium">
-                Porcentagem: {formatPercent(currentUserWithShare.sharePercent * 100)}
+                Porcentagem:{" "}
+                {formatPercent(currentUserWithShare.sharePercent * 100)}
               </div>
             </div>
           )}
@@ -381,7 +404,9 @@ export function SettingsView() {
                     id={`person-name-${person.id}`}
                     type="text"
                     value={edits.name}
-                    onChange={(event) => updatePersonEdit(person.id, "name", event.target.value)}
+                    onChange={(event) =>
+                      updatePersonEdit(person.id, "name", event.target.value)
+                    }
                     className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
                   />
                 </div>
@@ -398,7 +423,11 @@ export function SettingsView() {
                       id={`person-income-${person.id}`}
                       value={edits.income}
                       onValueChange={(nextIncomeValue) =>
-                        updatePersonEdit(person.id, "income", nextIncomeValue ?? 0)
+                        updatePersonEdit(
+                          person.id,
+                          "income",
+                          nextIncomeValue ?? 0
+                        )
                       }
                       className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
                       placeholder="R$ 0,00"
@@ -428,10 +457,13 @@ export function SettingsView() {
           {showNewPersonForm ? (
             <form
               onSubmit={handleCreatePerson}
-              className="flex flex-col md:flex-row gap-3 items-end md:items-center p-4 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300"
+              className="flex flex-col md:flex-row gap-3 items-end p-4 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300"
             >
               <div className="flex-1 w-full">
-                <label htmlFor="new-person-name" className="text-xs text-slate-500 font-medium">
+                <label
+                  htmlFor="new-person-name"
+                  className="text-xs text-slate-500 font-medium"
+                >
                   Nome
                 </label>
                 <input
@@ -446,7 +478,10 @@ export function SettingsView() {
               </div>
 
               <div className="w-full md:w-48">
-                <label htmlFor="new-person-income" className="text-xs text-slate-500 font-medium">
+                <label
+                  htmlFor="new-person-income"
+                  className="text-xs text-slate-500 font-medium"
+                >
                   Renda Mensal
                 </label>
                 <CurrencyInput
@@ -497,7 +532,9 @@ export function SettingsView() {
             <p className="block text-sm font-medium text-slate-700">
               Responsável Padrão (Pré-selecionado)
             </p>
-            {isUpdatingDefaultPayer && <span className="text-xs text-slate-500">Salvando...</span>}
+            {isUpdatingDefaultPayer && (
+              <span className="text-xs text-slate-500">Salvando...</span>
+            )}
           </div>
           <div className="flex gap-4">
             {people.map((p) => (
@@ -554,10 +591,13 @@ export function SettingsView() {
 
             return (
               <div key={cat.id} className="flex items-center gap-4">
-                <span className="flex-1 font-medium py-1" style={getCategoryColorStyle(cat.name)}>
+                <span
+                  className="flex-1 font-medium py-1"
+                  style={getCategoryColorStyle(cat.name)}
+                >
                   {cat.name}
                 </span>
-                <div className="flex items-center gap-2 w-32">
+                <div className="flex items-center justify-end gap-2 w-32">
                   <input
                     type="number"
                     value={edits.targetPercent}
@@ -576,7 +616,9 @@ export function SettingsView() {
           })}
 
           <div className="flex justify-between items-center pt-4 border-t border-slate-100 mt-4">
-            <span className="font-semibold text-slate-600">Total Planejado</span>
+            <span className="font-semibold text-slate-600">
+              Total Planejado
+            </span>
             <span
               className={`font-bold ${
                 totalCategoryPercent === 100 ? "text-green-600" : "text-red-500"

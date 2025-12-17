@@ -1,6 +1,14 @@
 "use client";
 
-import { BrainCircuit, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import {
+  BrainCircuit,
+  Layers,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
@@ -13,7 +21,6 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
-import { getPersonColor } from "@/lib/personColors";
 import type { NewTransactionFormState } from "@/lib/types";
 
 export function TransactionsView() {
@@ -21,8 +28,11 @@ export function TransactionsView() {
   const { people } = usePeople();
   const { categories } = useCategories();
   const { defaultPayerId } = useDefaultPayer();
-  const { transactionsForSelectedMonth, addTransactionsFromFormState, deleteTransactionById } =
-    useTransactions();
+  const {
+    transactionsForSelectedMonth,
+    addTransactionsFromFormState,
+    deleteTransactionById,
+  } = useTransactions();
 
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
@@ -74,7 +84,9 @@ export function TransactionsView() {
     const categoriesPrompt = categories
       .map((category) => `${category.id}:${category.name}`)
       .join(", ");
-    const peoplePrompt = people.map((person) => `${person.id}:${person.name}`).join(", ");
+    const peoplePrompt = people
+      .map((person) => `${person.id}:${person.name}`)
+      .join(", ");
     const todayStr = new Date().toISOString().split("T")[0];
 
     const prompt = `
@@ -145,7 +157,9 @@ Retorne APENAS o JSON, sem markdown.
                 onChange={(event) => setSmartInput(event.target.value)}
                 placeholder="Ex: Almoço com Amanda hoje custou 45 reais"
                 className="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                onKeyDown={(event) => event.key === "Enter" && handleSmartFill()}
+                onKeyDown={(event) =>
+                  event.key === "Enter" && handleSmartFill()
+                }
               />
               <button
                 type="button"
@@ -164,7 +178,10 @@ Retorne APENAS o JSON, sem markdown.
         )}
 
         <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Plus className="bg-indigo-600 text-white rounded-full p-1" size={24} />
+          <Plus
+            className="bg-indigo-600 text-white rounded-full p-1"
+            size={24}
+          />
           Nova Despesa Manual
         </h3>
 
@@ -185,7 +202,9 @@ Retorne APENAS o JSON, sem markdown.
               placeholder="Ex: Luz, Mercado, iFood..."
               className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.description}
-              onChange={(e) => setNewTrans({ ...newTrans, description: e.target.value })}
+              onChange={(e) =>
+                setNewTrans({ ...newTrans, description: e.target.value })
+              }
               required
             />
           </div>
@@ -202,7 +221,9 @@ Retorne APENAS o JSON, sem markdown.
               placeholder="R$ 0,00"
               className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.amount}
-              onValueChange={(amountValue) => setNewTrans({ ...newTrans, amount: amountValue })}
+              onValueChange={(amountValue) =>
+                setNewTrans({ ...newTrans, amount: amountValue })
+              }
               required
             />
           </div>
@@ -218,7 +239,9 @@ Retorne APENAS o JSON, sem markdown.
               id="transaction-category"
               className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
               value={newTrans.categoryId}
-              onChange={(e) => setNewTrans({ ...newTrans, categoryId: e.target.value })}
+              onChange={(e) =>
+                setNewTrans({ ...newTrans, categoryId: e.target.value })
+              }
             >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -235,7 +258,9 @@ Retorne APENAS o JSON, sem markdown.
                   type="checkbox"
                   id="recurring"
                   checked={newTrans.isRecurring}
-                  onChange={(e) => setNewTrans({ ...newTrans, isRecurring: e.target.checked })}
+                  onChange={(e) =>
+                    setNewTrans({ ...newTrans, isRecurring: e.target.checked })
+                  }
                   className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
                 />
                 <label
@@ -294,7 +319,9 @@ Retorne APENAS o JSON, sem markdown.
           <details className="lg:col-span-4 rounded-lg border border-slate-200 bg-slate-50">
             <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-slate-700">
               Informações adicionais
-              <span className="ml-2 text-xs font-normal text-slate-500">(Data, Pago por)</span>
+              <span className="ml-2 text-xs font-normal text-slate-500">
+                (Data, Pago por)
+              </span>
             </summary>
             <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -309,7 +336,9 @@ Retorne APENAS o JSON, sem markdown.
                   type="date"
                   className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600 bg-white"
                   value={newTrans.date}
-                  onChange={(e) => setNewTrans({ ...newTrans, date: e.target.value })}
+                  onChange={(e) =>
+                    setNewTrans({ ...newTrans, date: e.target.value })
+                  }
                 />
               </div>
 
@@ -324,7 +353,9 @@ Retorne APENAS o JSON, sem markdown.
                   id="transaction-paid-by"
                   className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   value={newTrans.paidBy}
-                  onChange={(e) => setNewTrans({ ...newTrans, paidBy: e.target.value })}
+                  onChange={(e) =>
+                    setNewTrans({ ...newTrans, paidBy: e.target.value })
+                  }
                 >
                   {people.map((person) => (
                     <option key={person.id} value={person.id}>
@@ -361,25 +392,27 @@ Retorne APENAS o JSON, sem markdown.
         </div>
         <div className="divide-y divide-slate-100">
           {transactionsForSelectedMonth.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">Nenhum lançamento neste mês.</div>
+            <div className="p-8 text-center text-slate-500">
+              Nenhum lançamento neste mês.
+            </div>
           ) : (
             transactionsForSelectedMonth.map((transaction) => {
               const selectedCategory = categories.find(
-                (category) => category.id === transaction.categoryId,
+                (category) => category.id === transaction.categoryId
               );
-              const selectedPerson = people.find((person) => person.id === transaction.paidBy);
+              const selectedPerson = people.find(
+                (person) => person.id === transaction.paidBy
+              );
               return (
                 <div
                   key={transaction.id}
                   className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${
-                        selectedPerson ? getPersonColor(selectedPerson.id) : "bg-gray-400"
-                      }`}
-                    >
-                      {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gray-400">
+                      {(
+                        selectedPerson?.name.substring(0, 2) ?? "?"
+                      ).toUpperCase()}
                     </div>
                     <div>
                       <h4 className="font-medium text-slate-800 flex items-center gap-2">
@@ -393,7 +426,11 @@ Retorne APENAS o JSON, sem markdown.
                       <p className="text-xs text-slate-500 flex gap-2">
                         <span>{selectedCategory?.name}</span>
                         <span>•</span>
-                        <span>{new Date(transaction.date).toLocaleDateString("pt-BR")}</span>
+                        <span>
+                          {new Date(transaction.date).toLocaleDateString(
+                            "pt-BR"
+                          )}
+                        </span>
                       </p>
                     </div>
                   </div>
