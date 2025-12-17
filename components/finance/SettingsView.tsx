@@ -24,11 +24,12 @@ async function fetchJson<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-const GUEST_CATEGORY_OVERRIDES_STORAGE_KEY = "fp_guest_category_overrides_v1";
+const GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY = "fp_guest_category_overrides_by_name_v1";
+const GUEST_CATEGORY_OVERRIDES_BY_ID_STORAGE_KEY = "fp_guest_category_overrides_v1";
 
-function readGuestCategoryOverrides(): Record<string, number> {
+function readGuestCategoryOverridesByName(): Record<string, number> {
   try {
-    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return {};
@@ -45,13 +46,28 @@ function readGuestCategoryOverrides(): Record<string, number> {
   }
 }
 
-function writeGuestCategoryOverridesFromEdits(edits: Record<string, { targetPercent: number }>) {
+function readGuestCategoryOverridesById(): Record<string, number> {
   try {
-    const overrides: Record<string, number> = {};
-    for (const [id, edit] of Object.entries(edits)) {
-      overrides[id] = edit.targetPercent;
+    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_BY_ID_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+
+    const out: Record<string, number> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof key !== "string" || key.length === 0) continue;
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      out[key] = value;
     }
-    localStorage.setItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeGuestCategoryOverridesByName(overrides: Record<string, number>) {
+  try {
+    localStorage.setItem(GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY, JSON.stringify(overrides));
   } catch {
     // ignore (private mode, quota, etc.)
   }
@@ -59,7 +75,8 @@ function writeGuestCategoryOverridesFromEdits(edits: Record<string, { targetPerc
 
 function clearGuestCategoryOverrides() {
   try {
-    localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+    localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY);
+    localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_BY_ID_STORAGE_KEY);
   } catch {
     // ignore
   }
@@ -131,11 +148,35 @@ export function SettingsView() {
 
   // Initialize edits from categories data
   useEffect(() => {
-    const guestOverrides = isGuest ? readGuestCategoryOverrides() : {};
+    let guestOverridesByName: Record<string, number> = {};
+    if (isGuest) {
+      guestOverridesByName = readGuestCategoryOverridesByName();
+
+      // Back-compat: if we only have the old id-based key, convert to name-based once.
+      if (Object.keys(guestOverridesByName).length === 0) {
+        const byId = readGuestCategoryOverridesById();
+        if (Object.keys(byId).length > 0) {
+          for (const category of categories) {
+            const value = byId[category.id];
+            if (typeof value === "number" && Number.isFinite(value)) {
+              guestOverridesByName[category.name] = value;
+            }
+          }
+          if (Object.keys(guestOverridesByName).length > 0) {
+            writeGuestCategoryOverridesByName(guestOverridesByName);
+            try {
+              localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_BY_ID_STORAGE_KEY);
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+    }
     const initialEdits: CategoryEdits = {};
     for (const category of categories) {
       initialEdits[category.id] = {
-        targetPercent: guestOverrides[category.id] ?? category.targetPercent,
+        targetPercent: guestOverridesByName[category.name] ?? category.targetPercent,
       };
     }
     setCategoryEdits(initialEdits);
@@ -195,20 +236,22 @@ export function SettingsView() {
       if ("success" in json && json.success) {
         // After signup, apply any guest category overrides (localStorage) to the DB, then clear them.
         try {
-          const guestOverrides = readGuestCategoryOverrides();
-          const updates = Object.entries(guestOverrides)
-            .map(([categoryId, targetPercent]) => ({ categoryId, targetPercent }))
-            .filter((entry) => Number.isFinite(entry.targetPercent));
+          const guestOverridesByName = readGuestCategoryOverridesByName();
+          const entries = Object.entries(guestOverridesByName).filter(([, v]) =>
+            Number.isFinite(v),
+          );
 
-          if (updates.length > 0) {
+          if (entries.length > 0) {
             await Promise.all(
-              updates.map(({ categoryId, targetPercent }) =>
-                fetch("/api/categories", {
+              entries.map(([categoryName, targetPercent]) => {
+                const category = categories.find((c) => c.name === categoryName);
+                if (!category) return Promise.resolve();
+                return fetch("/api/categories", {
                   method: "PATCH",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ categoryId, patch: { targetPercent } }),
-                }),
-              ),
+                  body: JSON.stringify({ categoryId: category.id, patch: { targetPercent } }),
+                }).then(() => {});
+              }),
             );
             clearGuestCategoryOverrides();
             queryClient.invalidateQueries({ queryKey: ["categories"] });
@@ -298,8 +341,14 @@ export function SettingsView() {
       };
 
       if (isGuest) {
-        // Guest: persist to localStorage (not DB) as the user edits.
-        writeGuestCategoryOverridesFromEdits(next);
+        // Guest: persist to localStorage (not DB) as the user edits (keyed by category name).
+        const overridesByName: Record<string, number> = {};
+        for (const category of categories) {
+          const edit = next[category.id];
+          if (!edit) continue;
+          overridesByName[category.name] = edit.targetPercent;
+        }
+        writeGuestCategoryOverridesByName(overridesByName);
       }
 
       return next;

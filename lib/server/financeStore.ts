@@ -1,5 +1,6 @@
 import "server-only";
 
+import { DEFAULT_CATEGORIES } from "@/lib/defaultCategories";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Category, Person, Transaction } from "@/lib/types";
@@ -99,14 +100,13 @@ async function ensureGuestHousehold(guestId: string): Promise<string> {
   const defaultPersonId = createdPerson.id as string;
 
   // Default categories (same set as handle_new_user)
-  const { error: createCategoriesError } = await admin.from("categories").insert([
-    { name: "Liberdade Financeira", target_percent: 30, household_id: householdId },
-    { name: "Custos Fixos", target_percent: 25, household_id: householdId },
-    { name: "Conforto", target_percent: 15, household_id: householdId },
-    { name: "Metas", target_percent: 15, household_id: householdId },
-    { name: "Prazeres", target_percent: 10, household_id: householdId },
-    { name: "Conhecimento", target_percent: 5, household_id: householdId },
-  ]);
+  const { error: createCategoriesError } = await admin.from("categories").insert(
+    DEFAULT_CATEGORIES.map((c) => ({
+      name: c.name,
+      target_percent: c.targetPercent,
+      household_id: householdId,
+    })),
+  );
 
   if (createCategoriesError) throw createCategoriesError;
 

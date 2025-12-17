@@ -4,11 +4,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const GUEST_CATEGORY_OVERRIDES_STORAGE_KEY = "fp_guest_category_overrides_v1";
+const GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY = "fp_guest_category_overrides_by_name_v1";
 
-function readGuestCategoryOverrides(): Record<string, number> {
+function readGuestCategoryOverridesByName(): Record<string, number> {
   try {
-    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
     if (!parsed || typeof parsed !== "object") return {};
@@ -27,7 +27,7 @@ function readGuestCategoryOverrides(): Record<string, number> {
 
 function clearGuestCategoryOverrides() {
   try {
-    localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+    localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_BY_NAME_STORAGE_KEY);
   } catch {
     // ignore
   }
@@ -82,21 +82,30 @@ export default function LoginPage() {
       } else {
         // After signup, apply guest category overrides (if any) and clear localStorage.
         try {
-          const guestOverrides = readGuestCategoryOverrides();
-          const updates = Object.entries(guestOverrides)
-            .map(([categoryId, targetPercent]) => ({ categoryId, targetPercent }))
-            .filter((entry) => Number.isFinite(entry.targetPercent));
+          const guestOverridesByName = readGuestCategoryOverridesByName();
+          const entries = Object.entries(guestOverridesByName).filter(([, v]) =>
+            Number.isFinite(v),
+          );
 
-          if (updates.length > 0) {
+          if (entries.length > 0) {
+            const categoriesResponse = await fetch("/api/categories");
+            const categoriesJson = (await categoriesResponse.json()) as Array<{
+              id: string;
+              name: string;
+            }>;
+
             await Promise.all(
-              updates.map(({ categoryId, targetPercent }) =>
-                fetch("/api/categories", {
+              entries.map(([categoryName, targetPercent]) => {
+                const category = categoriesJson.find((c) => c.name === categoryName);
+                if (!category) return Promise.resolve();
+                return fetch("/api/categories", {
                   method: "PATCH",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ categoryId, patch: { targetPercent } }),
-                }),
-              ),
+                  body: JSON.stringify({ categoryId: category.id, patch: { targetPercent } }),
+                }).then(() => {});
+              }),
             );
+
             clearGuestCategoryOverrides();
           }
         } catch (applyError) {
