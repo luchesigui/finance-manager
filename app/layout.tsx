@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/app/providers";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "FinançasPro",
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <MobileNav />
           </div>
         </Providers>
+        <Analytics />
       </body>
     </html>
   );
