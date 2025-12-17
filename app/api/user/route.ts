@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
-
 import { getCurrentUserId } from "@/lib/server/financeStore";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const userId = await getCurrentUserId();
-    return NextResponse.json({ userId });
+    
+    let shouldMerge = false;
+    if (userId) {
+       const cookieStore = await cookies();
+       const anonymousId = cookieStore.get("anonymous_session_id")?.value;
+       if (anonymousId) shouldMerge = true;
+    }
+
+    return NextResponse.json({ userId, isAnonymous: !userId, shouldMerge });
   } catch (error) {
     console.error("Failed to get current user", error);
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

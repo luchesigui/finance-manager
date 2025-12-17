@@ -1,6 +1,7 @@
 import "server-only";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import type { Category, Person, Transaction } from "@/lib/types";
 
 // Helper to convert snake_case DB result to camelCase
@@ -33,47 +34,120 @@ const toTransaction = (row: any): Transaction => ({
   householdId: row.household_id,
 });
 
-async function getPrimaryHouseholdId() {
+async function getClientAndHousehold() {
+  const cookieStore = await cookies();
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error("Not authenticated");
+  if (user) {
+    // Authenticated user path (uses RLS)
+    const { data, error } = await supabase
+      .from("household_members")
+      .select("household_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .single();
 
-  const { data, error } = await supabase
-    .from("household_members")
-    .select("household_id")
-    .eq("user_id", user.id)
-    .limit(1)
+    if (error || !data) {
+       // Fallback or error?
+       // If user has no household, something is wrong with the signup trigger.
+       throw new Error("No household found for user");
+    }
+    return { client: supabase, householdId: data.household_id, isAnonymous: false, user };
+  }
+
+  // Anonymous user path
+  const anonymousId = cookieStore.get("anonymous_session_id")?.value;
+  if (!anonymousId) {
+    // This should generally be handled by middleware, but if missing:
+    throw new Error("No anonymous session found");
+  }
+
+  // Use Admin Client to bypass RLS for anonymous operations
+  // We MUST carefully filter by householdId in all queries.
+  const adminClient = await createAdminClient();
+  const householdId = await ensureAnonymousHousehold(adminClient, anonymousId);
+  
+  return { client: adminClient, householdId, isAnonymous: true, user: null };
+}
+
+// biome-ignore lint/suspicious/noExplicitAny: supabase client type
+async function ensureAnonymousHousehold(supabase: any, anonymousId: string): Promise<string> {
+  // Check if household exists
+  const { data: existing } = await supabase
+    .from("households")
+    .select("id")
+    .eq("anonymous_id", anonymousId)
     .single();
 
-  if (error || !data) {
-    // If no household found, maybe creation failed or race condition.
-    // Return null or throw? Throwing ensures we don't write orphaned data.
-    throw new Error("No household found for user");
+  if (existing) {
+    return existing.id;
   }
-  return data.household_id;
+
+  // Create new household
+  const { data: newHousehold, error: createError } = await supabase
+    .from("households")
+    .insert({ anonymous_id: anonymousId })
+    .select("id")
+    .single();
+
+  if (createError) throw createError;
+
+  const householdId = newHousehold.id;
+
+  // Create default categories (same as SQL trigger)
+  await supabase.from("categories").insert([
+    { name: "Liberdade Financeira", target_percent: 30, household_id: householdId },
+    { name: "Custos Fixos", target_percent: 25, household_id: householdId },
+    { name: "Conforto", target_percent: 15, household_id: householdId },
+    { name: "Metas", target_percent: 15, household_id: householdId },
+    { name: "Prazeres", target_percent: 10, household_id: householdId },
+    { name: "Conhecimento", target_percent: 5, household_id: householdId },
+  ]);
+
+  // Create default person "Eu" (Me)
+  const { data: personData } = await supabase
+    .from("people")
+    .insert({ name: "Eu", income: 0, household_id: householdId })
+    .select("id")
+    .single();
+
+  if (personData) {
+    await supabase
+      .from("households")
+      .update({ default_payer_id: personData.id })
+      .eq("id", householdId);
+  }
+
+  return householdId;
 }
 
 export async function getPeople(): Promise<Person[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("people").select("*").order("name");
+  const { client, householdId } = await getClientAndHousehold();
+  const { data, error } = await client
+    .from("people")
+    .select("*")
+    .eq("household_id", householdId) // Explicit filter
+    .order("name");
+    
   if (error) throw error;
   return data.map(toPerson);
 }
 
 export async function updatePerson(id: string, patch: Partial<Person>): Promise<Person> {
-  const supabase = await createClient();
+  const { client, householdId } = await getClientAndHousehold();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.income !== undefined) dbPatch.income = patch.income;
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("people")
     .update(dbPatch)
     .eq("id", id)
+    .eq("household_id", householdId) // Explicit filter
     .select()
     .single();
 
@@ -81,34 +155,42 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
   return toPerson(data);
 }
 
-export async function getCurrentUserId(): Promise<string> {
+export async function getCurrentUserId(): Promise<string | null> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) throw new Error("Not authenticated");
-  return user.id;
+  if (user) return user.id;
+  
+  // Return null if anonymous
+  return null;
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("categories").select("*").order("name");
+  const { client, householdId } = await getClientAndHousehold();
+  const { data, error } = await client
+    .from("categories")
+    .select("*")
+    .eq("household_id", householdId) // Explicit filter
+    .order("name");
+    
   if (error) throw error;
   return data.map(toCategory);
 }
 
 export async function updateCategory(id: string, patch: Partial<Category>): Promise<Category> {
-  const supabase = await createClient();
+  const { client, householdId } = await getClientAndHousehold();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.targetPercent !== undefined) dbPatch.target_percent = patch.targetPercent;
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("categories")
     .update(dbPatch)
     .eq("id", id)
+    .eq("household_id", householdId) // Explicit filter
     .select()
     .single();
 
@@ -117,8 +199,8 @@ export async function updateCategory(id: string, patch: Partial<Category>): Prom
 }
 
 export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
-  const supabase = await createClient();
-  let query = supabase.from("transactions").select("*");
+  const { client, householdId } = await getClientAndHousehold();
+  let query = client.from("transactions").select("*").eq("household_id", householdId);
 
   if (year !== undefined && month !== undefined) {
     const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
@@ -132,9 +214,10 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
     if (currentError) throw currentError;
 
     // 2. Fetch recurring transactions created BEFORE this month
-    const { data: recurringData, error: recurringError } = await supabase
+    const { data: recurringData, error: recurringError } = await client
       .from("transactions")
       .select("*")
+      .eq("household_id", householdId) // Explicit filter
       .eq("is_recurring", true)
       .lt("date", startDate);
 
@@ -143,14 +226,10 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
     // 3. Process recurring transactions
     // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
     const virtualTransactions = recurringData.map((t: any) => {
-      // Create a date object from the original date
       const originalDate = new Date(t.date);
       const day = originalDate.getUTCDate();
-
-      // Create date for the target month
       const targetDate = new Date(Date.UTC(year, month - 1, day));
 
-      // If the month rolled over (e.g. Feb 31 -> Mar 3), roll back to last day of target month
       if (targetDate.getUTCMonth() !== month - 1) {
         const lastDayOfMonth = new Date(Date.UTC(year, month, 0));
         targetDate.setUTCFullYear(lastDayOfMonth.getUTCFullYear());
@@ -165,8 +244,6 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
     });
 
     const allTransactions = [...currentMonthData, ...virtualTransactions];
-
-    // Re-sort by date descending
     allTransactions.sort((a, b) => b.date.localeCompare(a.date));
 
     return allTransactions.map(toTransaction);
@@ -178,8 +255,7 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 }
 
 export async function createTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { client, householdId } = await getClientAndHousehold();
 
   const dbRow = {
     description: t.description,
@@ -191,21 +267,33 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     household_id: householdId,
   };
 
-  const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();
+  const { data, error } = await client.from("transactions").insert(dbRow).select().single();
 
   if (error) throw error;
   return toTransaction(data);
 }
 
 export async function deleteTransaction(id: number): Promise<void> {
-  const supabase = await createClient();
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
+  const { client, householdId } = await getClientAndHousehold();
+  // Ensure we only delete from our household
+  const { error } = await client
+    .from("transactions")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
+    
   if (error) throw error;
 }
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
+  const { client, householdId } = await getClientAndHousehold();
+  const { data, error } = await client
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .eq("household_id", householdId)
+    .single();
+    
   if (error) return null;
   return toTransaction(data);
 }
@@ -214,10 +302,8 @@ export async function createPerson(data: {
   name: string;
   income: number;
 }): Promise<Person> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { client, householdId } = await getClientAndHousehold();
 
-  // Create the person record
   const dbRow = {
     name: data.name,
     income: data.income,
@@ -225,7 +311,7 @@ export async function createPerson(data: {
     linked_user_id: null,
   };
 
-  const { data: personData, error: personError } = await supabase
+  const { data: personData, error: personError } = await client
     .from("people")
     .insert(dbRow)
     .select()
@@ -236,28 +322,22 @@ export async function createPerson(data: {
 }
 
 export async function deletePerson(id: string): Promise<void> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { client, householdId } = await getClientAndHousehold();
 
-  // Check if there are any transactions referencing this person
-  const { data: transactions, error: checkError } = await supabase
+  const { data: transactions, error: checkError } = await client
     .from("transactions")
     .select("id")
-    .eq("paid_by", id);
+    .eq("paid_by", id)
+    .eq("household_id", householdId);
 
   if (checkError) throw checkError;
 
-  // If there are transactions, reassign them to another person
   if (transactions && transactions.length > 0) {
-    // Get the default payer for the household
     const defaultPayerId = await getDefaultPayerId();
-
-    // Find a replacement person (default payer or first other person in household)
     let replacementPersonId: string | null = null;
 
     if (defaultPayerId && defaultPayerId !== id) {
-      // Verify the default payer still exists
-      const { data: defaultPayer } = await supabase
+      const { data: defaultPayer } = await client
         .from("people")
         .select("id")
         .eq("id", defaultPayerId)
@@ -269,9 +349,8 @@ export async function deletePerson(id: string): Promise<void> {
       }
     }
 
-    // If no valid default payer, get the first other person in the household
     if (!replacementPersonId) {
-      const { data: otherPeople, error: peopleError } = await supabase
+      const { data: otherPeople, error: peopleError } = await client
         .from("people")
         .select("id")
         .eq("household_id", householdId)
@@ -292,25 +371,28 @@ export async function deletePerson(id: string): Promise<void> {
       replacementPersonId = otherPeople[0].id;
     }
 
-    // Reassign all transactions to the replacement person
-    const { error: updateError } = await supabase
+    const { error: updateError } = await client
       .from("transactions")
       .update({ paid_by: replacementPersonId })
-      .eq("paid_by", id);
+      .eq("paid_by", id)
+      .eq("household_id", householdId);
 
     if (updateError) throw updateError;
   }
 
-  // Now delete the person
-  const { error } = await supabase.from("people").delete().eq("id", id);
+  const { error } = await client
+    .from("people")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
+    
   if (error) throw error;
 }
 
 export async function getDefaultPayerId(): Promise<string | null> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { client, householdId } = await getClientAndHousehold();
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("households")
     .select("default_payer_id")
     .eq("id", householdId)
@@ -321,11 +403,9 @@ export async function getDefaultPayerId(): Promise<string | null> {
 }
 
 export async function updateDefaultPayerId(personId: string): Promise<void> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { client, householdId } = await getClientAndHousehold();
 
-  // Verify that the person belongs to the household
-  const { data: personData, error: personError } = await supabase
+  const { data: personData, error: personError } = await client
     .from("people")
     .select("id, household_id")
     .eq("id", personId)
@@ -337,7 +417,7 @@ export async function updateDefaultPayerId(personId: string): Promise<void> {
     throw new Error("Person not found in household");
   }
 
-  const { data: updateData, error } = await supabase
+  const { data: updateData, error } = await client
     .from("households")
     .update({ default_payer_id: personId })
     .eq("id", householdId)
@@ -354,4 +434,71 @@ export async function updateDefaultPayerId(personId: string): Promise<void> {
   }
 
   console.log("Successfully updated default_payer_id:", updateData);
+}
+
+export async function mergeAnonymousData(userId: string, anonymousId: string): Promise<void> {
+  // Use Admin Client to perform the swap
+  const supabase = await createAdminClient();
+  
+  // 1. Get Anonymous Household
+  const { data: anonHousehold } = await supabase
+    .from("households")
+    .select("id")
+    .eq("anonymous_id", anonymousId)
+    .single();
+
+  if (!anonHousehold) {
+    // No anonymous data to merge
+    return;
+  }
+
+  // 2. Get User's New Household (created by trigger)
+  // The user might have multiple households if they were invited? 
+  // But usually the trigger creates one where they are owner.
+  const { data: userMember } = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId)
+    .eq("role", "owner")
+    .single();
+
+  if (userMember) {
+    // Delete the default empty household created by trigger
+    // This cascades to categories, people, etc.
+    // WARNING: If the user ALREADY added data to this household, it will be lost.
+    // But this runs immediately after signup/login, so likely empty.
+    await supabase.from("households").delete().eq("id", userMember.household_id);
+  }
+
+  // 3. Assign Anonymous Household to User
+  await supabase.from("household_members").insert({
+    household_id: anonHousehold.id,
+    user_id: userId,
+    role: "owner"
+  });
+
+  // 4. Link the "Eu" person to the User
+  // Find the person named "Eu" or with no linked user in this household
+  const { data: mePerson } = await supabase
+    .from("people")
+    .select("id")
+    .eq("household_id", anonHousehold.id)
+    .is("linked_user_id", null)
+    .order("created_at", { ascending: true }) // First created usually
+    .limit(1)
+    .single();
+
+  if (mePerson) {
+    await supabase
+      .from("people")
+      .update({ linked_user_id: userId, name: "Eu" }) // Ensure name is Eu? Or take from Profile? 
+      // Actually, let's keep name as "Eu" or update to match profile name if we wanted.
+      .eq("id", mePerson.id);
+  }
+
+  // 5. Clear anonymous_id so it's no longer accessible via cookie
+  await supabase
+    .from("households")
+    .update({ anonymous_id: null })
+    .eq("id", anonHousehold.id);
 }

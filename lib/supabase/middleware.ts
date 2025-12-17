@@ -55,10 +55,22 @@ export async function updateSession(request: NextRequest) {
   const claims = data?.claims;
 
   if (!claims) {
-    // no user, redirect to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    // If no user, check for anonymous cookie
+    const anonymousCookie = request.cookies.get("anonymous_session_id");
+    
+    if (!anonymousCookie) {
+      // Create new anonymous session
+      const newAnonymousId = crypto.randomUUID();
+      supabaseResponse.cookies.set("anonymous_session_id", newAnonymousId, {
+        path: "/",
+        sameSite: "lax",
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 365 * 10, // 10 years
+      });
+    }
+    
+    // Allow access to the app (do not redirect to login)
+    return supabaseResponse;
   }
 
   return supabaseResponse;
