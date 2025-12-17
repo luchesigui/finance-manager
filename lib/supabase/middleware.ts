@@ -2,18 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-
-  // Skip auth checks for login, signup, and auth routes to avoid loops
-  // Also skip API routes as they handle their own auth
-  if (
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname.startsWith("/auth") ||
-    pathname.startsWith("/api")
-  ) {
-    return NextResponse.next({ request });
-  }
+  const GUEST_COOKIE_NAME = "fp_guest";
 
   let supabaseResponse = NextResponse.next({
     request,
@@ -54,11 +43,20 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
 
+  // Guest mode: if there is no authenticated user, ensure a stable guest cookie exists.
+  // All guest data is scoped to this cookie id and may be lost if cookies are cleared.
   if (!claims) {
-    // no user, redirect to the login page
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    const existingGuestId = request.cookies.get(GUEST_COOKIE_NAME)?.value;
+    if (!existingGuestId) {
+      const guestId = crypto.randomUUID();
+      supabaseResponse.cookies.set(GUEST_COOKIE_NAME, guestId, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+      });
+    }
   }
 
   return supabaseResponse;

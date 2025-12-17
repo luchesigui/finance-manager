@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { DollarSign, LogOut, Settings, TrendingUp, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const tabs = [
   { href: "/dashboard", label: "Resumo", icon: TrendingUp },
@@ -15,10 +16,35 @@ export function AppHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!isMounted) return;
+        setIsAuthenticated(Boolean(data.session));
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setIsAuthenticated(false);
+      });
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session));
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/dashboard");
     router.refresh();
   };
 
@@ -60,14 +86,23 @@ export function AppHeader() {
             })}
           </nav>
 
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="p-2 text-slate-500 hover:text-red-600 transition-colors"
-            title="Sair"
-          >
-            <LogOut size={20} />
-          </button>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="p-2 text-slate-500 hover:text-red-600 transition-colors"
+              title="Sair"
+            >
+              <LogOut size={20} />
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+            >
+              Entrar
+            </Link>
+          )}
         </div>
       </div>
     </header>

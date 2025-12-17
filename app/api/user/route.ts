@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 
-import { getCurrentUserId } from "@/lib/server/financeStore";
+import { getSessionInfo } from "@/lib/server/financeStore";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const userId = await getCurrentUserId();
-    return NextResponse.json({ userId });
+    const session = await getSessionInfo();
+    return NextResponse.json({ userId: session.userId, isGuest: session.isGuest });
   } catch (error) {
     console.error("Failed to get current user", error);
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json({ userId: null, isGuest: true });
   }
 }

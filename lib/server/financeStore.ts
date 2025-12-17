@@ -1,7 +1,9 @@
 import "server-only";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { Category, Person, Transaction } from "@/lib/types";
+import { cookies } from "next/headers";
 
 // Helper to convert snake_case DB result to camelCase
 // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
@@ -33,47 +35,149 @@ const toTransaction = (row: any): Transaction => ({
   householdId: row.household_id,
 });
 
-async function getPrimaryHouseholdId() {
+const GUEST_COOKIE_NAME = "fp_guest";
+
+export type SessionInfo = {
+  isGuest: boolean;
+  userId: string | null;
+  householdId: string;
+};
+
+async function getAuthenticatedUserId(): Promise<string | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims) return null;
 
-  if (!user) throw new Error("Not authenticated");
+  // Supabase JWT "sub" is the user id (UUID)
+  const sub = (claims as unknown as { sub?: string }).sub;
+  return typeof sub === "string" && sub.length > 0 ? sub : null;
+}
 
-  const { data, error } = await supabase
-    .from("household_members")
-    .select("household_id")
-    .eq("user_id", user.id)
-    .limit(1)
+async function getGuestIdFromCookies(): Promise<string | null> {
+  const cookieStore = await cookies();
+  const guestId = cookieStore.get(GUEST_COOKIE_NAME)?.value ?? null;
+  return guestId && guestId.length > 0 ? guestId : null;
+}
+
+async function ensureGuestHousehold(guestId: string): Promise<string> {
+  const admin = createAdminClient();
+
+  const { data: existing, error: existingError } = await admin
+    .from("households")
+    .select("id, default_payer_id")
+    .eq("guest_id", guestId)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (existing?.id) return existing.id;
+
+  // Create a new guest household, plus minimum defaults the UI expects.
+  const { data: createdHousehold, error: createHouseholdError } = await admin
+    .from("households")
+    .insert({ guest_id: guestId })
+    .select("id")
     .single();
 
-  if (error || !data) {
-    // If no household found, maybe creation failed or race condition.
-    // Return null or throw? Throwing ensures we don't write orphaned data.
-    throw new Error("No household found for user");
+  if (createHouseholdError) throw createHouseholdError;
+
+  const householdId = createdHousehold.id as string;
+
+  const { data: createdPerson, error: createPersonError } = await admin
+    .from("people")
+    .insert({
+      name: "Você",
+      income: 0,
+      household_id: householdId,
+      linked_user_id: null,
+    })
+    .select("id")
+    .single();
+
+  if (createPersonError) throw createPersonError;
+
+  const defaultPersonId = createdPerson.id as string;
+
+  // Default categories (same set as handle_new_user)
+  const { error: createCategoriesError } = await admin.from("categories").insert([
+    { name: "Liberdade Financeira", target_percent: 30, household_id: householdId },
+    { name: "Custos Fixos", target_percent: 25, household_id: householdId },
+    { name: "Conforto", target_percent: 15, household_id: householdId },
+    { name: "Metas", target_percent: 15, household_id: householdId },
+    { name: "Prazeres", target_percent: 10, household_id: householdId },
+    { name: "Conhecimento", target_percent: 5, household_id: householdId },
+  ]);
+
+  if (createCategoriesError) throw createCategoriesError;
+
+  const { error: setDefaultPayerError } = await admin
+    .from("households")
+    .update({ default_payer_id: defaultPersonId })
+    .eq("id", householdId);
+
+  if (setDefaultPayerError) throw setDefaultPayerError;
+
+  return householdId;
+}
+
+async function getPrimaryHouseholdIdForUser(userId: string): Promise<string> {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.household_id) throw new Error("No household found for user");
+  return data.household_id as string;
+}
+
+export async function getSessionInfo(): Promise<SessionInfo> {
+  const userId = await getAuthenticatedUserId();
+  if (userId) {
+    const householdId = await getPrimaryHouseholdIdForUser(userId);
+    return { isGuest: false, userId, householdId };
   }
-  return data.household_id;
+
+  const guestId = await getGuestIdFromCookies();
+  if (!guestId) {
+    // Middleware should always ensure this, but keep a clear error for server-side calls.
+    throw new Error("Missing guest cookie");
+  }
+
+  const householdId = await ensureGuestHousehold(guestId);
+  return { isGuest: true, userId: null, householdId };
 }
 
 export async function getPeople(): Promise<Person[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("people").select("*").order("name");
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("people")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("name");
   if (error) throw error;
   return data.map(toPerson);
 }
 
 export async function updatePerson(id: string, patch: Partial<Person>): Promise<Person> {
-  const supabase = await createClient();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.income !== undefined) dbPatch.income = patch.income;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("people")
     .update(dbPatch)
     .eq("id", id)
+    .eq("household_id", householdId)
     .select()
     .single();
 
@@ -82,33 +186,36 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
 }
 
 export async function getCurrentUserId(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Not authenticated");
-  return user.id;
+  const userId = await getAuthenticatedUserId();
+  if (!userId) throw new Error("Not authenticated");
+  return userId;
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("categories").select("*").order("name");
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("categories")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("name");
   if (error) throw error;
   return data.map(toCategory);
 }
 
 export async function updateCategory(id: string, patch: Partial<Category>): Promise<Category> {
-  const supabase = await createClient();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.targetPercent !== undefined) dbPatch.target_percent = patch.targetPercent;
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("categories")
     .update(dbPatch)
     .eq("id", id)
+    .eq("household_id", householdId)
     .select()
     .single();
 
@@ -117,8 +224,9 @@ export async function updateCategory(id: string, patch: Partial<Category>): Prom
 }
 
 export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
-  const supabase = await createClient();
-  let query = supabase.from("transactions").select("*");
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
+  const query = admin.from("transactions").select("*").eq("household_id", householdId);
 
   if (year !== undefined && month !== undefined) {
     const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
@@ -132,9 +240,10 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
     if (currentError) throw currentError;
 
     // 2. Fetch recurring transactions created BEFORE this month
-    const { data: recurringData, error: recurringError } = await supabase
+    const { data: recurringData, error: recurringError } = await admin
       .from("transactions")
       .select("*")
+      .eq("household_id", householdId)
       .eq("is_recurring", true)
       .lt("date", startDate);
 
@@ -178,8 +287,8 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 }
 
 export async function createTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
 
   const dbRow = {
     description: t.description,
@@ -191,21 +300,32 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     household_id: householdId,
   };
 
-  const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();
+  const { data, error } = await admin.from("transactions").insert(dbRow).select().single();
 
   if (error) throw error;
   return toTransaction(data);
 }
 
 export async function deleteTransaction(id: number): Promise<void> {
-  const supabase = await createClient();
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("transactions")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
   if (error) throw error;
 }
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .eq("household_id", householdId)
+    .single();
   if (error) return null;
   return toTransaction(data);
 }
@@ -214,8 +334,8 @@ export async function createPerson(data: {
   name: string;
   income: number;
 }): Promise<Person> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
 
   // Create the person record
   const dbRow = {
@@ -225,7 +345,7 @@ export async function createPerson(data: {
     linked_user_id: null,
   };
 
-  const { data: personData, error: personError } = await supabase
+  const { data: personData, error: personError } = await admin
     .from("people")
     .insert(dbRow)
     .select()
@@ -236,14 +356,15 @@ export async function createPerson(data: {
 }
 
 export async function deletePerson(id: string): Promise<void> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
 
   // Check if there are any transactions referencing this person
-  const { data: transactions, error: checkError } = await supabase
+  const { data: transactions, error: checkError } = await admin
     .from("transactions")
     .select("id")
-    .eq("paid_by", id);
+    .eq("paid_by", id)
+    .eq("household_id", householdId);
 
   if (checkError) throw checkError;
 
@@ -257,7 +378,7 @@ export async function deletePerson(id: string): Promise<void> {
 
     if (defaultPayerId && defaultPayerId !== id) {
       // Verify the default payer still exists
-      const { data: defaultPayer } = await supabase
+      const { data: defaultPayer } = await admin
         .from("people")
         .select("id")
         .eq("id", defaultPayerId)
@@ -271,7 +392,7 @@ export async function deletePerson(id: string): Promise<void> {
 
     // If no valid default payer, get the first other person in the household
     if (!replacementPersonId) {
-      const { data: otherPeople, error: peopleError } = await supabase
+      const { data: otherPeople, error: peopleError } = await admin
         .from("people")
         .select("id")
         .eq("household_id", householdId)
@@ -293,24 +414,29 @@ export async function deletePerson(id: string): Promise<void> {
     }
 
     // Reassign all transactions to the replacement person
-    const { error: updateError } = await supabase
+    const { error: updateError } = await admin
       .from("transactions")
       .update({ paid_by: replacementPersonId })
-      .eq("paid_by", id);
+      .eq("paid_by", id)
+      .eq("household_id", householdId);
 
     if (updateError) throw updateError;
   }
 
   // Now delete the person
-  const { error } = await supabase.from("people").delete().eq("id", id);
+  const { error } = await admin
+    .from("people")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
   if (error) throw error;
 }
 
 export async function getDefaultPayerId(): Promise<string | null> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from("households")
     .select("default_payer_id")
     .eq("id", householdId)
@@ -321,11 +447,11 @@ export async function getDefaultPayerId(): Promise<string | null> {
 }
 
 export async function updateDefaultPayerId(personId: string): Promise<void> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { householdId } = await getSessionInfo();
+  const admin = createAdminClient();
 
   // Verify that the person belongs to the household
-  const { data: personData, error: personError } = await supabase
+  const { data: personData, error: personError } = await admin
     .from("people")
     .select("id, household_id")
     .eq("id", personId)
@@ -337,7 +463,7 @@ export async function updateDefaultPayerId(personId: string): Promise<void> {
     throw new Error("Person not found in household");
   }
 
-  const { data: updateData, error } = await supabase
+  const { data: updateData, error } = await admin
     .from("households")
     .update({ default_payer_id: personId })
     .eq("id", householdId)
@@ -354,4 +480,59 @@ export async function updateDefaultPayerId(personId: string): Promise<void> {
   }
 
   console.log("Successfully updated default_payer_id:", updateData);
+}
+
+export async function migrateGuestHouseholdToUser(userId: string, guestId: string): Promise<void> {
+  const admin = createAdminClient();
+
+  const { data: guestHousehold, error: householdError } = await admin
+    .from("households")
+    .select("id, default_payer_id")
+    .eq("guest_id", guestId)
+    .maybeSingle();
+
+  if (householdError) throw householdError;
+  if (!guestHousehold?.id) return;
+
+  const householdId = guestHousehold.id as string;
+
+  // Add the new user as owner of the guest household (so auth-based RLS access works too).
+  const { error: memberUpsertError } = await admin.from("household_members").upsert(
+    {
+      household_id: householdId,
+      user_id: userId,
+      role: "owner",
+    },
+    { onConflict: "household_id,user_id" },
+  );
+
+  if (memberUpsertError) throw memberUpsertError;
+
+  // Link one existing person in that household to the new user.
+  const { data: person, error: personError } = await admin
+    .from("people")
+    .select("id")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (personError) throw personError;
+
+  if (person?.id) {
+    const { error: linkError } = await admin
+      .from("people")
+      .update({ linked_user_id: userId })
+      .eq("id", person.id)
+      .eq("household_id", householdId);
+    if (linkError) throw linkError;
+
+    if (!guestHousehold.default_payer_id) {
+      const { error: setDefaultError } = await admin
+        .from("households")
+        .update({ default_payer_id: person.id })
+        .eq("id", householdId);
+      if (setDefaultError) throw setDefaultError;
+    }
+  }
 }

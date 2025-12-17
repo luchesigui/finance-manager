@@ -63,10 +63,17 @@ export function SettingsView() {
   // Get current user ID
   const { data: userData } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => fetchJson<{ userId: string }>("/api/user"),
+    queryFn: () => fetchJson<{ userId: string | null; isGuest: boolean }>("/api/user"),
   });
 
-  const currentUserId = userData?.userId;
+  const isGuest = userData?.isGuest ?? true;
+  const currentUserId = !isGuest ? (userData?.userId ?? null) : null;
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupError, setSignupError] = useState<string | null>(null);
+  const [signupSuccess, setSignupSuccess] = useState<string | null>(null);
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   // Initialize edits from people data
   useEffect(() => {
@@ -92,8 +99,10 @@ export function SettingsView() {
   }, [categories]);
 
   // Separate current user from other participants
-  const currentUserPerson = people.find((p) => p.linkedUserId === currentUserId);
-  const otherPeople = people.filter((p) => p.linkedUserId !== currentUserId);
+  const currentUserPerson =
+    currentUserId != null ? people.find((p) => p.linkedUserId === currentUserId) : undefined;
+  const otherPeople =
+    currentUserId != null ? people.filter((p) => p.linkedUserId !== currentUserId) : people;
 
   // Use edited values for calculations
   const editedPeople = useMemo(() => {
@@ -111,7 +120,49 @@ export function SettingsView() {
   const currentUserWithShare = currentUserPerson
     ? peopleWithShare.find((p) => p.id === currentUserPerson.id)
     : null;
-  const otherPeopleWithShare = peopleWithShare.filter((p) => p.linkedUserId !== currentUserId);
+  const otherPeopleWithShare =
+    currentUserId != null
+      ? peopleWithShare.filter((p) => p.linkedUserId !== currentUserId)
+      : peopleWithShare;
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSignupError(null);
+    setSignupSuccess(null);
+    setIsSigningUp(true);
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: signupEmail, password: signupPassword }),
+      });
+      const json = (await response.json()) as
+        | { success: true; requiresConfirmation?: boolean; message?: string }
+        | { code?: string; message?: string; error?: string };
+
+      if (!response.ok) {
+        const msg =
+          "message" in json && typeof json.message === "string"
+            ? json.message
+            : "Falha ao criar conta. Tente novamente.";
+        setSignupError(msg);
+        return;
+      }
+
+      if ("success" in json && json.success) {
+        if (json.requiresConfirmation) {
+          setSignupSuccess(json.message ?? "Conta criada! Confira seu email para confirmar.");
+        } else {
+          setSignupSuccess("Conta criada! Seus dados foram vinculados ao seu usuário.");
+        }
+      }
+    } catch (err) {
+      console.error("Signup failed", err);
+      setSignupError("Falha ao criar conta. Tente novamente.");
+    } finally {
+      setIsSigningUp(false);
+    }
+  };
 
   // Check if there are unsaved changes for people
   const hasUnsavedChanges = useMemo(() => {
@@ -294,6 +345,31 @@ export function SettingsView() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        {isGuest && (
+          <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm text-amber-900 font-medium">
+              Seus dados estão disponíveis apenas por um cookie neste dispositivo. Se você limpar
+              cookies ou trocar de navegador, você pode perder tudo.
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              Para manter registro e acessar de qualquer lugar, crie uma conta.
+            </p>
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSignupError(null);
+                  setSignupSuccess(null);
+                  setIsSignupModalOpen(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+              >
+                Criar conta
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
             <Users size={20} />
@@ -587,6 +663,75 @@ export function SettingsView() {
           </div>
         </div>
       </div>
+
+      {isSignupModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setIsSignupModalOpen(false)}
+          />
+          <div className="relative w-full max-w-md rounded-xl bg-white shadow-lg border border-slate-200 p-6">
+            <h3 className="text-lg font-semibold text-slate-800">Criar conta</h3>
+            <p className="mt-1 text-sm text-slate-600">
+              Ao criar sua conta, vamos vincular automaticamente seus dados atuais ao seu usuário.
+            </p>
+
+            <form onSubmit={handleSignup} className="mt-4 space-y-3">
+              <div>
+                <label htmlFor="signup-email" className="text-xs text-slate-500 font-medium">
+                  Email
+                </label>
+                <input
+                  id="signup-email"
+                  type="email"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  required
+                  className="mt-1 w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm"
+                  placeholder="voce@exemplo.com"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="signup-password" className="text-xs text-slate-500 font-medium">
+                  Senha
+                </label>
+                <input
+                  id="signup-password"
+                  type="password"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="mt-1 w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {signupError && <p className="text-sm text-red-600">{signupError}</p>}
+              {signupSuccess && <p className="text-sm text-green-700">{signupSuccess}</p>}
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSignupModalOpen(false)}
+                  className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg text-sm font-medium hover:bg-slate-300"
+                >
+                  Fechar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSigningUp}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSigningUp ? "Criando..." : "Criar conta"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

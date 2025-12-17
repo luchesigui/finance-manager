@@ -1,5 +1,20 @@
+import { migrateGuestHouseholdToUser } from "@/lib/server/financeStore";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+
+function getCookieValue(cookieHeader: string, name: string): string | null {
+  // Very small cookie parser to avoid adding a dependency.
+  const parts = cookieHeader.split(";").map((p) => p.trim());
+  for (const part of parts) {
+    if (!part) continue;
+    const eq = part.indexOf("=");
+    if (eq === -1) continue;
+    const key = part.slice(0, eq).trim();
+    if (key !== name) continue;
+    return decodeURIComponent(part.slice(eq + 1));
+  }
+  return null;
+}
 
 export async function POST(request: Request) {
   try {
@@ -60,6 +75,17 @@ export async function POST(request: Request) {
 
     // If email confirmation is required, return success message
     if (data.user && !data.session) {
+      // Even without a session (email confirmation flow), we can still migrate guest data
+      // because the user row already exists.
+      const guestId = getCookieValue(request.headers.get("cookie") ?? "", "fp_guest");
+      if (guestId && data.user?.id) {
+        try {
+          await migrateGuestHouseholdToUser(data.user.id, guestId);
+        } catch (migrationError) {
+          console.error("Guest data migration failed (confirmation flow)", migrationError);
+        }
+      }
+
       return NextResponse.json({
         success: true,
         message: "Check your email for the confirmation link.",
@@ -68,6 +94,15 @@ export async function POST(request: Request) {
     }
 
     // If auto-confirm is enabled, return session
+    const guestId = getCookieValue(request.headers.get("cookie") ?? "", "fp_guest");
+    if (guestId && data.user?.id) {
+      try {
+        await migrateGuestHouseholdToUser(data.user.id, guestId);
+      } catch (migrationError) {
+        console.error("Guest data migration failed", migrationError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       user: data.user,
