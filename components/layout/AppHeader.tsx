@@ -28,12 +28,15 @@ export function AppHeader() {
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-      <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div className="max-w-5xl mx-auto py-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="bg-indigo-600 p-2 rounded-lg text-white">
             <Wallet size={24} />
           </div>
-          <Link href="/dashboard" className="text-xl font-bold text-slate-800 tracking-tight">
+          <Link
+            href="/dashboard"
+            className="text-xl font-bold text-slate-800 tracking-tight"
+          >
             Finanças<span className="text-indigo-600">Pro</span>
           </Link>
         </div>
