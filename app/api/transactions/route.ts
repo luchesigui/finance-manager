@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 
 import { createTransaction, getTransactions } from "@/lib/server/financeStore";
-import { readJsonBody, validateCreateTransactionsBody } from "@/lib/server/requestBodyValidation";
-import type { Transaction } from "@/lib/types";
+import {
+  readJsonBody,
+  validateCreateTransactionsBody,
+} from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
   if (!validationResult.isValid) {
     return NextResponse.json(
       { error: validationResult.errorMessage },
-      { status: validationResult.statusCode ?? 400 },
+      { status: validationResult.statusCode ?? 400 }
     );
   }
 
@@ -51,17 +53,22 @@ export async function POST(request: Request) {
 
   try {
     const createdTransactions = await Promise.all(
-      transactionsToCreate.map((t) => createTransaction(t)),
+      transactionsToCreate.map((t) => createTransaction(t))
     );
 
     return NextResponse.json(
-      validationResult.value.isBatch ? createdTransactions : createdTransactions[0],
+      validationResult.value.isBatch
+        ? createdTransactions
+        : createdTransactions[0],
       {
         status: 201,
-      },
+      }
     );
   } catch (error) {
     console.error("Failed to create transactions", error);
-    return NextResponse.json({ error: "Failed to create transactions" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create transactions" },
+      { status: 500 }
+    );
   }
 }
