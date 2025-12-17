@@ -19,7 +19,11 @@ import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
-import { formatCurrency, formatMonthYear } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDateString,
+  formatMonthYear,
+} from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import type { NewTransactionFormState } from "@/lib/types";
 
@@ -426,11 +430,7 @@ Retorne APENAS o JSON, sem markdown.
                       <p className="text-xs text-slate-500 flex gap-2">
                         <span>{selectedCategory?.name}</span>
                         <span>•</span>
-                        <span>
-                          {new Date(transaction.date).toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </span>
+                        <span>{formatDateString(transaction.date)}</span>
                       </p>
                     </div>
                   </div>
