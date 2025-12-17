@@ -124,7 +124,52 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
     const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
     const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
 
-    query = query.gte("date", startDate).lte("date", endDate);
+    // 1. Fetch transactions in the current month
+    const currentMonthQuery = query.gte("date", startDate).lte("date", endDate);
+    const { data: currentMonthData, error: currentError } = await currentMonthQuery.order("date", {
+      ascending: false,
+    });
+    if (currentError) throw currentError;
+
+    // 2. Fetch recurring transactions created BEFORE this month
+    const { data: recurringData, error: recurringError } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("is_recurring", true)
+      .lt("date", startDate);
+
+    if (recurringError) throw recurringError;
+
+    // 3. Process recurring transactions
+    // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
+    const virtualTransactions = recurringData.map((t: any) => {
+      // Create a date object from the original date
+      const originalDate = new Date(t.date);
+      const day = originalDate.getUTCDate();
+
+      // Create date for the target month
+      const targetDate = new Date(Date.UTC(year, month - 1, day));
+
+      // If the month rolled over (e.g. Feb 31 -> Mar 3), roll back to last day of target month
+      if (targetDate.getUTCMonth() !== month - 1) {
+        const lastDayOfMonth = new Date(Date.UTC(year, month, 0));
+        targetDate.setUTCFullYear(lastDayOfMonth.getUTCFullYear());
+        targetDate.setUTCMonth(lastDayOfMonth.getUTCMonth());
+        targetDate.setUTCDate(lastDayOfMonth.getUTCDate());
+      }
+
+      return {
+        ...t,
+        date: targetDate.toISOString().split("T")[0],
+      };
+    });
+
+    const allTransactions = [...currentMonthData, ...virtualTransactions];
+
+    // Re-sort by date descending
+    allTransactions.sort((a, b) => b.date.localeCompare(a.date));
+
+    return allTransactions.map(toTransaction);
   }
 
   const { data, error } = await query.order("date", { ascending: false });
