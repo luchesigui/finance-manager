@@ -13,10 +13,11 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.88.0",
     "@tanstack/react-query": "^5.90.12",
     "lucide-react": "^0.476.0",
-    "next": "^14.2.0",
+    "next": "^16.0.10",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -33,8 +34,6 @@
     "typescript": "^5.6.3"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,css}": [
-      "biome check --write"
-    ]
+    "*.{js,jsx,ts,tsx,json,css}": ["biome lint --write"]
   }
 }

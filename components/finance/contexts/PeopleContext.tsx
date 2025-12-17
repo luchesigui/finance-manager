@@ -22,6 +22,11 @@ type PeopleContextValue = {
     fieldName: FieldName,
     fieldValue: Person[FieldName],
   ) => void;
+  updatePeople: (
+    updates: Array<{ personId: string; patch: Partial<Omit<Person, "id">> }>,
+  ) => Promise<void>;
+  createPerson: (data: { name: string; income: number }) => Promise<Person>;
+  deletePerson: (personId: string) => Promise<void>;
 };
 
 const PeopleContext = createContext<PeopleContextValue | null>(null);
@@ -64,13 +69,86 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
     [updatePersonMutation],
   );
 
+  const createPersonMutation = useMutation({
+    mutationFn: (data: { name: string; income: number }) =>
+      fetchJson<Person>("/api/people", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
+    onSuccess: (newPerson) => {
+      queryClient.setQueryData<Person[]>(["people"], (existingPeople = []) => [
+        ...existingPeople,
+        newPerson,
+      ]);
+    },
+  });
+
+  const createPerson = useCallback<PeopleContextValue["createPerson"]>(
+    async (data) => {
+      return createPersonMutation.mutateAsync(data);
+    },
+    [createPersonMutation],
+  );
+
+  const deletePersonMutation = useMutation({
+    mutationFn: (personId: string) =>
+      fetchJson<{ success: boolean }>(`/api/people?personId=${personId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, personId) => {
+      queryClient.setQueryData<Person[]>(["people"], (existingPeople = []) =>
+        existingPeople.filter((person) => person.id !== personId),
+      );
+    },
+  });
+
+  const deletePerson = useCallback<PeopleContextValue["deletePerson"]>(
+    async (personId) => {
+      await deletePersonMutation.mutateAsync(personId);
+    },
+    [deletePersonMutation],
+  );
+
+  const updatePeople = useCallback<PeopleContextValue["updatePeople"]>(
+    async (updates) => {
+      // Update all people sequentially
+      const updatedPeople = await Promise.all(
+        updates.map(({ personId, patch }) =>
+          fetchJson<Person>("/api/people", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ personId, patch }),
+          }),
+        ),
+      );
+
+      // Update the query cache with all updated people
+      queryClient.setQueryData<Person[]>(["people"], (existingPeople = []) => {
+        const updatedMap = new Map(updatedPeople.map((person) => [person.id, person]));
+        return existingPeople.map((person) => updatedMap.get(person.id) ?? person);
+      });
+    },
+    [queryClient],
+  );
+
   const contextValue = useMemo<PeopleContextValue>(
     () => ({
       people: peopleQuery.data ?? [],
       isPeopleLoading: peopleQuery.isLoading,
       updatePersonField,
+      updatePeople,
+      createPerson,
+      deletePerson,
     }),
-    [peopleQuery.data, peopleQuery.isLoading, updatePersonField],
+    [
+      peopleQuery.data,
+      peopleQuery.isLoading,
+      updatePersonField,
+      updatePeople,
+      createPerson,
+      deletePerson,
+    ],
   );
 
   return <PeopleContext.Provider value={contextValue}>{children}</PeopleContext.Provider>;

@@ -22,6 +22,9 @@ type CategoriesContextValue = {
     fieldName: FieldName,
     fieldValue: Category[FieldName],
   ) => void;
+  updateCategories: (
+    updates: Array<{ categoryId: string; patch: Partial<Omit<Category, "id">> }>,
+  ) => Promise<void>;
 };
 
 const CategoriesContext = createContext<CategoriesContextValue | null>(null);
@@ -66,13 +69,36 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
     [updateCategoryMutation],
   );
 
+  const updateCategories = useCallback<CategoriesContextValue["updateCategories"]>(
+    async (updates) => {
+      // Update all categories sequentially
+      const updatedCategories = await Promise.all(
+        updates.map(({ categoryId, patch }) =>
+          fetchJson<Category>("/api/categories", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ categoryId, patch }),
+          }),
+        ),
+      );
+
+      // Update the query cache with all updated categories
+      queryClient.setQueryData<Category[]>(["categories"], (existingCategories = []) => {
+        const updatedMap = new Map(updatedCategories.map((category) => [category.id, category]));
+        return existingCategories.map((category) => updatedMap.get(category.id) ?? category);
+      });
+    },
+    [queryClient],
+  );
+
   const contextValue = useMemo<CategoriesContextValue>(
     () => ({
       categories: categoriesQuery.data ?? [],
       isCategoriesLoading: categoriesQuery.isLoading,
       updateCategoryField,
+      updateCategories,
     }),
-    [categoriesQuery.data, categoriesQuery.isLoading, updateCategoryField],
+    [categoriesQuery.data, categoriesQuery.isLoading, updateCategoryField, updateCategories],
   );
 
   return <CategoriesContext.Provider value={contextValue}>{children}</CategoriesContext.Provider>;

@@ -11,7 +11,7 @@ import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
-import { formatCurrency, formatMonthYear } from "@/lib/format";
+import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import type { NewTransactionFormState } from "@/lib/types";
 
@@ -373,11 +373,7 @@ Retorne APENAS o JSON, sem markdown.
                   className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${
-                        selectedPerson?.color ?? "bg-gray-400"
-                      }`}
-                    >
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gray-400">
                       {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}
                     </div>
                     <div>
@@ -392,7 +388,7 @@ Retorne APENAS o JSON, sem markdown.
                       <p className="text-xs text-slate-500 flex gap-2">
                         <span>{selectedCategory?.name}</span>
                         <span>•</span>
-                        <span>{new Date(transaction.date).toLocaleDateString("pt-BR")}</span>
+                        <span>{formatDateString(transaction.date)}</span>
                       </p>
                     </div>
                   </div>

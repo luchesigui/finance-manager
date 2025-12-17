@@ -5,6 +5,7 @@ import type React from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
+import { parseDateString } from "@/lib/format";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
 async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
@@ -37,9 +38,9 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     queryKey: transactionsQueryKey,
     queryFn: () =>
       fetchJson<Transaction[]>(
-        `/api/transactions?year=${encodeURIComponent(String(selectedYear))}&month=${encodeURIComponent(
-          String(selectedMonthNumber),
-        )}`,
+        `/api/transactions?year=${encodeURIComponent(
+          String(selectedYear),
+        )}&month=${encodeURIComponent(String(selectedMonthNumber))}`,
       ),
   });
 
@@ -118,7 +119,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
 
       if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
         const installmentAmountValue = amountValue / newTransactionFormState.installments;
-        const baseDateObject = new Date(`${baseDateString}T12:00:00`);
+        const baseDateObject = parseDateString(baseDateString);
 
         for (
           let installmentIndex = 0;
@@ -136,7 +137,9 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
           const installmentDayString = String(installmentDateObject.getDate()).padStart(2, "0");
 
           newTransactionsPayload.push({
-            description: `${newTransactionFormState.description} (${installmentIndex + 1}/${newTransactionFormState.installments})`,
+            description: `${newTransactionFormState.description} (${
+              installmentIndex + 1
+            }/${newTransactionFormState.installments})`,
             amount: installmentAmountValue,
             categoryId: newTransactionFormState.categoryId,
             paidBy: newTransactionFormState.paidBy,

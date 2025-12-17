@@ -14,6 +14,7 @@ import {
   calculateTotalExpenses,
   calculateTotalIncome,
 } from "@/components/finance/hooks/useFinanceCalculations";
+import { getCategoryColorStyle } from "@/lib/categoryColors";
 import { formatCurrency, formatMonthYear, formatPercent } from "@/lib/format";
 
 export function DashboardView() {
@@ -173,7 +174,9 @@ export function DashboardView() {
                     key={cat.id}
                     className="border-b border-slate-50 last:border-0 hover:bg-slate-50"
                   >
-                    <td className={`px-4 py-3 font-medium ${cat.color}`}>{cat.name}</td>
+                    <td className="px-4 py-3 font-medium" style={getCategoryColorStyle(cat.name)}>
+                      {cat.name}
+                    </td>
                     <td className="px-4 py-3 text-right">{formatCurrency(cat.totalSpent)}</td>
                     <td className="px-4 py-3 text-center">{cat.targetPercent}%</td>
                     <td className="px-4 py-3 text-center font-bold">

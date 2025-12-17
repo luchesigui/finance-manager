@@ -7,8 +7,9 @@ function parseTransactionId(transactionIdParam: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
-  const transactionId = parseTransactionId(params.id);
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const transactionId = parseTransactionId(id);
   if (transactionId == null) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }

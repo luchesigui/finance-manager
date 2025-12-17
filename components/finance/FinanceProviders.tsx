@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import type React from "react";
 
 import { CategoriesProvider } from "@/components/finance/contexts/CategoriesContext";
@@ -9,6 +10,13 @@ import { PeopleProvider } from "@/components/finance/contexts/PeopleContext";
 import { TransactionsProvider } from "@/components/finance/contexts/TransactionsContext";
 
 export function FinanceProviders({ children }: Readonly<{ children: React.ReactNode }>) {
+  const pathname = usePathname();
+
+  // Skip FinanceProviders on login/signup pages to avoid API calls
+  if (pathname?.startsWith("/login") || pathname?.startsWith("/signup")) {
+    return <>{children}</>;
+  }
+
   return (
     <CurrentMonthProvider>
       <PeopleProvider>
