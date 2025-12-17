@@ -2,7 +2,6 @@ export type Person = {
   id: string;
   name: string;
   income: number;
-  color: string;
   householdId?: string;
   linkedUserId?: string;
   email?: string;
@@ -12,7 +11,6 @@ export type Category = {
   id: string;
   name: string;
   targetPercent: number;
-  color: string;
   householdId?: string;
 };
 

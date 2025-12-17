@@ -13,6 +13,7 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
+import { getPersonColor } from "@/lib/personColors";
 import type { NewTransactionFormState } from "@/lib/types";
 
 export function TransactionsView() {
@@ -375,7 +376,7 @@ Retorne APENAS o JSON, sem markdown.
                   <div className="flex items-center gap-4">
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${
-                        selectedPerson?.color ?? "bg-gray-400"
+                        selectedPerson ? getPersonColor(selectedPerson.id) : "bg-gray-400"
                       }`}
                     >
                       {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}

@@ -9,7 +9,6 @@ const toPerson = (row: any): Person => ({
   id: row.id,
   name: row.name,
   income: Number(row.income),
-  color: row.color,
   householdId: row.household_id,
   linkedUserId: row.linked_user_id,
   email: row.email,
@@ -20,7 +19,6 @@ const toCategory = (row: any): Category => ({
   id: row.id,
   name: row.name,
   targetPercent: Number(row.target_percent),
-  color: row.color,
   householdId: row.household_id,
 });
 
@@ -72,7 +70,6 @@ export async function updatePerson(id: string, patch: Partial<Person>): Promise<
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.income !== undefined) dbPatch.income = patch.income;
-  if (patch.color !== undefined) dbPatch.color = patch.color;
   if (patch.email !== undefined) dbPatch.email = patch.email;
 
   const { data, error } = await supabase
@@ -109,7 +106,6 @@ export async function updateCategory(id: string, patch: Partial<Category>): Prom
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.targetPercent !== undefined) dbPatch.target_percent = patch.targetPercent;
-  if (patch.color !== undefined) dbPatch.color = patch.color;
 
   const { data, error } = await supabase
     .from("categories")
@@ -200,24 +196,10 @@ export async function createPerson(data: {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
-  // Get a random color for the new person
-  const colors = [
-    "bg-blue-500",
-    "bg-pink-500",
-    "bg-green-500",
-    "bg-purple-500",
-    "bg-yellow-500",
-    "bg-indigo-500",
-    "bg-red-500",
-    "bg-teal-500",
-  ];
-  const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
   // Create the person record
   const dbRow = {
     name: data.name,
     income: data.income,
-    color: randomColor,
     household_id: householdId,
     linked_user_id: null,
   };

@@ -12,6 +12,7 @@ import {
   calculateTotalIncome,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { getCategoryColorStyle } from "@/lib/categoryColors";
 import { formatPercent } from "@/lib/format";
 import type { Category, Person } from "@/lib/types";
 
@@ -32,7 +33,6 @@ type PersonEdits = {
 
 type CategoryEdits = {
   [categoryId: string]: {
-    name: string;
     targetPercent: number;
   };
 };
@@ -85,7 +85,6 @@ export function SettingsView() {
     const initialEdits: CategoryEdits = {};
     for (const category of categories) {
       initialEdits[category.id] = {
-        name: category.name,
         targetPercent: category.targetPercent,
       };
     }
@@ -128,7 +127,7 @@ export function SettingsView() {
     return categories.some((category) => {
       const edits = categoryEdits[category.id];
       if (!edits) return false;
-      return edits.name !== category.name || edits.targetPercent !== category.targetPercent;
+      return edits.targetPercent !== category.targetPercent;
     });
   }, [categories, categoryEdits]);
 
@@ -153,37 +152,30 @@ export function SettingsView() {
     }));
   };
 
-  const updateCategoryEdit = (
-    categoryId: string,
-    field: "name" | "targetPercent",
-    value: string | number,
-  ) => {
+  const updateCategoryEdit = (categoryId: string, value: number) => {
     setCategoryEdits((prev) => {
       const currentEdit = prev[categoryId] || {
-        name: categories.find((c) => c.id === categoryId)?.name ?? "",
         targetPercent: categories.find((c) => c.id === categoryId)?.targetPercent ?? 0,
       };
 
-      // If updating targetPercent, validate that total doesn't exceed 100%
-      if (field === "targetPercent" && typeof value === "number") {
-        const otherCategoriesTotal = categories.reduce((sum, cat) => {
-          if (cat.id === categoryId) return sum;
-          const edits = prev[cat.id];
-          return sum + (edits?.targetPercent ?? cat.targetPercent);
-        }, 0);
+      // Validate that total doesn't exceed 100%
+      const otherCategoriesTotal = categories.reduce((sum, cat) => {
+        if (cat.id === categoryId) return sum;
+        const edits = prev[cat.id];
+        return sum + (edits?.targetPercent ?? cat.targetPercent);
+      }, 0);
 
-        const newTotal = otherCategoriesTotal + value;
-        if (newTotal > 100) {
-          // Don't allow the change if it would exceed 100%
-          return prev;
-        }
+      const newTotal = otherCategoriesTotal + value;
+      if (newTotal > 100) {
+        // Don't allow the change if it would exceed 100%
+        return prev;
       }
 
       return {
         ...prev,
         [categoryId]: {
           ...currentEdit,
-          [field]: value,
+          targetPercent: value,
         },
       };
     });
@@ -235,12 +227,10 @@ export function SettingsView() {
         .map((category) => {
           const edits = categoryEdits[category.id];
           if (!edits) return null;
-          if (edits.name === category.name && edits.targetPercent === category.targetPercent)
-            return null;
+          if (edits.targetPercent === category.targetPercent) return null;
           return {
             categoryId: category.id,
             patch: {
-              name: edits.name,
               targetPercent: edits.targetPercent,
             } as Partial<Omit<Category, "id">>,
           };
@@ -564,19 +554,16 @@ export function SettingsView() {
 
             return (
               <div key={cat.id} className="flex items-center gap-4">
-                <input
-                  type="text"
-                  value={edits.name}
-                  onChange={(event) => updateCategoryEdit(cat.id, "name", event.target.value)}
-                  className={`flex-1 font-medium bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-500 focus:outline-none py-1 ${cat.color}`}
-                />
+                <span className="flex-1 font-medium py-1" style={getCategoryColorStyle(cat.name)}>
+                  {cat.name}
+                </span>
                 <div className="flex items-center gap-2 w-32">
                   <input
                     type="number"
                     value={edits.targetPercent}
                     onChange={(event) => {
                       const value = Number.parseFloat(event.target.value) || 0;
-                      updateCategoryEdit(cat.id, "targetPercent", value);
+                      updateCategoryEdit(cat.id, value);
                     }}
                     className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
                     min="0"
