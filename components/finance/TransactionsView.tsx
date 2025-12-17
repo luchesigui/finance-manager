@@ -492,7 +492,7 @@ Retorne APENAS o JSON, sem markdown.
                   </label>
                   <CurrencyInput
                     id="edit-amount"
-                    value={editForm.amount}
+                    value={editForm.amount ?? null}
                     onValueChange={(val) => setEditForm({ ...editForm, amount: val })}
                     className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                     required
