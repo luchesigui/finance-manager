@@ -242,9 +242,15 @@ export function SettingsView() {
           );
 
           if (entries.length > 0) {
+            const categoriesResponse = await fetch("/api/categories");
+            const categoriesJson = (await categoriesResponse.json()) as Array<{
+              id: string;
+              name: string;
+            }>;
+
             await Promise.all(
               entries.map(([categoryName, targetPercent]) => {
-                const category = categories.find((c) => c.name === categoryName);
+                const category = categoriesJson.find((c) => c.name === categoryName);
                 if (!category) return Promise.resolve();
                 return fetch("/api/categories", {
                   method: "PATCH",

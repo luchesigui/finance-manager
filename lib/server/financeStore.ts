@@ -71,7 +71,10 @@ async function ensureGuestHousehold(guestId: string): Promise<string> {
     .maybeSingle();
 
   if (existingError) throw existingError;
-  if (existing?.id) return existing.id;
+  if (existing?.id) {
+    await ensureHouseholdDefaults(existing.id);
+    return existing.id;
+  }
 
   // Create a new guest household, plus minimum defaults the UI expects.
   const { data: createdHousehold, error: createHouseholdError } = await admin
@@ -84,40 +87,91 @@ async function ensureGuestHousehold(guestId: string): Promise<string> {
 
   const householdId = createdHousehold.id as string;
 
-  const { data: createdPerson, error: createPersonError } = await admin
-    .from("people")
-    .insert({
-      name: "Você",
-      income: 0,
-      household_id: householdId,
-      linked_user_id: null,
-    })
-    .select("id")
-    .single();
-
-  if (createPersonError) throw createPersonError;
-
-  const defaultPersonId = createdPerson.id as string;
-
-  // Default categories (same set as handle_new_user)
-  const { error: createCategoriesError } = await admin.from("categories").insert(
-    DEFAULT_CATEGORIES.map((c) => ({
-      name: c.name,
-      target_percent: c.targetPercent,
-      household_id: householdId,
-    })),
-  );
-
-  if (createCategoriesError) throw createCategoriesError;
-
-  const { error: setDefaultPayerError } = await admin
-    .from("households")
-    .update({ default_payer_id: defaultPersonId })
-    .eq("id", householdId);
-
-  if (setDefaultPayerError) throw setDefaultPayerError;
+  await ensureHouseholdDefaults(householdId);
 
   return householdId;
+}
+
+async function ensureHouseholdDefaults(householdId: string): Promise<void> {
+  const admin = createAdminClient();
+
+  const [
+    { count: peopleCount, error: peopleCountError },
+    { count: categoryCount, error: categoryCountError },
+  ] = await Promise.all([
+    admin
+      .from("people")
+      .select("id", { count: "exact", head: true })
+      .eq("household_id", householdId),
+    admin
+      .from("categories")
+      .select("id", { count: "exact", head: true })
+      .eq("household_id", householdId),
+  ]);
+
+  if (peopleCountError) throw peopleCountError;
+  if (categoryCountError) throw categoryCountError;
+
+  let defaultPersonId: string | null = null;
+
+  if ((peopleCount ?? 0) === 0) {
+    const { data: createdPerson, error: createPersonError } = await admin
+      .from("people")
+      .insert({
+        name: "Você",
+        income: 0,
+        household_id: householdId,
+        linked_user_id: null,
+      })
+      .select("id")
+      .single();
+
+    if (createPersonError) throw createPersonError;
+    defaultPersonId = createdPerson.id as string;
+  }
+
+  if ((categoryCount ?? 0) === 0) {
+    const { error: createCategoriesError } = await admin.from("categories").insert(
+      DEFAULT_CATEGORIES.map((c) => ({
+        name: c.name,
+        target_percent: c.targetPercent,
+        household_id: householdId,
+      })),
+    );
+    if (createCategoriesError) throw createCategoriesError;
+  }
+
+  // Ensure default payer exists (prefer existing, else newly created).
+  const { data: household, error: householdError } = await admin
+    .from("households")
+    .select("default_payer_id")
+    .eq("id", householdId)
+    .single();
+
+  if (householdError) throw householdError;
+
+  if (!household.default_payer_id) {
+    if (!defaultPersonId) {
+      const { data: firstPerson, error: firstPersonError } = await admin
+        .from("people")
+        .select("id")
+        .eq("household_id", householdId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (firstPersonError) throw firstPersonError;
+      defaultPersonId = firstPerson?.id ?? null;
+    }
+
+    if (defaultPersonId) {
+      const { error: setDefaultPayerError } = await admin
+        .from("households")
+        .update({ default_payer_id: defaultPersonId })
+        .eq("id", householdId);
+
+      if (setDefaultPayerError) throw setDefaultPayerError;
+    }
+  }
 }
 
 async function getPrimaryHouseholdIdForUser(userId: string): Promise<string> {
