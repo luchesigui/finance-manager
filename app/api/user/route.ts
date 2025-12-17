@@ -7,12 +7,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const userId = await getCurrentUserId();
+    const cookieStore = await cookies();
+    const anonymousId = cookieStore.get("anonymous_session_id")?.value;
     
     let shouldMerge = false;
-    if (userId) {
-       const cookieStore = await cookies();
-       const anonymousId = cookieStore.get("anonymous_session_id")?.value;
-       if (anonymousId) shouldMerge = true;
+    if (userId && anonymousId) {
+       shouldMerge = true;
     }
 
     return NextResponse.json({ userId, isAnonymous: !userId, shouldMerge, anonymousId });
