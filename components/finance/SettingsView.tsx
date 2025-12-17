@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PieChart, Plus, Save, Trash2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -24,6 +24,47 @@ async function fetchJson<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+const GUEST_CATEGORY_OVERRIDES_STORAGE_KEY = "fp_guest_category_overrides_v1";
+
+function readGuestCategoryOverrides(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+
+    const out: Record<string, number> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof key !== "string" || key.length === 0) continue;
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      out[key] = value;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function writeGuestCategoryOverridesFromEdits(edits: Record<string, { targetPercent: number }>) {
+  try {
+    const overrides: Record<string, number> = {};
+    for (const [id, edit] of Object.entries(edits)) {
+      overrides[id] = edit.targetPercent;
+    }
+    localStorage.setItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+  } catch {
+    // ignore (private mode, quota, etc.)
+  }
+}
+
+function clearGuestCategoryOverrides() {
+  try {
+    localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 type PersonEdits = {
   [personId: string]: {
     name: string;
@@ -38,6 +79,7 @@ type CategoryEdits = {
 };
 
 export function SettingsView() {
+  const queryClient = useQueryClient();
   const { people, updatePeople, createPerson, deletePerson } = usePeople();
   const { categories, updateCategories } = useCategories();
   const {
@@ -89,14 +131,15 @@ export function SettingsView() {
 
   // Initialize edits from categories data
   useEffect(() => {
+    const guestOverrides = isGuest ? readGuestCategoryOverrides() : {};
     const initialEdits: CategoryEdits = {};
     for (const category of categories) {
       initialEdits[category.id] = {
-        targetPercent: category.targetPercent,
+        targetPercent: guestOverrides[category.id] ?? category.targetPercent,
       };
     }
     setCategoryEdits(initialEdits);
-  }, [categories]);
+  }, [categories, isGuest]);
 
   // Separate current user from other participants
   const currentUserPerson =
@@ -150,6 +193,30 @@ export function SettingsView() {
       }
 
       if ("success" in json && json.success) {
+        // After signup, apply any guest category overrides (localStorage) to the DB, then clear them.
+        try {
+          const guestOverrides = readGuestCategoryOverrides();
+          const updates = Object.entries(guestOverrides)
+            .map(([categoryId, targetPercent]) => ({ categoryId, targetPercent }))
+            .filter((entry) => Number.isFinite(entry.targetPercent));
+
+          if (updates.length > 0) {
+            await Promise.all(
+              updates.map(({ categoryId, targetPercent }) =>
+                fetch("/api/categories", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ categoryId, patch: { targetPercent } }),
+                }),
+              ),
+            );
+            clearGuestCategoryOverrides();
+            queryClient.invalidateQueries({ queryKey: ["categories"] });
+          }
+        } catch (applyError) {
+          console.error("Failed to apply guest category overrides after signup", applyError);
+        }
+
         if (json.requiresConfirmation) {
           setSignupSuccess(json.message ?? "Conta criada! Confira seu email para confirmar.");
         } else {
@@ -222,13 +289,20 @@ export function SettingsView() {
         return prev;
       }
 
-      return {
+      const next = {
         ...prev,
         [categoryId]: {
           ...currentEdit,
           targetPercent: value,
         },
       };
+
+      if (isGuest) {
+        // Guest: persist to localStorage (not DB) as the user edits.
+        writeGuestCategoryOverridesFromEdits(next);
+      }
+
+      return next;
     });
   };
 
@@ -274,6 +348,17 @@ export function SettingsView() {
 
     setIsSavingCategories(true);
     try {
+      if (isGuest) {
+        // Guest: do not write to DB. Changes are stored in localStorage.
+        queryClient.setQueryData<Category[]>(["categories"], (existingCategories = []) =>
+          existingCategories.map((cat) => {
+            const edits = categoryEdits[cat.id];
+            return edits ? { ...cat, targetPercent: edits.targetPercent } : cat;
+          }),
+        );
+        return;
+      }
+
       const updates = categories
         .map((category) => {
           const edits = categoryEdits[category.id];

@@ -4,6 +4,35 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+const GUEST_CATEGORY_OVERRIDES_STORAGE_KEY = "fp_guest_category_overrides_v1";
+
+function readGuestCategoryOverrides(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+
+    const out: Record<string, number> = {};
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof key !== "string" || key.length === 0) continue;
+      if (typeof value !== "number" || !Number.isFinite(value)) continue;
+      out[key] = value;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function clearGuestCategoryOverrides() {
+  try {
+    localStorage.removeItem(GUEST_CATEGORY_OVERRIDES_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,6 +80,29 @@ export default function LoginPage() {
       if (!response.ok) {
         setError(data.message || "An error occurred during sign-up");
       } else {
+        // After signup, apply guest category overrides (if any) and clear localStorage.
+        try {
+          const guestOverrides = readGuestCategoryOverrides();
+          const updates = Object.entries(guestOverrides)
+            .map(([categoryId, targetPercent]) => ({ categoryId, targetPercent }))
+            .filter((entry) => Number.isFinite(entry.targetPercent));
+
+          if (updates.length > 0) {
+            await Promise.all(
+              updates.map(({ categoryId, targetPercent }) =>
+                fetch("/api/categories", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ categoryId, patch: { targetPercent } }),
+                }),
+              ),
+            );
+            clearGuestCategoryOverrides();
+          }
+        } catch (applyError) {
+          console.error("Failed to apply guest category overrides after signup", applyError);
+        }
+
         if (data.requiresConfirmation) {
           setError("Check your email for the confirmation link.");
         } else {
