@@ -8,15 +8,10 @@ import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthConte
 import { parseDateString } from "@/lib/format";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
-async function fetchJson<T>(
-  url: string,
-  requestInit?: RequestInit
-): Promise<T> {
+async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
   const response = await fetch(url, requestInit);
   if (!response.ok) {
-    throw new Error(
-      `${requestInit?.method ?? "GET"} ${url} failed: ${response.status}`
-    );
+    throw new Error(`${requestInit?.method ?? "GET"} ${url} failed: ${response.status}`);
   }
   return (await response.json()) as T;
 }
@@ -24,26 +19,19 @@ async function fetchJson<T>(
 type TransactionsContextValue = {
   transactionsForSelectedMonth: Transaction[];
   isTransactionsLoading: boolean;
-  addTransactionsFromFormState: (
-    newTransactionFormState: NewTransactionFormState
-  ) => void;
+  addTransactionsFromFormState: (newTransactionFormState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
 };
 
-const TransactionsContext = createContext<TransactionsContextValue | null>(
-  null
-);
+const TransactionsContext = createContext<TransactionsContextValue | null>(null);
 
-export function TransactionsProvider({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export function TransactionsProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const queryClient = useQueryClient();
-  const { selectedYear, selectedMonthNumber, selectedMonthDate } =
-    useCurrentMonth();
+  const { selectedYear, selectedMonthNumber, selectedMonthDate } = useCurrentMonth();
 
   const transactionsQueryKey = useMemo(
     () => ["transactions", selectedYear, selectedMonthNumber] as const,
-    [selectedYear, selectedMonthNumber]
+    [selectedYear, selectedMonthNumber],
   );
 
   const transactionsQuery = useQuery({
@@ -51,8 +39,8 @@ export function TransactionsProvider({
     queryFn: () =>
       fetchJson<Transaction[]>(
         `/api/transactions?year=${encodeURIComponent(
-          String(selectedYear)
-        )}&month=${encodeURIComponent(String(selectedMonthNumber))}`
+          String(selectedYear),
+        )}&month=${encodeURIComponent(String(selectedMonthNumber))}`,
       ),
   });
 
@@ -65,29 +53,25 @@ export function TransactionsProvider({
       }).then((createdTransactionsResponse) =>
         Array.isArray(createdTransactionsResponse)
           ? createdTransactionsResponse
-          : [createdTransactionsResponse]
+          : [createdTransactionsResponse],
       ),
     onSuccess: (createdTransactions) => {
       const createdTransactionsInSelectedMonth = createdTransactions.filter(
         (createdTransaction) => {
-          const [transactionYear, transactionMonth] =
-            createdTransaction.date.split("-");
+          const [transactionYear, transactionMonth] = createdTransaction.date.split("-");
           return (
             Number.parseInt(transactionYear, 10) === selectedYear &&
             Number.parseInt(transactionMonth, 10) === selectedMonthNumber
           );
-        }
+        },
       );
 
       if (createdTransactionsInSelectedMonth.length === 0) return;
 
-      queryClient.setQueryData<Transaction[]>(
-        transactionsQueryKey,
-        (existingTransactions = []) => [
-          ...createdTransactionsInSelectedMonth,
-          ...existingTransactions,
-        ]
-      );
+      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) => [
+        ...createdTransactionsInSelectedMonth,
+        ...existingTransactions,
+      ]);
     },
   });
 
@@ -97,32 +81,22 @@ export function TransactionsProvider({
         method: "DELETE",
       }).then((deleteResponse) => {
         if (!deleteResponse.ok) {
-          throw new Error(
-            `DELETE /api/transactions/:id failed: ${deleteResponse.status}`
-          );
+          throw new Error(`DELETE /api/transactions/:id failed: ${deleteResponse.status}`);
         }
       }),
     onMutate: async (transactionId) => {
       await queryClient.cancelQueries({ queryKey: transactionsQueryKey });
-      const previousTransactions =
-        queryClient.getQueryData<Transaction[]>(transactionsQueryKey);
+      const previousTransactions = queryClient.getQueryData<Transaction[]>(transactionsQueryKey);
 
-      queryClient.setQueryData<Transaction[]>(
-        transactionsQueryKey,
-        (existingTransactions = []) =>
-          existingTransactions.filter(
-            (transaction) => transaction.id !== transactionId
-          )
+      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) =>
+        existingTransactions.filter((transaction) => transaction.id !== transactionId),
       );
 
       return { previousTransactions };
     },
     onError: (_error, _transactionId, context) => {
       if (context?.previousTransactions) {
-        queryClient.setQueryData(
-          transactionsQueryKey,
-          context.previousTransactions
-        );
+        queryClient.setQueryData(transactionsQueryKey, context.previousTransactions);
       }
     },
   });
@@ -131,31 +105,20 @@ export function TransactionsProvider({
     TransactionsContextValue["addTransactionsFromFormState"]
   >(
     (newTransactionFormState) => {
-      if (
-        !newTransactionFormState.description ||
-        newTransactionFormState.amount == null
-      )
-        return;
+      if (!newTransactionFormState.description || newTransactionFormState.amount == null) return;
 
       let baseDateString = newTransactionFormState.date;
       if (!baseDateString) {
         const yearString = String(selectedMonthDate.getFullYear());
-        const monthString = String(selectedMonthDate.getMonth() + 1).padStart(
-          2,
-          "0"
-        );
+        const monthString = String(selectedMonthDate.getMonth() + 1).padStart(2, "0");
         baseDateString = `${yearString}-${monthString}-01`;
       }
 
       const newTransactionsPayload: Array<Omit<Transaction, "id">> = [];
       const amountValue = newTransactionFormState.amount;
 
-      if (
-        newTransactionFormState.isInstallment &&
-        newTransactionFormState.installments > 1
-      ) {
-        const installmentAmountValue =
-          amountValue / newTransactionFormState.installments;
+      if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
+        const installmentAmountValue = amountValue / newTransactionFormState.installments;
         const baseDateObject = parseDateString(baseDateString);
 
         for (
@@ -164,19 +127,14 @@ export function TransactionsProvider({
           installmentIndex++
         ) {
           const installmentDateObject = new Date(baseDateObject);
-          installmentDateObject.setMonth(
-            baseDateObject.getMonth() + installmentIndex
-          );
+          installmentDateObject.setMonth(baseDateObject.getMonth() + installmentIndex);
 
-          const installmentYearString = String(
-            installmentDateObject.getFullYear()
+          const installmentYearString = String(installmentDateObject.getFullYear());
+          const installmentMonthString = String(installmentDateObject.getMonth() + 1).padStart(
+            2,
+            "0",
           );
-          const installmentMonthString = String(
-            installmentDateObject.getMonth() + 1
-          ).padStart(2, "0");
-          const installmentDayString = String(
-            installmentDateObject.getDate()
-          ).padStart(2, "0");
+          const installmentDayString = String(installmentDateObject.getDate()).padStart(2, "0");
 
           newTransactionsPayload.push({
             description: `${newTransactionFormState.description} (${
@@ -202,16 +160,14 @@ export function TransactionsProvider({
 
       createTransactionsMutation.mutate(newTransactionsPayload);
     },
-    [createTransactionsMutation, selectedMonthDate]
+    [createTransactionsMutation, selectedMonthDate],
   );
 
-  const deleteTransactionById = useCallback<
-    TransactionsContextValue["deleteTransactionById"]
-  >(
+  const deleteTransactionById = useCallback<TransactionsContextValue["deleteTransactionById"]>(
     (transactionId) => {
       deleteTransactionMutation.mutate(transactionId);
     },
-    [deleteTransactionMutation]
+    [deleteTransactionMutation],
   );
 
   const contextValue = useMemo<TransactionsContextValue>(
@@ -226,13 +182,11 @@ export function TransactionsProvider({
       deleteTransactionById,
       transactionsQuery.data,
       transactionsQuery.isLoading,
-    ]
+    ],
   );
 
   return (
-    <TransactionsContext.Provider value={contextValue}>
-      {children}
-    </TransactionsContext.Provider>
+    <TransactionsContext.Provider value={contextValue}>{children}</TransactionsContext.Provider>
   );
 }
 

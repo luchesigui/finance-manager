@@ -33,10 +33,7 @@ export function AppHeader() {
           <div className="bg-indigo-600 p-2 rounded-lg text-white">
             <Wallet size={24} />
           </div>
-          <Link
-            href="/dashboard"
-            className="text-xl font-bold text-slate-800 tracking-tight"
-          >
+          <Link href="/dashboard" className="text-xl font-bold text-slate-800 tracking-tight">
             Finanças<span className="text-indigo-600">Pro</span>
           </Link>
         </div>

@@ -9,9 +9,7 @@ import { DefaultPayerProvider } from "@/components/finance/contexts/DefaultPayer
 import { PeopleProvider } from "@/components/finance/contexts/PeopleContext";
 import { TransactionsProvider } from "@/components/finance/contexts/TransactionsContext";
 
-export function FinanceProviders({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export function FinanceProviders({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
 
   // Skip FinanceProviders on login/signup pages to avoid API calls

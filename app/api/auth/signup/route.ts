@@ -7,10 +7,7 @@ export async function POST(request: Request) {
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
     const supabase = await createClient();
@@ -34,8 +31,7 @@ export async function POST(request: Request) {
       // Check if it's a database error from the trigger
       // Supabase errors can have different structures, so we check multiple possibilities
       const errorMessage = error.message || "";
-      const errorCode =
-        error.code || error.status?.toString() || "signup_error";
+      const errorCode = error.code || error.status?.toString() || "signup_error";
 
       if (
         errorMessage.includes("Database error") ||
@@ -47,10 +43,9 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             code: "unexpected_failure",
-            message:
-              "Database error saving new user. Please try again or contact support.",
+            message: "Database error saving new user. Please try again or contact support.",
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -59,7 +54,7 @@ export async function POST(request: Request) {
           code: errorCode,
           message: errorMessage || "An error occurred during sign-up",
         },
-        { status: error.status || 400 }
+        { status: error.status || 400 },
       );
     }
 
@@ -83,10 +78,9 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         code: "unexpected_failure",
-        message:
-          "An unexpected error occurred during sign-up. Please try again.",
+        message: "An unexpected error occurred during sign-up. Please try again.",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

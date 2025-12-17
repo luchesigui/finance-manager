@@ -37,9 +37,6 @@ export function parseDateString(dateString: string): Date {
  * @param locale - Locale string (default: "pt-BR")
  * @returns Formatted date string
  */
-export function formatDateString(
-  dateString: string,
-  locale = "pt-BR"
-): string {
+export function formatDateString(dateString: string, locale = "pt-BR"): string {
   return parseDateString(dateString).toLocaleDateString(locale);
 }
