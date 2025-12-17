@@ -15,7 +15,7 @@ export async function GET() {
        if (anonymousId) shouldMerge = true;
     }
 
-    return NextResponse.json({ userId, isAnonymous: !userId, shouldMerge });
+    return NextResponse.json({ userId, isAnonymous: !userId, shouldMerge, anonymousId });
   } catch (error) {
     console.error("Failed to get current user", error);
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

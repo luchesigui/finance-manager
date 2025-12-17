@@ -63,11 +63,12 @@ export function SettingsView() {
   // Get current user ID
   const { data: userData } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => fetchJson<{ userId: string; isAnonymous: boolean }>("/api/user"),
+    queryFn: () => fetchJson<{ userId: string; isAnonymous: boolean; anonymousId?: string }>("/api/user"),
   });
 
   const currentUserId = userData?.userId;
   const isAnonymous = userData?.isAnonymous;
+  const anonymousId = userData?.anonymousId;
 
   // Initialize edits from people data
   useEffect(() => {
@@ -302,6 +303,7 @@ export function SettingsView() {
               <p className="text-sm text-amber-700 mt-1">
                 Seus dados estão disponíveis apenas neste navegador através de um cookie. 
                 Se você limpar os cookies, perderá todos os dados.
+                {anonymousId && <span className="block mt-1 text-xs opacity-70 font-mono">ID: {anonymousId.slice(0, 8)}...</span>}
               </p>
             </div>
             <a

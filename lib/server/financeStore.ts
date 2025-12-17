@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { Category, Person, Transaction } from "@/lib/types";
 
 // Helper to convert snake_case DB result to camelCase
@@ -59,7 +59,8 @@ async function getClientAndHousehold() {
   }
 
   // Anonymous user path
-  const anonymousId = cookieStore.get("anonymous_session_id")?.value;
+  const anonymousId = cookieStore.get("anonymous_session_id")?.value || (await headers()).get("x-anonymous-session-id");
+  
   if (!anonymousId) {
     // This should generally be handled by middleware, but if missing:
     throw new Error("No anonymous session found");

@@ -61,12 +61,40 @@ export async function updateSession(request: NextRequest) {
     if (!anonymousCookie) {
       // Create new anonymous session
       const newAnonymousId = crypto.randomUUID();
+      
+      // Set cookie in response
       supabaseResponse.cookies.set("anonymous_session_id", newAnonymousId, {
         path: "/",
         sameSite: "lax",
         httpOnly: true,
         maxAge: 60 * 60 * 24 * 365 * 10, // 10 years
       });
+
+      // Pass the new ID to the request headers so Server Components can see it immediately
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-anonymous-session-id", newAnonymousId);
+      
+      // Return response with modified request headers
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+        headers: supabaseResponse.headers, // Preserve any response headers/cookies
+      });
+    } else {
+       // Cookie exists, ensure it's available in headers too just in case
+       const requestHeaders = new Headers(request.headers);
+       requestHeaders.set("x-anonymous-session-id", anonymousCookie.value);
+       
+       // Clone response to attach headers? 
+       // Actually, we modified supabaseResponse earlier.
+       // But we need to pass the request headers forward.
+       return NextResponse.next({
+         request: {
+           headers: requestHeaders,
+         },
+         headers: supabaseResponse.headers,
+       });
     }
     
     // Allow access to the app (do not redirect to login)
