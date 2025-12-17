@@ -83,16 +83,6 @@ export function DashboardView() {
                         (Renda: {formatPercent(person.sharePercent * 100)})
                       </span>
                     </div>
-                    <div
-                      className={`text-sm font-bold px-3 py-1 rounded-full ${
-                        person.balance >= 0
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {person.balance >= 0 ? "A Receber" : "A Pagar"}:{" "}
-                      {formatCurrency(Math.abs(person.balance))}
-                    </div>
                   </div>
 
                   <div className="h-4 bg-slate-100 rounded-full overflow-hidden flex">
