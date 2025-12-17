@@ -11,7 +11,6 @@ const toPerson = (row: any): Person => ({
   income: Number(row.income),
   householdId: row.household_id,
   linkedUserId: row.linked_user_id,
-  email: row.email,
 });
 
 // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
@@ -76,7 +75,6 @@ export async function updatePerson(
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
   if (patch.income !== undefined) dbPatch.income = patch.income;
-  if (patch.email !== undefined) dbPatch.email = patch.email;
 
   const { data, error } = await supabase
     .from("people")

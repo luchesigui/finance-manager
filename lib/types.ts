@@ -4,7 +4,6 @@ export type Person = {
   income: number;
   householdId?: string;
   linkedUserId?: string;
-  email?: string;
 };
 
 export type Category = {
