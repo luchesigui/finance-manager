@@ -29,6 +29,7 @@ const toTransaction = (row: any): Transaction => ({
   categoryId: row.category_id,
   paidBy: row.paid_by,
   isRecurring: row.is_recurring,
+  recurringId: row.recurring_id,
   date: row.date,
   householdId: row.household_id,
 });
@@ -142,6 +143,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     category_id: t.categoryId,
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
+    recurring_id: t.recurringId,
     date: t.date,
     household_id: householdId,
   };
@@ -150,6 +152,58 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
 
   if (error) throw error;
   return toTransaction(data);
+}
+
+export async function updateTransaction(id: number, patch: Partial<Transaction>): Promise<Transaction> {
+  const supabase = await createClient();
+  // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
+  const dbPatch: any = {};
+  if (patch.description !== undefined) dbPatch.description = patch.description;
+  if (patch.amount !== undefined) dbPatch.amount = patch.amount;
+  if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
+  if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
+  if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
+  if (patch.date !== undefined) dbPatch.date = patch.date;
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .update(dbPatch)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return toTransaction(data);
+}
+
+export async function updateTransactionsByRecurringId(
+  recurringId: string,
+  patch: Partial<Transaction>,
+  scope: "all" | "future",
+  referenceDate?: string,
+): Promise<Transaction[]> {
+  const supabase = await createClient();
+  // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
+  const dbPatch: any = {};
+  if (patch.description !== undefined) dbPatch.description = patch.description;
+  if (patch.amount !== undefined) dbPatch.amount = patch.amount;
+  if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
+  if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
+  // We don't typically update date for all recurrences unless shifted, which is complex.
+  // For now, let's assume date is NOT updated in bulk, or if it is, it sets them all to same date (which is wrong for recurring).
+  // So we skip date for bulk updates unless explicitly handled.
+  // However, the user might want to change category or amount for all.
+
+  let query = supabase.from("transactions").update(dbPatch).eq("recurring_id", recurringId);
+
+  if (scope === "future" && referenceDate) {
+    query = query.gte("date", referenceDate);
+  }
+
+  const { data, error } = await query.select();
+
+  if (error) throw error;
+  return data.map(toTransaction);
 }
 
 export async function deleteTransaction(id: number): Promise<void> {

@@ -20,6 +20,7 @@ export type Transaction = {
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;
+  recurringId?: string;
   /** YYYY-MM-DD */
   date: string;
   householdId?: string;

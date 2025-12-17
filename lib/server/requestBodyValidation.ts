@@ -83,3 +83,31 @@ export function validateCreateTransactionsBody(
     value: { isBatch: Array.isArray(body), transactions },
   };
 }
+
+export function validateTransactionUpdateBody(body: unknown): ValidationResult<{
+  patch: Partial<Transaction>;
+  scope: "single" | "all" | "future";
+}> {
+  if (!isRecord(body)) {
+    return { isValid: false, errorMessage: "Invalid body", statusCode: 400 };
+  }
+
+  const patch = body.patch;
+  const scope = body.scope ?? "single";
+
+  if (!isRecord(patch)) {
+    return { isValid: false, errorMessage: "Missing patch object", statusCode: 400 };
+  }
+
+  if (scope !== "single" && scope !== "all" && scope !== "future") {
+    return { isValid: false, errorMessage: "Invalid scope", statusCode: 400 };
+  }
+
+  return {
+    isValid: true,
+    value: {
+      patch: patch as Partial<Transaction>,
+      scope: scope as "single" | "all" | "future",
+    },
+  };
+}

@@ -21,6 +21,11 @@ type TransactionsContextValue = {
   isTransactionsLoading: boolean;
   addTransactionsFromFormState: (newTransactionFormState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
+  updateTransaction: (
+    id: number,
+    patch: Partial<Transaction>,
+    scope: "single" | "all" | "future",
+  ) => void;
 };
 
 const TransactionsContext = createContext<TransactionsContextValue | null>(null);
@@ -101,6 +106,25 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     },
   });
 
+  const updateTransactionMutation = useMutation({
+    mutationFn: (variables: {
+      id: number;
+      patch: Partial<Transaction>;
+      scope: "single" | "all" | "future";
+    }) =>
+      fetchJson<Transaction | Transaction[]>(
+        `/api/transactions/${encodeURIComponent(String(variables.id))}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ patch: variables.patch, scope: variables.scope }),
+        },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+
   const addTransactionsFromFormState = useCallback<
     TransactionsContextValue["addTransactionsFromFormState"]
   >(
@@ -170,16 +194,25 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     [deleteTransactionMutation],
   );
 
+  const updateTransaction = useCallback<TransactionsContextValue["updateTransaction"]>(
+    (id, patch, scope) => {
+      updateTransactionMutation.mutate({ id, patch, scope });
+    },
+    [updateTransactionMutation],
+  );
+
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
       transactionsForSelectedMonth: transactionsQuery.data ?? [],
       isTransactionsLoading: transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
+      updateTransaction,
     }),
     [
       addTransactionsFromFormState,
       deleteTransactionById,
+      updateTransaction,
       transactionsQuery.data,
       transactionsQuery.isLoading,
     ],

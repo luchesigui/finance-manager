@@ -1,6 +1,6 @@
 "use client";
 
-import { BrainCircuit, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { BrainCircuit, Layers, Loader2, Pencil, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
@@ -13,18 +13,26 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
-import type { NewTransactionFormState } from "@/lib/types";
+import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
 export function TransactionsView() {
   const { selectedMonthDate } = useCurrentMonth();
   const { people } = usePeople();
   const { categories } = useCategories();
   const { defaultPayerId } = useDefaultPayer();
-  const { transactionsForSelectedMonth, addTransactionsFromFormState, deleteTransactionById } =
-    useTransactions();
+  const {
+    transactionsForSelectedMonth,
+    addTransactionsFromFormState,
+    deleteTransactionById,
+    updateTransaction,
+  } = useTransactions();
 
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
+
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Transaction>>({});
+  const [editScope, setEditScope] = useState<"single" | "all" | "future">("single");
 
   const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
     description: "",
@@ -120,6 +128,26 @@ Retorne APENAS o JSON, sem markdown.
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const handleEditClick = (t: Transaction) => {
+    setEditingTransaction(t);
+    setEditForm({
+      description: t.description,
+      amount: t.amount,
+      categoryId: t.categoryId,
+      paidBy: t.paidBy,
+      date: t.date,
+      isRecurring: t.isRecurring,
+    });
+    setEditScope("single");
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTransaction) return;
+    updateTransaction(editingTransaction.id, editForm, editScope);
+    setEditingTransaction(null);
   };
 
   return (
@@ -392,10 +420,18 @@ Retorne APENAS o JSON, sem markdown.
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold text-slate-700">
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold text-slate-700 mr-2">
                       {formatCurrency(transaction.amount)}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => handleEditClick(transaction)}
+                      className="text-slate-300 hover:text-indigo-500 p-2 transition-all"
+                      title="Editar"
+                    >
+                      <Pencil size={16} />
+                    </button>
                     {!transaction.isRecurring ? (
                       <button
                         type="button"
@@ -415,6 +451,175 @@ Retorne APENAS o JSON, sem markdown.
           )}
         </div>
       </div>
+
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-50 duration-200">
+            <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+              <h3 className="font-semibold text-slate-700">Editar Despesa</h3>
+              <button
+                type="button"
+                onClick={() => setEditingTransaction(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
+              <div>
+                <label
+                  htmlFor="edit-description"
+                  className="block text-xs font-medium text-slate-500 mb-1"
+                >
+                  Descrição
+                </label>
+                <input
+                  id="edit-description"
+                  type="text"
+                  value={editForm.description ?? ""}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="edit-amount"
+                    className="block text-xs font-medium text-slate-500 mb-1"
+                  >
+                    Valor
+                  </label>
+                  <CurrencyInput
+                    id="edit-amount"
+                    value={editForm.amount}
+                    onValueChange={(val) => setEditForm({ ...editForm, amount: val })}
+                    className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="edit-date"
+                    className="block text-xs font-medium text-slate-500 mb-1"
+                  >
+                    Data
+                  </label>
+                  <input
+                    id="edit-date"
+                    type="date"
+                    value={editForm.date ?? ""}
+                    onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600 bg-white"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="edit-category"
+                    className="block text-xs font-medium text-slate-500 mb-1"
+                  >
+                    Categoria
+                  </label>
+                  <select
+                    id="edit-category"
+                    value={editForm.categoryId}
+                    onChange={(e) => setEditForm({ ...editForm, categoryId: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label
+                    htmlFor="edit-paid-by"
+                    className="block text-xs font-medium text-slate-500 mb-1"
+                  >
+                    Pago por
+                  </label>
+                  <select
+                    id="edit-paid-by"
+                    value={editForm.paidBy}
+                    onChange={(e) => setEditForm({ ...editForm, paidBy: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    {people.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {(editingTransaction.recurringId || editingTransaction.isRecurring) && (
+                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                  <label className="block text-xs font-bold text-indigo-700 mb-2">
+                    Esta é uma despesa recorrente/parcelada. Aplicar alterações para:
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="scope"
+                        value="single"
+                        checked={editScope === "single"}
+                        onChange={() => setEditScope("single")}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-slate-700">Apenas esta despesa</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="scope"
+                        value="all"
+                        checked={editScope === "all"}
+                        onChange={() => setEditScope("all")}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-slate-700">Todas as ocorrências</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="scope"
+                        value="future"
+                        checked={editScope === "future"}
+                        onChange={() => setEditScope("future")}
+                        className="text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm text-slate-700">Esta e as futuras</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingTransaction(null)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

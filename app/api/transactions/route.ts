@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 
 import { createTransaction, getTransactions } from "@/lib/server/financeStore";
 import { readJsonBody, validateCreateTransactionsBody } from "@/lib/server/requestBodyValidation";
@@ -35,9 +36,22 @@ export async function POST(request: Request) {
     );
   }
 
+  const transactionsToCreate = validationResult.value.transactions;
+
+  // Assign recurringId for installments (batch) or recurring transactions
+  if (
+    validationResult.value.isBatch ||
+    (transactionsToCreate.length === 1 && transactionsToCreate[0].isRecurring)
+  ) {
+    const recurringId = randomUUID();
+    for (const t of transactionsToCreate) {
+      t.recurringId = recurringId;
+    }
+  }
+
   try {
     const createdTransactions = await Promise.all(
-      validationResult.value.transactions.map((t) => createTransaction(t)),
+      transactionsToCreate.map((t) => createTransaction(t)),
     );
 
     return NextResponse.json(
