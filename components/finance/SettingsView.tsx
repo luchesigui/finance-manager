@@ -13,7 +13,7 @@ import {
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { formatPercent } from "@/lib/format";
-import type { Person } from "@/lib/types";
+import type { Category, Person } from "@/lib/types";
 
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
@@ -30,9 +30,16 @@ type PersonEdits = {
   };
 };
 
+type CategoryEdits = {
+  [categoryId: string]: {
+    name: string;
+    targetPercent: number;
+  };
+};
+
 export function SettingsView() {
   const { people, updatePeople, createPerson, deletePerson } = usePeople();
-  const { categories, updateCategoryField } = useCategories();
+  const { categories, updateCategories } = useCategories();
   const { defaultPayerId, setDefaultPayerId } = useDefaultPayer();
 
   const [newPersonName, setNewPersonName] = useState("");
@@ -40,10 +47,14 @@ export function SettingsView() {
   const [isCreatingPerson, setIsCreatingPerson] = useState(false);
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingCategories, setIsSavingCategories] = useState(false);
   const [deletingPersonId, setDeletingPersonId] = useState<string | null>(null);
 
   // Local state for editing participants
   const [personEdits, setPersonEdits] = useState<PersonEdits>({});
+
+  // Local state for editing categories
+  const [categoryEdits, setCategoryEdits] = useState<CategoryEdits>({});
 
   // Get current user ID
   const { data: userData } = useQuery({
@@ -64,6 +75,18 @@ export function SettingsView() {
     }
     setPersonEdits(initialEdits);
   }, [people]);
+
+  // Initialize edits from categories data
+  useEffect(() => {
+    const initialEdits: CategoryEdits = {};
+    for (const category of categories) {
+      initialEdits[category.id] = {
+        name: category.name,
+        targetPercent: category.targetPercent,
+      };
+    }
+    setCategoryEdits(initialEdits);
+  }, [categories]);
 
   // Separate current user from other participants
   const currentUserPerson = people.find((p) => p.linkedUserId === currentUserId);
@@ -87,7 +110,7 @@ export function SettingsView() {
     : null;
   const otherPeopleWithShare = peopleWithShare.filter((p) => p.linkedUserId !== currentUserId);
 
-  // Check if there are unsaved changes
+  // Check if there are unsaved changes for people
   const hasUnsavedChanges = useMemo(() => {
     return people.some((person) => {
       const edits = personEdits[person.id];
@@ -95,6 +118,26 @@ export function SettingsView() {
       return edits.name !== person.name || edits.income !== person.income;
     });
   }, [people, personEdits]);
+
+  // Check if there are unsaved changes for categories
+  const hasUnsavedCategoryChanges = useMemo(() => {
+    return categories.some((category) => {
+      const edits = categoryEdits[category.id];
+      if (!edits) return false;
+      return edits.name !== category.name || edits.targetPercent !== category.targetPercent;
+    });
+  }, [categories, categoryEdits]);
+
+  // Calculate total percentage from edited categories
+  const totalCategoryPercent = useMemo(() => {
+    return categories.reduce((sum, category) => {
+      const edits = categoryEdits[category.id];
+      if (edits) {
+        return sum + edits.targetPercent;
+      }
+      return sum + category.targetPercent;
+    }, 0);
+  }, [categories, categoryEdits]);
 
   const updatePersonEdit = (personId: string, field: "name" | "income", value: string | number) => {
     setPersonEdits((prev) => ({
@@ -104,6 +147,42 @@ export function SettingsView() {
         [field]: value,
       },
     }));
+  };
+
+  const updateCategoryEdit = (
+    categoryId: string,
+    field: "name" | "targetPercent",
+    value: string | number,
+  ) => {
+    setCategoryEdits((prev) => {
+      const currentEdit = prev[categoryId] || {
+        name: categories.find((c) => c.id === categoryId)?.name ?? "",
+        targetPercent: categories.find((c) => c.id === categoryId)?.targetPercent ?? 0,
+      };
+
+      // If updating targetPercent, validate that total doesn't exceed 100%
+      if (field === "targetPercent" && typeof value === "number") {
+        const otherCategoriesTotal = categories.reduce((sum, cat) => {
+          if (cat.id === categoryId) return sum;
+          const edits = prev[cat.id];
+          return sum + (edits?.targetPercent ?? cat.targetPercent);
+        }, 0);
+
+        const newTotal = otherCategoriesTotal + value;
+        if (newTotal > 100) {
+          // Don't allow the change if it would exceed 100%
+          return prev;
+        }
+      }
+
+      return {
+        ...prev,
+        [categoryId]: {
+          ...currentEdit,
+          [field]: value,
+        },
+      };
+    });
   };
 
   const handleSaveAll = async () => {
@@ -134,6 +213,44 @@ export function SettingsView() {
       alert("Falha ao salvar alterações. Por favor, tente novamente.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveCategories = async () => {
+    if (!hasUnsavedCategoryChanges) return;
+
+    // Validate total is exactly 100%
+    if (totalCategoryPercent !== 100) {
+      alert("O total das categorias deve ser exatamente 100%.");
+      return;
+    }
+
+    setIsSavingCategories(true);
+    try {
+      const updates = categories
+        .map((category) => {
+          const edits = categoryEdits[category.id];
+          if (!edits) return null;
+          if (edits.name === category.name && edits.targetPercent === category.targetPercent)
+            return null;
+          return {
+            categoryId: category.id,
+            patch: {
+              name: edits.name,
+              targetPercent: edits.targetPercent,
+            } as Partial<Omit<Category, "id">>,
+          };
+        })
+        .filter((update): update is NonNullable<typeof update> => update !== null);
+
+      if (updates.length > 0) {
+        await updateCategories(updates);
+      }
+    } catch (error) {
+      console.error("Failed to save categories", error);
+      alert("Falha ao salvar alterações. Por favor, tente novamente.");
+    } finally {
+      setIsSavingCategories(false);
     }
   };
 
@@ -204,7 +321,7 @@ export function SettingsView() {
         <div className="space-y-4">
           {/* Current User - Fixed Participant */}
           {currentUserWithShare && personEdits[currentUserWithShare.id] && (
-            <div className="flex flex-col md:flex-row gap-3 items-end md:items-center p-3 bg-indigo-50 rounded-lg border-2 border-indigo-200">
+            <div className="flex flex-col md:flex-row gap-3 items-end p-3 bg-indigo-50 rounded-lg border-2 border-indigo-200">
               <div className="flex-1 w-full">
                 <label
                   htmlFor={`person-name-${currentUserWithShare.id}`}
@@ -243,8 +360,8 @@ export function SettingsView() {
                 </div>
               </div>
 
-              <div className="w-full md:w-auto text-xs text-indigo-700 px-2 py-1 bg-white border border-indigo-200 rounded font-medium">
-                Share: {formatPercent(currentUserWithShare.sharePercent * 100)}
+              <div className="w-full md:w-auto text-xs text-indigo-700 px-2 py-[6px] bg-white border border-indigo-200 rounded font-medium">
+                Porcentagem: {formatPercent(currentUserWithShare.sharePercent * 100)}
               </div>
             </div>
           )}
@@ -257,7 +374,7 @@ export function SettingsView() {
             return (
               <div
                 key={person.id}
-                className="flex flex-col md:flex-row gap-3 items-end md:items-center p-3 bg-slate-50 rounded-lg"
+                className="flex flex-col md:flex-row gap-3 items-end p-3 bg-slate-50 rounded-lg"
               >
                 <div className="flex-1 w-full">
                   <label
@@ -295,8 +412,8 @@ export function SettingsView() {
                   </div>
                 </div>
 
-                <div className="w-full md:w-auto text-xs text-slate-500 px-2 py-1 bg-white border border-slate-200 rounded">
-                  Share: {formatPercent(person.sharePercent * 100)}
+                <div className="w-full md:w-auto text-xs text-slate-500 px-2 py-[6px] bg-white border border-slate-200 rounded">
+                  Porcentagem: {formatPercent(person.sharePercent * 100)}
                 </div>
 
                 <button
@@ -410,48 +527,63 @@ export function SettingsView() {
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-          <PieChart size={20} />
-          Categorias & Metas (%)
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <PieChart size={20} />
+            Categorias & Metas (%)
+          </h2>
+          {hasUnsavedCategoryChanges && (
+            <button
+              type="button"
+              onClick={handleSaveCategories}
+              disabled={isSavingCategories || totalCategoryPercent !== 100}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save size={16} />
+              {isSavingCategories ? "Salvando..." : "Salvar Alterações"}
+            </button>
+          )}
+        </div>
 
         <div className="space-y-3">
-          {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center gap-4">
-              <input
-                type="text"
-                value={cat.name}
-                onChange={(event) => updateCategoryField(cat.id, "name", event.target.value)}
-                className={`flex-1 font-medium bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-500 focus:outline-none py-1 ${cat.color}`}
-              />
-              <div className="flex items-center gap-2 w-32">
+          {categories.map((cat) => {
+            const edits = categoryEdits[cat.id];
+            if (!edits) return null;
+
+            return (
+              <div key={cat.id} className="flex items-center gap-4">
                 <input
-                  type="number"
-                  value={cat.targetPercent}
-                  onChange={(event) =>
-                    updateCategoryField(
-                      cat.id,
-                      "targetPercent",
-                      Number.parseFloat(event.target.value),
-                    )
-                  }
-                  className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
+                  type="text"
+                  value={edits.name}
+                  onChange={(event) => updateCategoryEdit(cat.id, "name", event.target.value)}
+                  className={`flex-1 font-medium bg-transparent border-b border-dashed border-slate-300 focus:border-indigo-500 focus:outline-none py-1 ${cat.color}`}
                 />
-                <span className="text-slate-500 text-sm">%</span>
+                <div className="flex items-center gap-2 w-32">
+                  <input
+                    type="number"
+                    value={edits.targetPercent}
+                    onChange={(event) => {
+                      const value = Number.parseFloat(event.target.value) || 0;
+                      updateCategoryEdit(cat.id, "targetPercent", value);
+                    }}
+                    className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
+                    min="0"
+                    max="100"
+                  />
+                  <span className="text-slate-500 text-sm">%</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div className="flex justify-between items-center pt-4 border-t border-slate-100 mt-4">
             <span className="font-semibold text-slate-600">Total Planejado</span>
             <span
               className={`font-bold ${
-                categories.reduce((a, c) => a + c.targetPercent, 0) === 100
-                  ? "text-green-600"
-                  : "text-red-500"
+                totalCategoryPercent === 100 ? "text-green-600" : "text-red-500"
               }`}
             >
-              {categories.reduce((a, c) => a + c.targetPercent, 0)}%
+              {totalCategoryPercent}%
             </span>
           </div>
         </div>
