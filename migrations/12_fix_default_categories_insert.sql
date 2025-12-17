@@ -1,5 +1,5 @@
--- Improve handle_new_user function with better error handling
--- This will help identify and handle errors during user signup
+-- Fix default categories insertion in handle_new_user function
+-- The previous version was missing household_id in the INSERT statement
 
 create or replace function public.handle_new_user()
 returns trigger as $$
