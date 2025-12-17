@@ -30,3 +30,25 @@ export async function createClient() {
     },
   });
 }
+
+export async function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    // In development or if key is missing, we can't create admin client.
+    // This will cause anonymous operations to fail if they depend on it.
+    console.warn("Missing SUPABASE_SERVICE_ROLE_KEY. Anonymous access might fail.");
+    // We throw here because returning a broken client is worse.
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  return createServerClient(supabaseUrl, supabaseServiceKey, {
+    cookies: {
+      getAll() {
+        return [];
+      },
+      setAll() {},
+    },
+  });
+}

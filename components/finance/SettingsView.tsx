@@ -63,10 +63,13 @@ export function SettingsView() {
   // Get current user ID
   const { data: userData } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => fetchJson<{ userId: string }>("/api/user"),
+    queryFn: () => fetchJson<{ userId: string; isAnonymous: boolean; anonymousId?: string; hasServiceKey?: boolean }>("/api/user"),
   });
 
   const currentUserId = userData?.userId;
+  const isAnonymous = userData?.isAnonymous;
+  const anonymousId = userData?.anonymousId;
+  const hasServiceKey = userData?.hasServiceKey;
 
   // Initialize edits from people data
   useEffect(() => {
@@ -293,6 +296,32 @@ export function SettingsView() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {isAnonymous && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg shadow-sm">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <p className="font-bold text-amber-800">Modo Anônimo (Cookie)</p>
+              <p className="text-sm text-amber-700 mt-1">
+                Seus dados estão disponíveis apenas neste navegador através de um cookie. 
+                Se você limpar os cookies, perderá todos os dados.
+                {anonymousId && <span className="block mt-1 text-xs opacity-70 font-mono">ID: {anonymousId.slice(0, 8)}...</span>}
+              </p>
+              {hasServiceKey === false && (
+                <p className="text-sm text-red-600 font-bold mt-2">
+                   ERRO: SUPABASE_SERVICE_ROLE_KEY não configurada. O salvamento de dados falhará.
+                </p>
+              )}
+            </div>
+            <a
+              href="/signup"
+              className="bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-colors whitespace-nowrap text-center"
+            >
+              Criar Conta e Salvar Dados
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
