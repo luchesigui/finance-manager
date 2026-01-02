@@ -29,6 +29,7 @@ const toTransaction = (row: any): Transaction => ({
   categoryId: row.category_id,
   paidBy: row.paid_by,
   isRecurring: row.is_recurring,
+  recurringId: row.recurring_id,
   date: row.date,
   householdId: row.household_id,
 });
@@ -58,12 +59,18 @@ async function getPrimaryHouseholdId() {
 
 export async function getPeople(): Promise<Person[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("people").select("*").order("name");
+  const { data, error } = await supabase
+    .from("people")
+    .select("*")
+    .order("name");
   if (error) throw error;
   return data.map(toPerson);
 }
 
-export async function updatePerson(id: string, patch: Partial<Person>): Promise<Person> {
+export async function updatePerson(
+  id: string,
+  patch: Partial<Person>
+): Promise<Person> {
   const supabase = await createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
@@ -93,17 +100,24 @@ export async function getCurrentUserId(): Promise<string> {
 
 export async function getCategories(): Promise<Category[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("categories").select("*").order("name");
+  const { data, error } = await supabase
+    .from("categories")
+    .select("*")
+    .order("name");
   if (error) throw error;
   return data.map(toCategory);
 }
 
-export async function updateCategory(id: string, patch: Partial<Category>): Promise<Category> {
+export async function updateCategory(
+  id: string,
+  patch: Partial<Category>
+): Promise<Category> {
   const supabase = await createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
   if (patch.name !== undefined) dbPatch.name = patch.name;
-  if (patch.targetPercent !== undefined) dbPatch.target_percent = patch.targetPercent;
+  if (patch.targetPercent !== undefined)
+    dbPatch.target_percent = patch.targetPercent;
 
   const { data, error } = await supabase
     .from("categories")
@@ -116,19 +130,27 @@ export async function updateCategory(id: string, patch: Partial<Category>): Prom
   return toCategory(data);
 }
 
-export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
+export async function getTransactions(
+  year?: number,
+  month?: number
+): Promise<Transaction[]> {
   const supabase = await createClient();
-  let query = supabase.from("transactions").select("*");
+  const query = supabase.from("transactions").select("*");
 
   if (year !== undefined && month !== undefined) {
-    const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
-    const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
+    const startDate = new Date(Date.UTC(year, month - 1, 1))
+      .toISOString()
+      .split("T")[0];
+    const endDate = new Date(Date.UTC(year, month, 0))
+      .toISOString()
+      .split("T")[0];
 
     // 1. Fetch transactions in the current month
     const currentMonthQuery = query.gte("date", startDate).lte("date", endDate);
-    const { data: currentMonthData, error: currentError } = await currentMonthQuery.order("date", {
-      ascending: false,
-    });
+    const { data: currentMonthData, error: currentError } =
+      await currentMonthQuery.order("date", {
+        ascending: false,
+      });
     if (currentError) throw currentError;
 
     // 2. Fetch recurring transactions created BEFORE this month
@@ -177,7 +199,9 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
   return data.map(toTransaction);
 }
 
-export async function createTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
+export async function createTransaction(
+  t: Omit<Transaction, "id">
+): Promise<Transaction> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
@@ -187,14 +211,77 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     category_id: t.categoryId,
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
+    recurring_id: t.recurringId,
     date: t.date,
     household_id: householdId,
   };
 
-  const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();
+  const { data, error } = await supabase
+    .from("transactions")
+    .insert(dbRow)
+    .select()
+    .single();
 
   if (error) throw error;
   return toTransaction(data);
+}
+
+export async function updateTransaction(
+  id: number,
+  patch: Partial<Transaction>
+): Promise<Transaction> {
+  const supabase = await createClient();
+  // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
+  const dbPatch: any = {};
+  if (patch.description !== undefined) dbPatch.description = patch.description;
+  if (patch.amount !== undefined) dbPatch.amount = patch.amount;
+  if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
+  if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
+  if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
+  if (patch.date !== undefined) dbPatch.date = patch.date;
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .update(dbPatch)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return toTransaction(data);
+}
+
+export async function updateTransactionsByRecurringId(
+  recurringId: string,
+  patch: Partial<Transaction>,
+  scope: "all" | "future",
+  referenceDate?: string
+): Promise<Transaction[]> {
+  const supabase = await createClient();
+  // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
+  const dbPatch: any = {};
+  if (patch.description !== undefined) dbPatch.description = patch.description;
+  if (patch.amount !== undefined) dbPatch.amount = patch.amount;
+  if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
+  if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
+  // We don't typically update date for all recurrences unless shifted, which is complex.
+  // For now, let's assume date is NOT updated in bulk, or if it is, it sets them all to same date (which is wrong for recurring).
+  // So we skip date for bulk updates unless explicitly handled.
+  // However, the user might want to change category or amount for all.
+
+  let query = supabase
+    .from("transactions")
+    .update(dbPatch)
+    .eq("recurring_id", recurringId);
+
+  if (scope === "future" && referenceDate) {
+    query = query.gte("date", referenceDate);
+  }
+
+  const { data, error } = await query.select();
+
+  if (error) throw error;
+  return data.map(toTransaction);
 }
 
 export async function deleteTransaction(id: number): Promise<void> {
@@ -205,7 +292,11 @@ export async function deleteTransaction(id: number): Promise<void> {
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .single();
   if (error) return null;
   return toTransaction(data);
 }
@@ -282,7 +373,7 @@ export async function deletePerson(id: string): Promise<void> {
 
       if (!otherPeople || otherPeople.length === 0) {
         const error = new Error(
-          "Cannot delete person because they have transactions and there are no other people to reassign them to.",
+          "Cannot delete person because they have transactions and there are no other people to reassign them to."
         );
         // @ts-expect-error - Adding error code for API route handling
         error.code = "NO_REPLACEMENT_PERSON";

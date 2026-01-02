@@ -145,3 +145,4 @@ exception
     raise exception 'Database error saving new user: % (SQLSTATE: %)', SQLERRM, SQLSTATE;
 end;
 $$ language plpgsql security definer;
+
