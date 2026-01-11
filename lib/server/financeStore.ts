@@ -30,6 +30,7 @@ const toTransaction = (row: any): Transaction => ({
   paidBy: row.paid_by,
   isRecurring: row.is_recurring,
   date: row.date,
+  createdAt: row.created_at,
   householdId: row.household_id,
 });
 
@@ -126,9 +127,12 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 
     // 1. Fetch transactions in the current month
     const currentMonthQuery = query.gte("date", startDate).lte("date", endDate);
-    const { data: currentMonthData, error: currentError } = await currentMonthQuery.order("date", {
-      ascending: false,
-    });
+    const { data: currentMonthData, error: currentError } = await currentMonthQuery.order(
+      "created_at",
+      {
+        ascending: false,
+      },
+    );
     if (currentError) throw currentError;
 
     // 2. Fetch recurring transactions created BEFORE this month
@@ -136,7 +140,8 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
       .from("transactions")
       .select("*")
       .eq("is_recurring", true)
-      .lt("date", startDate);
+      .lt("date", startDate)
+      .order("created_at", { ascending: false });
 
     if (recurringError) throw recurringError;
 
@@ -166,13 +171,17 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 
     const allTransactions = [...currentMonthData, ...virtualTransactions];
 
-    // Re-sort by date descending
-    allTransactions.sort((a, b) => b.date.localeCompare(a.date));
+    // Re-sort by creation time (most recent first)
+    allTransactions.sort(
+      (a, b) =>
+        String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")) ||
+        Number(b.id ?? 0) - Number(a.id ?? 0),
+    );
 
     return allTransactions.map(toTransaction);
   }
 
-  const { data, error } = await query.order("date", { ascending: false });
+  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw error;
   return data.map(toTransaction);
 }
