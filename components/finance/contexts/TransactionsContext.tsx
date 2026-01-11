@@ -151,6 +151,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
             categoryId: newTransactionFormState.categoryId,
             paidBy: newTransactionFormState.paidBy,
             isRecurring: false,
+            excludeFromSplit: newTransactionFormState.excludeFromSplit,
             date: `${installmentYearString}-${installmentMonthString}-${installmentDayString}`,
           });
         }
@@ -161,6 +162,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
           categoryId: newTransactionFormState.categoryId,
           paidBy: newTransactionFormState.paidBy,
           isRecurring: newTransactionFormState.isRecurring,
+          excludeFromSplit: newTransactionFormState.excludeFromSplit,
           date: baseDateString,
         });
       }

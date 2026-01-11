@@ -1,6 +1,6 @@
 "use client";
 
-import { BrainCircuit, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { BrainCircuit, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2, UsersX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
@@ -36,6 +36,7 @@ export function TransactionsView() {
     date: "",
     isInstallment: false,
     installments: 2,
+    excludeFromSplit: false,
   });
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export function TransactionsView() {
       date: "",
       isInstallment: false,
       installments: 2,
+      excludeFromSplit: false,
     });
 
     setSmartInput("");
@@ -283,6 +285,22 @@ Retorne APENAS o JSON, sem markdown.
               </div>
             )}
 
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="exclude-from-split"
+                checked={newTrans.excludeFromSplit}
+                onChange={(e) => setNewTrans({ ...newTrans, excludeFromSplit: e.target.checked })}
+                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+              />
+              <label
+                htmlFor="exclude-from-split"
+                className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
+              >
+                <UsersX size={14} /> Não entra na divisão?
+              </label>
+            </div>
+
             {newTrans.isInstallment && (
               <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
                 <span className="text-sm text-slate-500">x</span>
@@ -418,6 +436,11 @@ Retorne APENAS o JSON, sem markdown.
                         {transaction.isRecurring && (
                           <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
                             <RefreshCw size={10} /> Recorrente
+                          </span>
+                        )}
+                        {transaction.excludeFromSplit && (
+                          <span className="bg-slate-100 text-slate-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <UsersX size={10} /> Fora da divisão
                           </span>
                         )}
                       </h4>
