@@ -1,6 +1,15 @@
 "use client";
 
-import { BrainCircuit, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2, UsersX } from "lucide-react";
+import {
+  BrainCircuit,
+  Layers,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  UserX,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
@@ -297,7 +306,7 @@ Retorne APENAS o JSON, sem markdown.
                 htmlFor="exclude-from-split"
                 className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
               >
-                <UsersX size={14} /> Não entra na divisão?
+                <UserX size={14} /> Não entra na divisão?
               </label>
             </div>
 
@@ -440,7 +449,7 @@ Retorne APENAS o JSON, sem markdown.
                         )}
                         {transaction.excludeFromSplit && (
                           <span className="bg-slate-100 text-slate-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
-                            <UsersX size={10} /> Fora da divisão
+                            <UserX size={10} /> Fora da divisão
                           </span>
                         )}
                       </h4>
