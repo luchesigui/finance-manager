@@ -1,7 +1,7 @@
 "use client";
 
 import { BrainCircuit, Layers, Loader2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
@@ -25,6 +25,7 @@ export function TransactionsView() {
 
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
+  const [paidByFilter, setPaidByFilter] = useState<string>("all");
 
   const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
     description: "",
@@ -40,6 +41,19 @@ export function TransactionsView() {
   useEffect(() => {
     setNewTrans((prev) => ({ ...prev, paidBy: defaultPayerId }));
   }, [defaultPayerId]);
+
+  useEffect(() => {
+    if (paidByFilter === "all") return;
+    const stillExists = people.some((person) => person.id === paidByFilter);
+    if (!stillExists) setPaidByFilter("all");
+  }, [paidByFilter, people]);
+
+  const visibleTransactionsForSelectedMonth = useMemo(() => {
+    if (paidByFilter === "all") return transactionsForSelectedMonth;
+    return transactionsForSelectedMonth.filter(
+      (transaction) => transaction.paidBy === paidByFilter,
+    );
+  }, [paidByFilter, transactionsForSelectedMonth]);
 
   useEffect(() => {
     setNewTrans((prev) => ({
@@ -350,19 +364,41 @@ Retorne APENAS o JSON, sem markdown.
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+        <div className="p-4 border-b border-slate-100 bg-slate-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="font-semibold text-slate-700">
             Histórico de {formatMonthYear(selectedMonthDate)}
           </h2>
-          <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full">
-            {transactionsForSelectedMonth.length} itens
-          </span>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center gap-2">
+              <label htmlFor="paid-by-filter" className="text-xs font-medium text-slate-600">
+                Pago por
+              </label>
+              <select
+                id="paid-by-filter"
+                className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={paidByFilter}
+                onChange={(e) => setPaidByFilter(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                {people.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full w-fit">
+              {visibleTransactionsForSelectedMonth.length} itens
+            </span>
+          </div>
         </div>
         <div className="divide-y divide-slate-100">
-          {transactionsForSelectedMonth.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">Nenhum lançamento neste mês.</div>
+          {visibleTransactionsForSelectedMonth.length === 0 ? (
+            <div className="p-8 text-center text-slate-500">
+              Nenhum lançamento neste mês{paidByFilter === "all" ? "" : " para este pagador"}.
+            </div>
           ) : (
-            transactionsForSelectedMonth.map((transaction) => {
+            visibleTransactionsForSelectedMonth.map((transaction) => {
               const selectedCategory = categories.find(
                 (category) => category.id === transaction.categoryId,
               );
