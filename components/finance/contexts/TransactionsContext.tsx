@@ -8,6 +8,12 @@ import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthConte
 import { parseDateString } from "@/lib/format";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
+function compareTransactionsByCreationDesc(a: Transaction, b: Transaction): number {
+  const createdAtCompare = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
+  if (createdAtCompare !== 0) return createdAtCompare;
+  return b.id - a.id;
+}
+
 async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
   const response = await fetch(url, requestInit);
   if (!response.ok) {
@@ -68,10 +74,11 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
 
       if (createdTransactionsInSelectedMonth.length === 0) return;
 
-      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) => [
-        ...createdTransactionsInSelectedMonth,
-        ...existingTransactions,
-      ]);
+      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) =>
+        [...createdTransactionsInSelectedMonth, ...existingTransactions].sort(
+          compareTransactionsByCreationDesc,
+        ),
+      );
     },
   });
 
@@ -172,7 +179,9 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
 
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
-      transactionsForSelectedMonth: transactionsQuery.data ?? [],
+      transactionsForSelectedMonth: [...(transactionsQuery.data ?? [])].sort(
+        compareTransactionsByCreationDesc,
+      ),
       isTransactionsLoading: transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,

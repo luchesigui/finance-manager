@@ -22,6 +22,8 @@ export type Transaction = {
   isRecurring: boolean;
   /** YYYY-MM-DD */
   date: string;
+  /** ISO timestamp (from DB `created_at`). Optional for backwards compatibility. */
+  createdAt?: string;
   householdId?: string;
 };
 
