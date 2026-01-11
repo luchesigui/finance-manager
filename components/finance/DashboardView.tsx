@@ -40,7 +40,9 @@ export function DashboardView() {
       .map((category) => category.id),
   );
   const transactionsExcludingGoalsAndFinancialFreedom = transactionsForSelectedMonth.filter(
-    (transaction) => !excludedFromFairDistributionCategoryIds.has(transaction.categoryId),
+    (transaction) =>
+      !excludedFromFairDistributionCategoryIds.has(transaction.categoryId) &&
+      !transaction.excludeFromSplit,
   );
   const totalExpensesAll = calculateTotalExpenses(transactionsForSelectedMonth);
   const totalExpenses = calculateTotalExpenses(transactionsExcludingGoalsAndFinancialFreedom);

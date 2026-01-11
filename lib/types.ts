@@ -20,6 +20,8 @@ export type Transaction = {
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;
+  /** If true, this transaction should not be considered in the fair split calculation. */
+  excludeFromSplit: boolean;
   /** YYYY-MM-DD */
   date: string;
   /** ISO timestamp (from DB `created_at`). Optional for backwards compatibility. */
@@ -37,4 +39,5 @@ export type NewTransactionFormState = {
   date: string;
   isInstallment: boolean;
   installments: number;
+  excludeFromSplit: boolean;
 };

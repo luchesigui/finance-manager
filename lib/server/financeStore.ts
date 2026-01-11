@@ -29,6 +29,7 @@ const toTransaction = (row: any): Transaction => ({
   categoryId: row.category_id,
   paidBy: row.paid_by,
   isRecurring: row.is_recurring,
+  excludeFromSplit: row.exclude_from_split ?? false,
   date: row.date,
   createdAt: row.created_at,
   householdId: row.household_id,
@@ -196,6 +197,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     category_id: t.categoryId,
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
+    exclude_from_split: t.excludeFromSplit ?? false,
     date: t.date,
     household_id: householdId,
   };
