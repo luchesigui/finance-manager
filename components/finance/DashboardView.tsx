@@ -26,10 +26,28 @@ export function DashboardView() {
   const totalIncome = calculateTotalIncome(people);
   const peopleWithShare = calculatePeopleShare(people, totalIncome);
   const totalExpenses = calculateTotalExpenses(transactionsForSelectedMonth);
+
+  const normalizeCategoryName = (name: string) =>
+    name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
+
+  const excludedFromFairDistributionCategoryNames = new Set(
+    ["Liberdade Financeira", "Metas"].map(normalizeCategoryName),
+  );
+  const excludedFromFairDistributionCategoryIds = new Set(
+    categories
+      .filter((category) =>
+        excludedFromFairDistributionCategoryNames.has(normalizeCategoryName(category.name)),
+      )
+      .map((category) => category.id),
+  );
+  const transactionsForFairDistribution = transactionsForSelectedMonth.filter(
+    (transaction) => !excludedFromFairDistributionCategoryIds.has(transaction.categoryId),
+  );
+  const totalExpensesForFairDistribution = calculateTotalExpenses(transactionsForFairDistribution);
   const settlementData = calculateSettlementData(
     peopleWithShare,
-    transactionsForSelectedMonth,
-    totalExpenses,
+    transactionsForFairDistribution,
+    totalExpensesForFairDistribution,
   );
   const categorySummary = calculateCategorySummary(
     categories,
@@ -68,7 +86,7 @@ export function DashboardView() {
           </h2>
         </div>
         <div className="p-6">
-          {transactionsForSelectedMonth.length === 0 ? (
+          {transactionsForFairDistribution.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum gasto registrado neste mês para calcular.
             </div>
@@ -90,7 +108,9 @@ export function DashboardView() {
                       className="h-full bg-slate-300 opacity-50 transition-all duration-500"
                       style={{
                         width: `${
-                          totalExpenses > 0 ? (person.fairShareAmount / totalExpenses) * 100 : 0
+                          totalExpensesForFairDistribution > 0
+                            ? (person.fairShareAmount / totalExpensesForFairDistribution) * 100
+                            : 0
                         }%`,
                       }}
                       title="Parte Justa"
