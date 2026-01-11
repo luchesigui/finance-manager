@@ -25,7 +25,6 @@ export function DashboardView() {
 
   const totalIncome = calculateTotalIncome(people);
   const peopleWithShare = calculatePeopleShare(people, totalIncome);
-  const totalExpenses = calculateTotalExpenses(transactionsForSelectedMonth);
 
   const normalizeCategoryName = (name: string) =>
     name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
@@ -40,14 +39,15 @@ export function DashboardView() {
       )
       .map((category) => category.id),
   );
-  const transactionsForFairDistribution = transactionsForSelectedMonth.filter(
+  const transactionsExcludingGoalsAndFinancialFreedom = transactionsForSelectedMonth.filter(
     (transaction) => !excludedFromFairDistributionCategoryIds.has(transaction.categoryId),
   );
-  const totalExpensesForFairDistribution = calculateTotalExpenses(transactionsForFairDistribution);
+  const totalExpensesAll = calculateTotalExpenses(transactionsForSelectedMonth);
+  const totalExpenses = calculateTotalExpenses(transactionsExcludingGoalsAndFinancialFreedom);
   const settlementData = calculateSettlementData(
     peopleWithShare,
-    transactionsForFairDistribution,
-    totalExpensesForFairDistribution,
+    transactionsExcludingGoalsAndFinancialFreedom,
+    totalExpenses,
   );
   const categorySummary = calculateCategorySummary(
     categories,
@@ -86,7 +86,7 @@ export function DashboardView() {
           </h2>
         </div>
         <div className="p-6">
-          {transactionsForFairDistribution.length === 0 ? (
+          {transactionsExcludingGoalsAndFinancialFreedom.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum gasto registrado neste mês para calcular.
             </div>
@@ -108,9 +108,7 @@ export function DashboardView() {
                       className="h-full bg-slate-300 opacity-50 transition-all duration-500"
                       style={{
                         width: `${
-                          totalExpensesForFairDistribution > 0
-                            ? (person.fairShareAmount / totalExpensesForFairDistribution) * 100
-                            : 0
+                          totalExpenses > 0 ? (person.fairShareAmount / totalExpenses) * 100 : 0
                         }%`,
                       }}
                       title="Parte Justa"
@@ -208,10 +206,10 @@ export function DashboardView() {
               })}
               <tr className="bg-slate-50 font-bold">
                 <td className="px-4 py-3">TOTAL</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(totalExpenses)}</td>
+                <td className="px-4 py-3 text-right">{formatCurrency(totalExpensesAll)}</td>
                 <td className="px-4 py-3 text-center">100%</td>
                 <td className="px-4 py-3 text-center">
-                  {totalIncome > 0 ? ((totalExpenses / totalIncome) * 100).toFixed(1) : 0}%
+                  {totalIncome > 0 ? ((totalExpensesAll / totalIncome) * 100).toFixed(1) : 0}%
                 </td>
                 <td />
               </tr>
