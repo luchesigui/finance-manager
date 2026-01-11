@@ -25,10 +25,28 @@ export function DashboardView() {
 
   const totalIncome = calculateTotalIncome(people);
   const peopleWithShare = calculatePeopleShare(people, totalIncome);
-  const totalExpenses = calculateTotalExpenses(transactionsForSelectedMonth);
+
+  const normalizeCategoryName = (name: string) =>
+    name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
+
+  const excludedFromFairDistributionCategoryNames = new Set(
+    ["Liberdade Financeira", "Metas"].map(normalizeCategoryName),
+  );
+  const excludedFromFairDistributionCategoryIds = new Set(
+    categories
+      .filter((category) =>
+        excludedFromFairDistributionCategoryNames.has(normalizeCategoryName(category.name)),
+      )
+      .map((category) => category.id),
+  );
+  const transactionsExcludingGoalsAndFinancialFreedom = transactionsForSelectedMonth.filter(
+    (transaction) => !excludedFromFairDistributionCategoryIds.has(transaction.categoryId),
+  );
+  const totalExpensesAll = calculateTotalExpenses(transactionsForSelectedMonth);
+  const totalExpenses = calculateTotalExpenses(transactionsExcludingGoalsAndFinancialFreedom);
   const settlementData = calculateSettlementData(
     peopleWithShare,
-    transactionsForSelectedMonth,
+    transactionsExcludingGoalsAndFinancialFreedom,
     totalExpenses,
   );
   const categorySummary = calculateCategorySummary(
@@ -68,7 +86,7 @@ export function DashboardView() {
           </h2>
         </div>
         <div className="p-6">
-          {transactionsForSelectedMonth.length === 0 ? (
+          {transactionsExcludingGoalsAndFinancialFreedom.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
               Nenhum gasto registrado neste mês para calcular.
             </div>
@@ -188,10 +206,10 @@ export function DashboardView() {
               })}
               <tr className="bg-slate-50 font-bold">
                 <td className="px-4 py-3">TOTAL</td>
-                <td className="px-4 py-3 text-right">{formatCurrency(totalExpenses)}</td>
+                <td className="px-4 py-3 text-right">{formatCurrency(totalExpensesAll)}</td>
                 <td className="px-4 py-3 text-center">100%</td>
                 <td className="px-4 py-3 text-center">
-                  {totalIncome > 0 ? ((totalExpenses / totalIncome) * 100).toFixed(1) : 0}%
+                  {totalIncome > 0 ? ((totalExpensesAll / totalIncome) * 100).toFixed(1) : 0}%
                 </td>
                 <td />
               </tr>
