@@ -35,6 +35,7 @@ export function TransactionsView() {
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
     description: "",
@@ -58,12 +59,19 @@ export function TransactionsView() {
     if (!stillExists) setPaidByFilter("all");
   }, [paidByFilter, people]);
 
+  useEffect(() => {
+    if (categoryFilter === "all") return;
+    const stillExists = categories.some((category) => category.id === categoryFilter);
+    if (!stillExists) setCategoryFilter("all");
+  }, [categoryFilter, categories]);
+
   const visibleTransactionsForSelectedMonth = useMemo(() => {
-    if (paidByFilter === "all") return transactionsForSelectedMonth;
-    return transactionsForSelectedMonth.filter(
-      (transaction) => transaction.paidBy === paidByFilter,
-    );
-  }, [paidByFilter, transactionsForSelectedMonth]);
+    return transactionsForSelectedMonth.filter((transaction) => {
+      if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
+      if (categoryFilter !== "all" && transaction.categoryId !== categoryFilter) return false;
+      return true;
+    });
+  }, [categoryFilter, paidByFilter, transactionsForSelectedMonth]);
 
   useEffect(() => {
     setNewTrans((prev) => ({
@@ -414,6 +422,24 @@ Retorne APENAS o JSON, sem markdown.
                 ))}
               </select>
             </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="category-filter" className="text-xs font-medium text-slate-600">
+                Categoria
+              </label>
+              <select
+                id="category-filter"
+                className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">Todas</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full w-fit">
               {visibleTransactionsForSelectedMonth.length} itens
             </span>
@@ -422,7 +448,15 @@ Retorne APENAS o JSON, sem markdown.
         <div className="divide-y divide-slate-100">
           {visibleTransactionsForSelectedMonth.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
-              Nenhum lançamento neste mês{paidByFilter === "all" ? "" : " para este pagador"}.
+              Nenhum lançamento neste mês
+              {paidByFilter === "all" && categoryFilter === "all"
+                ? ""
+                : paidByFilter !== "all" && categoryFilter !== "all"
+                  ? " para este pagador e categoria"
+                  : paidByFilter !== "all"
+                    ? " para este pagador"
+                    : " para esta categoria"}
+              .
             </div>
           ) : (
             visibleTransactionsForSelectedMonth.map((transaction) => {
