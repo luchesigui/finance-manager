@@ -70,12 +70,18 @@ type TransactionPatch = Partial<
   >
 >;
 
+type BulkTransactionPatch = Partial<
+  Pick<Transaction, "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit">
+>;
+
 type TransactionsContextValue = {
   transactionsForSelectedMonth: Transaction[];
   isTransactionsLoading: boolean;
   addTransactionsFromFormState: (newTransactionFormState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
   updateTransactionById: (transactionId: number, patch: TransactionPatch) => void;
+  bulkUpdateTransactions: (ids: number[], patch: BulkTransactionPatch) => void;
+  bulkDeleteTransactions: (ids: number[]) => void;
 };
 
 const TransactionsContext = createContext<TransactionsContextValue | null>(null);
@@ -176,6 +182,46 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     },
   });
 
+  const bulkUpdateTransactionsMutation = useMutation({
+    mutationFn: ({ ids, patch }: { ids: number[]; patch: BulkTransactionPatch }) =>
+      fetchJson<Transaction[]>("/api/transactions/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, patch }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+
+  const bulkDeleteTransactionsMutation = useMutation({
+    mutationFn: (ids: number[]) =>
+      fetch("/api/transactions/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      }).then((response) => {
+        if (!response.ok) {
+          throw new Error(`DELETE /api/transactions/bulk failed: ${response.status}`);
+        }
+      }),
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: transactionsQueryKey });
+      const previousTransactions = queryClient.getQueryData<Transaction[]>(transactionsQueryKey);
+
+      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) =>
+        existingTransactions.filter((transaction) => !ids.includes(transaction.id)),
+      );
+
+      return { previousTransactions };
+    },
+    onError: (_error, _ids, context) => {
+      if (context?.previousTransactions) {
+        queryClient.setQueryData(transactionsQueryKey, context.previousTransactions);
+      }
+    },
+  });
+
   const addTransactionsFromFormState = useCallback<
     TransactionsContextValue["addTransactionsFromFormState"]
   >(
@@ -248,6 +294,24 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     [updateTransactionMutation],
   );
 
+  const bulkUpdateTransactionsCallback = useCallback<
+    TransactionsContextValue["bulkUpdateTransactions"]
+  >(
+    (ids, patch) => {
+      bulkUpdateTransactionsMutation.mutate({ ids, patch });
+    },
+    [bulkUpdateTransactionsMutation],
+  );
+
+  const bulkDeleteTransactionsCallback = useCallback<
+    TransactionsContextValue["bulkDeleteTransactions"]
+  >(
+    (ids) => {
+      bulkDeleteTransactionsMutation.mutate(ids);
+    },
+    [bulkDeleteTransactionsMutation],
+  );
+
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
       transactionsForSelectedMonth: [...(transactionsQuery.data ?? [])].sort(
@@ -257,11 +321,15 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      bulkUpdateTransactions: bulkUpdateTransactionsCallback,
+      bulkDeleteTransactions: bulkDeleteTransactionsCallback,
     }),
     [
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      bulkUpdateTransactionsCallback,
+      bulkDeleteTransactionsCallback,
       transactionsQuery.data,
       transactionsQuery.isLoading,
     ],

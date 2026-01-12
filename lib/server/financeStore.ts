@@ -330,6 +330,37 @@ export async function getTransaction(id: number): Promise<Transaction | null> {
   return toTransaction(data);
 }
 
+export async function bulkUpdateTransactions(
+  ids: number[],
+  patch: Partial<
+    Pick<Transaction, "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit">
+  >,
+): Promise<Transaction[]> {
+  const supabase = await createClient();
+  // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
+  const dbPatch: any = {};
+  if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
+  if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
+  if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
+  if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .update(dbPatch)
+    .in("id", ids)
+    .select();
+
+  if (error) throw error;
+  return data.map(toTransaction);
+}
+
+export async function bulkDeleteTransactions(ids: number[]): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.from("transactions").delete().in("id", ids);
+  if (error) throw error;
+}
+
 export async function createPerson(data: {
   name: string;
   income: number;
