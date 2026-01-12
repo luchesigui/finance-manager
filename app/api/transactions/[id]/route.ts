@@ -9,12 +9,31 @@ function parseTransactionId(transactionIdParam: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function isValidTransactionPatch(
-  value: unknown,
-): value is Partial<Pick<Transaction, "isCreditCard">> {
+type TransactionPatch = Partial<
+  Pick<
+    Transaction,
+    | "description"
+    | "amount"
+    | "categoryId"
+    | "paidBy"
+    | "isRecurring"
+    | "isCreditCard"
+    | "excludeFromSplit"
+    | "date"
+  >
+>;
+
+function isValidTransactionPatch(value: unknown): value is TransactionPatch {
   if (value == null || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
+  if ("description" in record && typeof record.description !== "string") return false;
+  if ("amount" in record && typeof record.amount !== "number") return false;
+  if ("categoryId" in record && typeof record.categoryId !== "string") return false;
+  if ("paidBy" in record && typeof record.paidBy !== "string") return false;
+  if ("isRecurring" in record && typeof record.isRecurring !== "boolean") return false;
   if ("isCreditCard" in record && typeof record.isCreditCard !== "boolean") return false;
+  if ("excludeFromSplit" in record && typeof record.excludeFromSplit !== "boolean") return false;
+  if ("date" in record && typeof record.date !== "string") return false;
   return true;
 }
 

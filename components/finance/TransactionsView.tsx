@@ -2,17 +2,19 @@
 
 import {
   BrainCircuit,
-  Layers,
   Loader2,
+  Pencil,
   Plus,
   RefreshCw,
   Sparkles,
   Trash2,
   UserX,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
+import { TransactionFormFields } from "@/components/finance/TransactionFormFields";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
@@ -22,7 +24,7 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
-import type { NewTransactionFormState } from "@/lib/types";
+import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
 export function TransactionsView() {
   const { selectedMonthDate } = useCurrentMonth();
@@ -40,6 +42,21 @@ export function TransactionsView() {
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+
+  // Edit modal state
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editFormState, setEditFormState] = useState<NewTransactionFormState>({
+    description: "",
+    amount: null,
+    categoryId: "",
+    paidBy: "",
+    isRecurring: false,
+    isCreditCard: false,
+    date: "",
+    isInstallment: false,
+    installments: 2,
+    excludeFromSplit: false,
+  });
 
   const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
     description: "",
@@ -103,6 +120,44 @@ export function TransactionsView() {
     });
 
     setSmartInput("");
+  };
+
+  const handleOpenEditModal = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setEditFormState({
+      description: transaction.description,
+      amount: transaction.amount,
+      categoryId: transaction.categoryId,
+      paidBy: transaction.paidBy,
+      isRecurring: transaction.isRecurring,
+      isCreditCard: transaction.isCreditCard,
+      date: transaction.date,
+      isInstallment: false,
+      installments: 2,
+      excludeFromSplit: transaction.excludeFromSplit,
+    });
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingTransaction(null);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingTransaction) return;
+    if (!editFormState.description || editFormState.amount == null) return;
+
+    updateTransactionById(editingTransaction.id, {
+      description: editFormState.description,
+      amount: editFormState.amount,
+      categoryId: editFormState.categoryId,
+      paidBy: editFormState.paidBy,
+      isRecurring: editFormState.isRecurring,
+      isCreditCard: editFormState.isCreditCard,
+      excludeFromSplit: editFormState.excludeFromSplit,
+      date: editFormState.date,
+    });
+
+    setEditingTransaction(null);
   };
 
   const handleSmartFill = async () => {
@@ -210,202 +265,13 @@ Retorne APENAS o JSON, sem markdown.
           onSubmit={handleAddTransaction}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
         >
-          <div className="lg:col-span-2">
-            <label
-              htmlFor="transaction-description"
-              className="block text-xs font-medium text-slate-500 mb-1"
-            >
-              Descrição
-            </label>
-            <input
-              id="transaction-description"
-              type="text"
-              placeholder="Ex: Luz, Mercado, iFood..."
-              className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              value={newTrans.description}
-              onChange={(e) => setNewTrans({ ...newTrans, description: e.target.value })}
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="transaction-amount"
-              className="block text-xs font-medium text-slate-500 mb-1"
-            >
-              Valor (R$)
-            </label>
-            <CurrencyInput
-              id="transaction-amount"
-              placeholder="R$ 0,00"
-              className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              value={newTrans.amount}
-              onValueChange={(amountValue) => setNewTrans({ ...newTrans, amount: amountValue })}
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="transaction-category"
-              className="block text-xs font-medium text-slate-500 mb-1"
-            >
-              Categoria
-            </label>
-            <select
-              id="transaction-category"
-              className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              value={newTrans.categoryId}
-              onChange={(e) => setNewTrans({ ...newTrans, categoryId: e.target.value })}
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
-            {!newTrans.isInstallment && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="recurring"
-                  checked={newTrans.isRecurring}
-                  onChange={(e) => setNewTrans({ ...newTrans, isRecurring: e.target.checked })}
-                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                />
-                <label
-                  htmlFor="recurring"
-                  className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-                >
-                  <RefreshCw size={14} /> Recorrente?
-                </label>
-              </div>
-            )}
-
-            {!newTrans.isRecurring && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="installment"
-                  checked={newTrans.isInstallment}
-                  onChange={(e) =>
-                    setNewTrans({
-                      ...newTrans,
-                      isInstallment: e.target.checked,
-                    })
-                  }
-                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                />
-                <label
-                  htmlFor="installment"
-                  className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-                >
-                  <Layers size={14} /> Parcelado?
-                </label>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="exclude-from-split"
-                checked={newTrans.excludeFromSplit}
-                onChange={(e) => setNewTrans({ ...newTrans, excludeFromSplit: e.target.checked })}
-                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-              />
-              <label
-                htmlFor="exclude-from-split"
-                className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-              >
-                <UserX size={14} /> Não entra na divisão?
-              </label>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="credit-card"
-                checked={newTrans.isCreditCard}
-                onChange={(e) => setNewTrans({ ...newTrans, isCreditCard: e.target.checked })}
-                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-              />
-              <label
-                htmlFor="credit-card"
-                className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-                title="Se marcado, o lançamento entra no mês seguinte"
-              >
-                Cartão de Crédito
-              </label>
-            </div>
-
-            {newTrans.isInstallment && (
-              <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
-                <span className="text-sm text-slate-500">x</span>
-                <input
-                  type="number"
-                  min={2}
-                  max={60}
-                  value={newTrans.installments}
-                  onChange={(e) =>
-                    setNewTrans({
-                      ...newTrans,
-                      installments: Number.parseInt(e.target.value, 10) || 2,
-                    })
-                  }
-                  className="w-16 border border-slate-300 rounded px-2 py-1 text-sm"
-                />
-                <span className="text-xs text-slate-400">parcelas</span>
-              </div>
-            )}
-          </div>
-
-          <details className="lg:col-span-4 rounded-lg border border-slate-200 bg-slate-50">
-            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-slate-700">
-              Informações adicionais
-              <span className="ml-2 text-xs font-normal text-slate-500">(Data, Pago por)</span>
-            </summary>
-            <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="transaction-date"
-                  className="block text-xs font-medium text-slate-500 mb-1"
-                >
-                  Data (Opcional)
-                </label>
-                <input
-                  id="transaction-date"
-                  type="date"
-                  className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600 bg-white"
-                  value={newTrans.date}
-                  onChange={(e) => setNewTrans({ ...newTrans, date: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="transaction-paid-by"
-                  className="block text-xs font-medium text-slate-500 mb-1"
-                >
-                  Pago por
-                </label>
-                <select
-                  id="transaction-paid-by"
-                  className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  value={newTrans.paidBy}
-                  onChange={(e) => setNewTrans({ ...newTrans, paidBy: e.target.value })}
-                >
-                  {people.map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </details>
+          <TransactionFormFields
+            formState={newTrans}
+            setFormState={setNewTrans}
+            showInstallmentFields={true}
+            showDescription={true}
+            idPrefix="new-transaction"
+          />
 
           <div className="lg:col-span-4 mt-2">
             <button
@@ -522,22 +388,18 @@ Retorne APENAS o JSON, sem markdown.
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
                     <span className="font-bold text-slate-700">
                       {formatCurrency(transaction.amount)}
                     </span>
-                    <label className="flex items-center gap-2 text-xs text-slate-500">
-                      <input
-                        type="checkbox"
-                        checked={transaction.isCreditCard}
-                        onChange={(e) =>
-                          updateTransactionById(transaction.id, { isCreditCard: e.target.checked })
-                        }
-                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                        title="Se marcado, este lançamento entra no mês seguinte"
-                      />
-                      CC
-                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(transaction)}
+                      className="text-slate-300 hover:text-indigo-500 p-2 transition-all"
+                      title="Editar"
+                    >
+                      <Pencil size={16} />
+                    </button>
                     {!transaction.isRecurring ? (
                       <button
                         type="button"
@@ -557,6 +419,74 @@ Retorne APENAS o JSON, sem markdown.
           )}
         </div>
       </div>
+
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                <Pencil className="text-indigo-600" size={20} />
+                Editar Lançamento
+              </h3>
+              <button
+                type="button"
+                onClick={handleCloseEditModal}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-4">
+                <label
+                  htmlFor="edit-description"
+                  className="block text-xs font-medium text-slate-500 mb-1"
+                >
+                  Descrição
+                </label>
+                <input
+                  id="edit-description"
+                  type="text"
+                  placeholder="Ex: Luz, Mercado, iFood..."
+                  className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  value={editFormState.description}
+                  onChange={(e) =>
+                    setEditFormState({ ...editFormState, description: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <TransactionFormFields
+                  formState={editFormState}
+                  setFormState={setEditFormState}
+                  showInstallmentFields={false}
+                  showDescription={false}
+                  idPrefix="edit-transaction"
+                />
+              </div>
+              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEdit}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Pencil size={18} />
+                  Salvar Alterações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

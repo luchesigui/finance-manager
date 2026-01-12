@@ -280,12 +280,31 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
 
 export async function updateTransaction(
   id: number,
-  patch: Partial<Pick<Transaction, "isCreditCard">>,
+  patch: Partial<
+    Pick<
+      Transaction,
+      | "description"
+      | "amount"
+      | "categoryId"
+      | "paidBy"
+      | "isRecurring"
+      | "isCreditCard"
+      | "excludeFromSplit"
+      | "date"
+    >
+  >,
 ): Promise<Transaction> {
   const supabase = await createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
+  if (patch.description !== undefined) dbPatch.description = patch.description;
+  if (patch.amount !== undefined) dbPatch.amount = patch.amount;
+  if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
+  if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
+  if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.date !== undefined) dbPatch.date = patch.date;
 
   const { data, error } = await supabase
     .from("transactions")
