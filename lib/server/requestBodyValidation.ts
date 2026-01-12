@@ -49,6 +49,7 @@ function isTransactionCreatePayload(value: unknown): value is Omit<Transaction, 
     typeof value.categoryId === "string" &&
     typeof value.paidBy === "string" &&
     typeof value.isRecurring === "boolean" &&
+    typeof value.isCreditCard === "boolean" &&
     typeof value.excludeFromSplit === "boolean" &&
     typeof value.date === "string"
   );

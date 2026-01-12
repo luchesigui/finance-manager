@@ -33,6 +33,15 @@ function addMonthsClamped(date: Date, monthsToAdd: number): Date {
   return candidate;
 }
 
+function getAccountingYearMonth(
+  dateString: string,
+  isCreditCard: boolean,
+): { year: number; month: number } {
+  const base = parseDateString(dateString);
+  const accountingDate = isCreditCard ? addMonthsClamped(base, 1) : base;
+  return { year: accountingDate.getFullYear(), month: accountingDate.getMonth() + 1 };
+}
+
 function compareTransactionsByCreationDesc(a: Transaction, b: Transaction): number {
   const createdAtCompare = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
   if (createdAtCompare !== 0) return createdAtCompare;
@@ -52,6 +61,7 @@ type TransactionsContextValue = {
   isTransactionsLoading: boolean;
   addTransactionsFromFormState: (newTransactionFormState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
+  updateTransactionById: (transactionId: number, patch: Pick<Transaction, "isCreditCard">) => void;
 };
 
 const TransactionsContext = createContext<TransactionsContextValue | null>(null);
@@ -89,11 +99,11 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     onSuccess: (createdTransactions) => {
       const createdTransactionsInSelectedMonth = createdTransactions.filter(
         (createdTransaction) => {
-          const [transactionYear, transactionMonth] = createdTransaction.date.split("-");
-          return (
-            Number.parseInt(transactionYear, 10) === selectedYear &&
-            Number.parseInt(transactionMonth, 10) === selectedMonthNumber
+          const accounting = getAccountingYearMonth(
+            createdTransaction.date,
+            createdTransaction.isCreditCard,
           );
+          return accounting.year === selectedYear && accounting.month === selectedMonthNumber;
         },
       );
 
@@ -133,6 +143,25 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     },
   });
 
+  const updateTransactionMutation = useMutation({
+    mutationFn: ({
+      transactionId,
+      patch,
+    }: {
+      transactionId: number;
+      patch: Pick<Transaction, "isCreditCard">;
+    }) =>
+      fetchJson<Transaction>(`/api/transactions/${encodeURIComponent(String(transactionId))}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patch }),
+      }),
+    onSuccess: () => {
+      // A credit-card toggle can move a transaction between months; simplest is to refetch all.
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+
   const addTransactionsFromFormState = useCallback<
     TransactionsContextValue["addTransactionsFromFormState"]
   >(
@@ -149,14 +178,9 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       const newTransactionsPayload: Array<Omit<Transaction, "id">> = [];
       const amountValue = newTransactionFormState.amount;
 
-      const isCreditCard = newTransactionFormState.isCreditCard;
-
       if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
         const installmentAmountValue = amountValue / newTransactionFormState.installments;
-        const baseDateObject = (() => {
-          const dateObject = parseDateString(baseDateString);
-          return isCreditCard ? addMonthsClamped(dateObject, 1) : dateObject;
-        })();
+        const baseDateObject = parseDateString(baseDateString);
 
         for (
           let installmentIndex = 0;
@@ -173,25 +197,21 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
             categoryId: newTransactionFormState.categoryId,
             paidBy: newTransactionFormState.paidBy,
             isRecurring: false,
+            isCreditCard: newTransactionFormState.isCreditCard,
             excludeFromSplit: newTransactionFormState.excludeFromSplit,
             date: toDateString(installmentDateObject),
           });
         }
       } else {
-        const effectiveDateString = (() => {
-          if (!isCreditCard) return baseDateString;
-          const shifted = addMonthsClamped(parseDateString(baseDateString), 1);
-          return toDateString(shifted);
-        })();
-
         newTransactionsPayload.push({
           description: newTransactionFormState.description,
           amount: amountValue,
           categoryId: newTransactionFormState.categoryId,
           paidBy: newTransactionFormState.paidBy,
           isRecurring: newTransactionFormState.isRecurring,
+          isCreditCard: newTransactionFormState.isCreditCard,
           excludeFromSplit: newTransactionFormState.excludeFromSplit,
-          date: effectiveDateString,
+          date: baseDateString,
         });
       }
 
@@ -207,6 +227,13 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     [deleteTransactionMutation],
   );
 
+  const updateTransactionById = useCallback<TransactionsContextValue["updateTransactionById"]>(
+    (transactionId, patch) => {
+      updateTransactionMutation.mutate({ transactionId, patch });
+    },
+    [updateTransactionMutation],
+  );
+
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
       transactionsForSelectedMonth: [...(transactionsQuery.data ?? [])].sort(
@@ -215,10 +242,12 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       isTransactionsLoading: transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
+      updateTransactionById,
     }),
     [
       addTransactionsFromFormState,
       deleteTransactionById,
+      updateTransactionById,
       transactionsQuery.data,
       transactionsQuery.isLoading,
     ],

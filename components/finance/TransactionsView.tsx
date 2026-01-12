@@ -29,8 +29,12 @@ export function TransactionsView() {
   const { people } = usePeople();
   const { categories } = useCategories();
   const { defaultPayerId } = useDefaultPayer();
-  const { transactionsForSelectedMonth, addTransactionsFromFormState, deleteTransactionById } =
-    useTransactions();
+  const {
+    transactionsForSelectedMonth,
+    addTransactionsFromFormState,
+    deleteTransactionById,
+    updateTransactionById,
+  } = useTransactions();
 
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
@@ -500,6 +504,11 @@ Retorne APENAS o JSON, sem markdown.
                             <RefreshCw size={10} /> Recorrente
                           </span>
                         )}
+                        {transaction.isCreditCard && (
+                          <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                            Cartão
+                          </span>
+                        )}
                         {transaction.excludeFromSplit && (
                           <span className="bg-slate-100 text-slate-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
                             <UserX size={10} /> Fora da divisão
@@ -517,6 +526,18 @@ Retorne APENAS o JSON, sem markdown.
                     <span className="font-bold text-slate-700">
                       {formatCurrency(transaction.amount)}
                     </span>
+                    <label className="flex items-center gap-2 text-xs text-slate-500">
+                      <input
+                        type="checkbox"
+                        checked={transaction.isCreditCard}
+                        onChange={(e) =>
+                          updateTransactionById(transaction.id, { isCreditCard: e.target.checked })
+                        }
+                        className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                        title="Se marcado, este lançamento entra no mês seguinte"
+                      />
+                      CC
+                    </label>
                     {!transaction.isRecurring ? (
                       <button
                         type="button"
