@@ -59,7 +59,7 @@ export function TransactionFormFields({
         </div>
       )}
 
-      <div>
+      <div className="lg:col-span-2">
         <label
           htmlFor={inputId("amount")}
           className="block text-xs font-medium text-slate-500 mb-1"
@@ -76,7 +76,7 @@ export function TransactionFormFields({
         />
       </div>
 
-      <div>
+      <div className="lg:col-span-2">
         <label
           htmlFor={inputId("category")}
           className="block text-xs font-medium text-slate-500 mb-1"
@@ -211,10 +211,7 @@ export function TransactionFormFields({
         )}
       </div>
 
-      <details
-        className="lg:col-span-4 rounded-lg border border-slate-200 bg-slate-50"
-        open={!showInstallmentFields}
-      >
+      <details className="lg:col-span-4 rounded-lg border border-slate-200 bg-slate-50">
         <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-slate-700">
           Informações adicionais
           <span className="ml-2 text-xs font-normal text-slate-500">(Data, Pago por)</span>
