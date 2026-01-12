@@ -56,12 +56,26 @@ async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> 
   return (await response.json()) as T;
 }
 
+type TransactionPatch = Partial<
+  Pick<
+    Transaction,
+    | "description"
+    | "amount"
+    | "categoryId"
+    | "paidBy"
+    | "isRecurring"
+    | "isCreditCard"
+    | "excludeFromSplit"
+    | "date"
+  >
+>;
+
 type TransactionsContextValue = {
   transactionsForSelectedMonth: Transaction[];
   isTransactionsLoading: boolean;
   addTransactionsFromFormState: (newTransactionFormState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
-  updateTransactionById: (transactionId: number, patch: Pick<Transaction, "isCreditCard">) => void;
+  updateTransactionById: (transactionId: number, patch: TransactionPatch) => void;
 };
 
 const TransactionsContext = createContext<TransactionsContextValue | null>(null);
@@ -149,7 +163,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       patch,
     }: {
       transactionId: number;
-      patch: Pick<Transaction, "isCreditCard">;
+      patch: TransactionPatch;
     }) =>
       fetchJson<Transaction>(`/api/transactions/${encodeURIComponent(String(transactionId))}`, {
         method: "PATCH",
@@ -157,7 +171,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
         body: JSON.stringify({ patch }),
       }),
     onSuccess: () => {
-      // A credit-card toggle can move a transaction between months; simplest is to refetch all.
+      // Updates can move a transaction between months; simplest is to refetch all.
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
