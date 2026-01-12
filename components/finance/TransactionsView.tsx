@@ -119,6 +119,10 @@ export function TransactionsView() {
     });
   }, [categoryFilter, paidByFilter, transactionsForSelectedMonth]);
 
+  const visibleTransactionsTotal = useMemo(() => {
+    return visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0);
+  }, [visibleTransactionsForSelectedMonth]);
+
   useEffect(() => {
     setNewTrans((prev) => ({
       ...prev,
@@ -609,6 +613,18 @@ Retorne APENAS o JSON, sem markdown.
             })
           )}
         </div>
+
+        {/* Total row */}
+        {visibleTransactionsForSelectedMonth.length > 0 && (
+          <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+            <span className="font-semibold text-slate-700">
+              Total ({visibleTransactionsForSelectedMonth.length} lançamentos)
+            </span>
+            <span className="font-bold text-lg text-slate-800">
+              {formatCurrency(visibleTransactionsTotal)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Edit Transaction Modal */}
