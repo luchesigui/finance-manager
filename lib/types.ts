@@ -35,6 +35,10 @@ export type NewTransactionFormState = {
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;
+  /**
+   * If true, this expense should be accounted for in the next month (credit card billing cycle).
+   */
+  isCreditCard: boolean;
   /** YYYY-MM-DD */
   date: string;
   isInstallment: boolean;

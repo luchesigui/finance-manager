@@ -8,6 +8,31 @@ import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthConte
 import { parseDateString } from "@/lib/format";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
+function toDateString(date: Date): string {
+  const yearString = String(date.getFullYear());
+  const monthString = String(date.getMonth() + 1).padStart(2, "0");
+  const dayString = String(date.getDate()).padStart(2, "0");
+  return `${yearString}-${monthString}-${dayString}`;
+}
+
+/**
+ * Adds months to a date, clamping the day to the last day of the target month when needed.
+ * Example: Jan 31 + 1 month -> Feb 28/29.
+ */
+function addMonthsClamped(date: Date, monthsToAdd: number): Date {
+  const originalDay = date.getDate();
+  const targetMonthIndex = date.getMonth() + monthsToAdd;
+  const candidate = new Date(date.getFullYear(), targetMonthIndex, originalDay);
+
+  // If month rolled over, clamp to last day of the target month.
+  const expectedMonthIndex = ((targetMonthIndex % 12) + 12) % 12;
+  if (candidate.getMonth() !== expectedMonthIndex) {
+    return new Date(date.getFullYear(), targetMonthIndex + 1, 0);
+  }
+
+  return candidate;
+}
+
 function compareTransactionsByCreationDesc(a: Transaction, b: Transaction): number {
   const createdAtCompare = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
   if (createdAtCompare !== 0) return createdAtCompare;
@@ -124,24 +149,21 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       const newTransactionsPayload: Array<Omit<Transaction, "id">> = [];
       const amountValue = newTransactionFormState.amount;
 
+      const isCreditCard = newTransactionFormState.isCreditCard;
+
       if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
         const installmentAmountValue = amountValue / newTransactionFormState.installments;
-        const baseDateObject = parseDateString(baseDateString);
+        const baseDateObject = (() => {
+          const dateObject = parseDateString(baseDateString);
+          return isCreditCard ? addMonthsClamped(dateObject, 1) : dateObject;
+        })();
 
         for (
           let installmentIndex = 0;
           installmentIndex < newTransactionFormState.installments;
           installmentIndex++
         ) {
-          const installmentDateObject = new Date(baseDateObject);
-          installmentDateObject.setMonth(baseDateObject.getMonth() + installmentIndex);
-
-          const installmentYearString = String(installmentDateObject.getFullYear());
-          const installmentMonthString = String(installmentDateObject.getMonth() + 1).padStart(
-            2,
-            "0",
-          );
-          const installmentDayString = String(installmentDateObject.getDate()).padStart(2, "0");
+          const installmentDateObject = addMonthsClamped(baseDateObject, installmentIndex);
 
           newTransactionsPayload.push({
             description: `${newTransactionFormState.description} (${
@@ -152,10 +174,16 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
             paidBy: newTransactionFormState.paidBy,
             isRecurring: false,
             excludeFromSplit: newTransactionFormState.excludeFromSplit,
-            date: `${installmentYearString}-${installmentMonthString}-${installmentDayString}`,
+            date: toDateString(installmentDateObject),
           });
         }
       } else {
+        const effectiveDateString = (() => {
+          if (!isCreditCard) return baseDateString;
+          const shifted = addMonthsClamped(parseDateString(baseDateString), 1);
+          return toDateString(shifted);
+        })();
+
         newTransactionsPayload.push({
           description: newTransactionFormState.description,
           amount: amountValue,
@@ -163,7 +191,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
           paidBy: newTransactionFormState.paidBy,
           isRecurring: newTransactionFormState.isRecurring,
           excludeFromSplit: newTransactionFormState.excludeFromSplit,
-          date: baseDateString,
+          date: effectiveDateString,
         });
       }
 

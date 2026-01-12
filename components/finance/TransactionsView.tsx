@@ -43,6 +43,7 @@ export function TransactionsView() {
     categoryId: categories[0]?.id ?? "c1",
     paidBy: defaultPayerId,
     isRecurring: false,
+    isCreditCard: false,
     date: "",
     isInstallment: false,
     installments: 2,
@@ -90,6 +91,7 @@ export function TransactionsView() {
       categoryId: categories[0]?.id ?? "c1",
       paidBy: defaultPayerId,
       isRecurring: false,
+      isCreditCard: false,
       date: "",
       isInstallment: false,
       installments: 2,
@@ -315,6 +317,23 @@ Retorne APENAS o JSON, sem markdown.
                 className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
               >
                 <UserX size={14} /> Não entra na divisão?
+              </label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="credit-card"
+                checked={newTrans.isCreditCard}
+                onChange={(e) => setNewTrans({ ...newTrans, isCreditCard: e.target.checked })}
+                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+              />
+              <label
+                htmlFor="credit-card"
+                className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
+                title="Se marcado, o lançamento entra no mês seguinte"
+              >
+                Cartão de Crédito
               </label>
             </div>
 
