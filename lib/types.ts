@@ -20,6 +20,11 @@ export type Transaction = {
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;
+  /**
+   * If true, this expense is accounted for in the next month (credit card billing cycle),
+   * while keeping `date` as the original purchase/expense date.
+   */
+  isCreditCard: boolean;
   /** If true, this transaction should not be considered in the fair split calculation. */
   excludeFromSplit: boolean;
   /** YYYY-MM-DD */
@@ -35,6 +40,10 @@ export type NewTransactionFormState = {
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;
+  /**
+   * If true, this expense should be accounted for in the next month (credit card billing cycle).
+   */
+  isCreditCard: boolean;
   /** YYYY-MM-DD */
   date: string;
   isInstallment: boolean;

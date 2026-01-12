@@ -29,11 +29,55 @@ const toTransaction = (row: any): Transaction => ({
   categoryId: row.category_id,
   paidBy: row.paid_by,
   isRecurring: row.is_recurring,
+  isCreditCard: row.is_credit_card ?? false,
   excludeFromSplit: row.exclude_from_split ?? false,
   date: row.date,
   createdAt: row.created_at,
   householdId: row.household_id,
 });
+
+function parseDateUtc(dateString: string): Date {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+/**
+ * Adds months to a UTC date, clamping the day to the last day of the target month when needed.
+ * Example: 2025-01-31 + 1 month -> 2025-02-28/29.
+ */
+function addMonthsClampedUtc(date: Date, monthsToAdd: number): Date {
+  const year = date.getUTCFullYear();
+  const monthIndex = date.getUTCMonth();
+  const day = date.getUTCDate();
+
+  const targetMonthIndex = monthIndex + monthsToAdd;
+  const candidate = new Date(Date.UTC(year, targetMonthIndex, day));
+
+  const expectedMonthIndex = ((targetMonthIndex % 12) + 12) % 12;
+  if (candidate.getUTCMonth() !== expectedMonthIndex) {
+    // Day overflowed; clamp to last day of target month.
+    return new Date(Date.UTC(year, targetMonthIndex + 1, 0));
+  }
+
+  return candidate;
+}
+
+function getAccountingYearMonth(
+  dateString: string,
+  isCreditCard: boolean,
+): { year: number; month: number } {
+  const base = parseDateUtc(dateString);
+  const accountingDate = isCreditCard ? addMonthsClampedUtc(base, 1) : base;
+  return { year: accountingDate.getUTCFullYear(), month: accountingDate.getUTCMonth() + 1 };
+}
+
+type TransactionRow = {
+  date: string;
+  is_credit_card?: boolean;
+  created_at?: string;
+  id?: number | string;
+  [key: string]: unknown;
+};
 
 async function getPrimaryHouseholdId() {
   const supabase = await createClient();
@@ -125,18 +169,30 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
   if (year !== undefined && month !== undefined) {
     const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
     const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
+    const prevMonthStartDate = new Date(Date.UTC(year, month - 2, 1)).toISOString().split("T")[0];
 
-    // 1. Fetch transactions in the current month
-    const currentMonthQuery = query.gte("date", startDate).lte("date", endDate);
-    const { data: currentMonthData, error: currentError } = await currentMonthQuery.order(
-      "created_at",
-      {
+    // 1. Fetch transactions from previous month start through current month end.
+    // We need the previous month because credit-card expenses from the previous month
+    // are accounted for in the current month.
+    const { data: rawData, error: currentError } = await query
+      .gte("date", prevMonthStartDate)
+      .lte("date", endDate)
+      .order("created_at", {
         ascending: false,
-      },
-    );
+      });
     if (currentError) throw currentError;
 
-    // 2. Fetch recurring transactions created BEFORE this month
+    // Filter to only those whose *accounting month* matches the requested month/year.
+    const currentMonthData =
+      (rawData as TransactionRow[] | null | undefined)?.filter((row) => {
+        const accounting = getAccountingYearMonth(row.date, row.is_credit_card ?? false);
+        return accounting.year === year && accounting.month === month;
+      }) ?? [];
+
+    // 2. Fetch recurring transactions created BEFORE this month (used as templates).
+    // We'll materialize both the selected month and the previous month and then apply the same
+    // accounting-month filter. This supports credit-card recurring expenses showing up in the
+    // month after their occurrence.
     const { data: recurringData, error: recurringError } = await supabase
       .from("transactions")
       .select("*")
@@ -146,29 +202,42 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 
     if (recurringError) throw recurringError;
 
+    const monthsToMaterialize = [
+      { year, month },
+      (() => {
+        const prev = new Date(Date.UTC(year, month - 2, 1));
+        return { year: prev.getUTCFullYear(), month: prev.getUTCMonth() + 1 };
+      })(),
+    ];
+
     // 3. Process recurring transactions
-    // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
-    const virtualTransactions = recurringData.map((t: any) => {
-      // Create a date object from the original date
-      const originalDate = new Date(t.date);
-      const day = originalDate.getUTCDate();
+    const virtualTransactions =
+      (recurringData as TransactionRow[] | null | undefined)
+        ?.flatMap((t) => {
+          const originalDate = parseDateUtc(t.date);
+          const day = originalDate.getUTCDate();
 
-      // Create date for the target month
-      const targetDate = new Date(Date.UTC(year, month - 1, day));
+          return monthsToMaterialize.map((m) => {
+            const targetDate = new Date(Date.UTC(m.year, m.month - 1, day));
 
-      // If the month rolled over (e.g. Feb 31 -> Mar 3), roll back to last day of target month
-      if (targetDate.getUTCMonth() !== month - 1) {
-        const lastDayOfMonth = new Date(Date.UTC(year, month, 0));
-        targetDate.setUTCFullYear(lastDayOfMonth.getUTCFullYear());
-        targetDate.setUTCMonth(lastDayOfMonth.getUTCMonth());
-        targetDate.setUTCDate(lastDayOfMonth.getUTCDate());
-      }
+            // If the month rolled over (e.g. Feb 31 -> Mar 3), roll back to last day of target month
+            if (targetDate.getUTCMonth() !== m.month - 1) {
+              const lastDayOfMonth = new Date(Date.UTC(m.year, m.month, 0));
+              targetDate.setUTCFullYear(lastDayOfMonth.getUTCFullYear());
+              targetDate.setUTCMonth(lastDayOfMonth.getUTCMonth());
+              targetDate.setUTCDate(lastDayOfMonth.getUTCDate());
+            }
 
-      return {
-        ...t,
-        date: targetDate.toISOString().split("T")[0],
-      };
-    });
+            return {
+              ...t,
+              date: targetDate.toISOString().split("T")[0],
+            };
+          });
+        })
+        .filter((t) => {
+          const accounting = getAccountingYearMonth(t.date, t.is_credit_card ?? false);
+          return accounting.year === year && accounting.month === month;
+        }) ?? [];
 
     const allTransactions = [...currentMonthData, ...virtualTransactions];
 
@@ -197,12 +266,33 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     category_id: t.categoryId,
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
+    is_credit_card: t.isCreditCard ?? false,
     exclude_from_split: t.excludeFromSplit ?? false,
     date: t.date,
     household_id: householdId,
   };
 
   const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();
+
+  if (error) throw error;
+  return toTransaction(data);
+}
+
+export async function updateTransaction(
+  id: number,
+  patch: Partial<Pick<Transaction, "isCreditCard">>,
+): Promise<Transaction> {
+  const supabase = await createClient();
+  // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
+  const dbPatch: any = {};
+  if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
+
+  const { data, error } = await supabase
+    .from("transactions")
+    .update(dbPatch)
+    .eq("id", id)
+    .select()
+    .single();
 
   if (error) throw error;
   return toTransaction(data);
