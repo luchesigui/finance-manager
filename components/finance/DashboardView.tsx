@@ -188,7 +188,14 @@ export function DashboardView() {
                       {cat.name}
                     </td>
                     <td className="px-4 py-3 text-right">{formatCurrency(cat.totalSpent)}</td>
-                    <td className="px-4 py-3 text-center">{cat.targetPercent}%</td>
+                    <td
+                      className="px-4 py-3 text-center"
+                      title={formatCurrency(
+                        Math.ceil((cat.targetPercent / 100) * totalIncome * 100) / 100,
+                      )}
+                    >
+                      {cat.targetPercent}%
+                    </td>
                     <td className="px-4 py-3 text-center font-bold">
                       {cat.realPercentOfIncome.toFixed(1)}%
                     </td>
@@ -209,7 +216,9 @@ export function DashboardView() {
               <tr className="bg-slate-50 font-bold">
                 <td className="px-4 py-3">TOTAL</td>
                 <td className="px-4 py-3 text-right">{formatCurrency(totalExpensesAll)}</td>
-                <td className="px-4 py-3 text-center">100%</td>
+                <td className="px-4 py-3 text-center" title={formatCurrency(totalIncome)}>
+                  100%
+                </td>
                 <td className="px-4 py-3 text-center">
                   {totalIncome > 0 ? ((totalExpensesAll / totalIncome) * 100).toFixed(1) : 0}%
                 </td>
