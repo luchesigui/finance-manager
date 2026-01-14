@@ -56,15 +56,20 @@ WHERE NOT EXISTS (
   SELECT 1 FROM category_name_mapping cnm WHERE cnm.id = c.id
 );
 
--- Step 7: Remove household_id and target_percent from categories table
+-- Drop temporary table
+DROP TABLE IF EXISTS category_name_mapping;
+
+-- Step 7: Drop old categories RLS policies BEFORE dropping columns they depend on
+DROP POLICY IF EXISTS "Users can view categories in their households" ON public.categories;
+DROP POLICY IF EXISTS "Users can insert categories in their households" ON public.categories;
+DROP POLICY IF EXISTS "Users can update categories in their households" ON public.categories;
+
+-- Step 8: Now we can safely remove household_id and target_percent from categories table
 -- (they are now in household_categories)
 ALTER TABLE public.categories DROP COLUMN IF EXISTS household_id;
 ALTER TABLE public.categories DROP COLUMN IF EXISTS target_percent;
 
--- Drop temporary table
-DROP TABLE IF EXISTS category_name_mapping;
-
--- Step 8: Create RLS policies for household_categories
+-- Step 9: Create RLS policies for household_categories
 CREATE POLICY "Users can view household_categories in their households" ON public.household_categories
   FOR SELECT USING (
     EXISTS (
@@ -101,20 +106,14 @@ CREATE POLICY "Users can delete household_categories in their households" ON pub
     )
   );
 
--- Step 9: Update categories RLS policies (now categories are global/shared)
--- Drop old household-based policies
-DROP POLICY IF EXISTS "Users can view categories in their households" ON public.categories;
-DROP POLICY IF EXISTS "Users can insert categories in their households" ON public.categories;
-DROP POLICY IF EXISTS "Users can update categories in their households" ON public.categories;
-
--- Create new policies - authenticated users can view all categories
+-- Step 10: Create new policy for categories - authenticated users can view all global categories
 CREATE POLICY "Authenticated users can view categories" ON public.categories
   FOR SELECT USING (auth.uid() IS NOT NULL);
 
 -- Only allow inserts/updates through service role (system-managed)
 -- No direct user insert/update policies for global categories
 
--- Step 10: Update handle_new_user function to use new schema
+-- Step 11: Update handle_new_user function to use new schema
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 DECLARE
@@ -218,7 +217,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Step 11: Insert the default global categories if they don't exist
+-- Step 12: Insert the default global categories if they don't exist
 INSERT INTO public.categories (name)
 SELECT name FROM (VALUES
   ('Liberdade Financeira'),
