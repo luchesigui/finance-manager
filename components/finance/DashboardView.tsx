@@ -178,7 +178,15 @@ export function DashboardView() {
             </thead>
             <tbody>
               {categorySummary.map((cat) => {
+                const isFinancialFreedom =
+                  normalizeCategoryName(cat.name) === normalizeCategoryName("Liberdade Financeira");
                 const isOverBudget = cat.realPercentOfIncome > cat.targetPercent;
+                const isBelowGoal = cat.realPercentOfIncome < cat.targetPercent;
+
+                // For "Liberdade Financeira", logic is inverted: we WANT to reach/exceed the goal
+                const showBadStatus = isFinancialFreedom ? isBelowGoal : isOverBudget;
+                const badStatusLabel = isFinancialFreedom ? "Faltando" : "Estourou";
+
                 return (
                   <tr
                     key={cat.id}
@@ -200,9 +208,9 @@ export function DashboardView() {
                       {cat.realPercentOfIncome.toFixed(1)}%
                     </td>
                     <td className="px-4 py-3">
-                      {isOverBudget ? (
+                      {showBadStatus ? (
                         <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">
-                          Estourou
+                          {badStatusLabel}
                         </span>
                       ) : (
                         <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">
