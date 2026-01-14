@@ -15,8 +15,8 @@ const toPerson = (row: any): Person => ({
 
 // biome-ignore lint/suspicious/noExplicitAny: DB row type is loose
 const toCategory = (row: any): Category => ({
-  id: row.id,
-  name: row.name,
+  id: row.category_id,
+  name: row.categories.name,
   targetPercent: Number(row.target_percent),
   householdId: row.household_id,
 });
@@ -139,7 +139,20 @@ export async function getCurrentUserId(): Promise<string> {
 
 export async function getCategories(): Promise<Category[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("categories").select("*").order("name");
+  // Query household_categories with a join to categories (normalized schema)
+  const { data, error } = await supabase
+    .from("household_categories")
+    .select(
+      `
+      category_id,
+      target_percent,
+      household_id,
+      categories (
+        name
+      )
+    `,
+    )
+    .order("categories(name)");
   if (error) throw error;
   return data.map(toCategory);
 }
@@ -148,14 +161,24 @@ export async function updateCategory(id: string, patch: Partial<Category>): Prom
   const supabase = await createClient();
   // biome-ignore lint/suspicious/noExplicitAny: constructing dynamic object
   const dbPatch: any = {};
-  if (patch.name !== undefined) dbPatch.name = patch.name;
+  // Note: name updates are not supported in normalized schema (names are global)
   if (patch.targetPercent !== undefined) dbPatch.target_percent = patch.targetPercent;
 
+  // Update household_categories by category_id (id is the global category ID)
   const { data, error } = await supabase
-    .from("categories")
+    .from("household_categories")
     .update(dbPatch)
-    .eq("id", id)
-    .select()
+    .eq("category_id", id)
+    .select(
+      `
+      category_id,
+      target_percent,
+      household_id,
+      categories (
+        name
+      )
+    `,
+    )
     .single();
 
   if (error) throw error;
