@@ -13,11 +13,16 @@ export type Category = {
   householdId?: string;
 };
 
+export type TransactionType = "expense" | "income";
+
 export type Transaction = {
   id: number;
   description: string;
   amount: number;
-  categoryId: string;
+  /**
+   * Category ID. Required for expenses, optional (null) for income transactions.
+   */
+  categoryId: string | null;
   paidBy: string;
   isRecurring: boolean;
   /**
@@ -32,6 +37,16 @@ export type Transaction = {
   /** ISO timestamp (from DB `created_at`). Optional for backwards compatibility. */
   createdAt?: string;
   householdId?: string;
+  /**
+   * Transaction type: 'expense' for regular expenses, 'income' for income entries.
+   * Defaults to 'expense' for backward compatibility.
+   */
+  type: TransactionType;
+  /**
+   * For income transactions: true = income added (increment), false = income deducted (decrement).
+   * Only applicable when type is 'income'.
+   */
+  isIncrement: boolean;
 };
 
 export type NewTransactionFormState = {
@@ -59,4 +74,12 @@ export type NewTransactionFormState = {
   isInstallment: boolean;
   installments: number;
   excludeFromSplit: boolean;
+  /**
+   * Transaction type: 'expense' for regular expenses, 'income' for income entries.
+   */
+  type: TransactionType;
+  /**
+   * For income transactions: true = income added (increment), false = income deducted (decrement).
+   */
+  isIncrement: boolean;
 };

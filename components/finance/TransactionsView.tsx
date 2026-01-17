@@ -11,6 +11,8 @@ import {
   Search,
   Sparkles,
   Trash2,
+  TrendingDown,
+  TrendingUp,
   UserX,
   X,
 } from "lucide-react";
@@ -61,6 +63,7 @@ export function TransactionsView() {
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -106,6 +109,8 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    type: "expense",
+    isIncrement: true,
   });
 
   const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
@@ -121,6 +126,8 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    type: "expense",
+    isIncrement: true,
   });
 
   useEffect(() => {
@@ -142,7 +149,12 @@ export function TransactionsView() {
   const visibleTransactionsForSelectedMonth = useMemo(() => {
     return transactionsForSelectedMonth.filter((transaction) => {
       if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
-      if (categoryFilter !== "all" && transaction.categoryId !== categoryFilter) return false;
+      if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
+      // Income transactions have no category, so they pass category filter if "all" or if specifically showing income
+      if (categoryFilter !== "all") {
+        if (transaction.categoryId === null) return false; // Income transactions don't match specific category filter
+        if (transaction.categoryId !== categoryFilter) return false;
+      }
 
       // Fuzzy search filter
       if (searchQuery.trim()) {
@@ -159,7 +171,15 @@ export function TransactionsView() {
 
       return true;
     });
-  }, [categoryFilter, paidByFilter, transactionsForSelectedMonth, searchQuery, categories, people]);
+  }, [
+    categoryFilter,
+    paidByFilter,
+    typeFilter,
+    transactionsForSelectedMonth,
+    searchQuery,
+    categories,
+    people,
+  ]);
 
   const visibleTransactionsTotal = useMemo(() => {
     return visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0);
@@ -189,6 +209,8 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: false,
+      type: "expense",
+      isIncrement: true,
     });
 
     setSmartInput("");
@@ -207,7 +229,7 @@ export function TransactionsView() {
     setEditFormState({
       description: transaction.description,
       amount: transaction.amount,
-      categoryId: transaction.categoryId,
+      categoryId: transaction.categoryId ?? categories[0]?.id ?? "",
       paidBy: transaction.paidBy,
       isRecurring: transaction.isRecurring,
       isCreditCard: transaction.isCreditCard,
@@ -217,6 +239,8 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: transaction.excludeFromSplit,
+      type: transaction.type ?? "expense",
+      isIncrement: transaction.isIncrement ?? true,
     });
   };
 
@@ -237,6 +261,8 @@ export function TransactionsView() {
       isCreditCard: editFormState.isCreditCard,
       excludeFromSplit: editFormState.excludeFromSplit,
       date: editFormState.date,
+      type: editFormState.type,
+      isIncrement: editFormState.isIncrement,
     });
 
     setEditingTransaction(null);
@@ -439,8 +465,11 @@ Retorne APENAS o JSON, sem markdown.
         )}
 
         <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Plus className="bg-indigo-600 text-white rounded-full p-1" size={24} />
-          Nova Despesa Manual
+          <Plus
+            className={`${newTrans.type === "income" ? "bg-green-600" : "bg-indigo-600"} text-white rounded-full p-1`}
+            size={24}
+          />
+          {newTrans.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
         </h3>
 
         <form
@@ -458,12 +487,16 @@ Retorne APENAS o JSON, sem markdown.
           <div className="lg:col-span-4 mt-2">
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className={`w-full ${newTrans.type === "income" ? "bg-green-600 hover:bg-green-700" : "bg-indigo-600 hover:bg-indigo-700"} text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2`}
             >
               <Plus size={18} />
-              {newTrans.isInstallment
-                ? `Lançar ${newTrans.installments}x Parcelas`
-                : "Adicionar Lançamento"}
+              {newTrans.type === "income"
+                ? newTrans.isIncrement
+                  ? "Adicionar Renda"
+                  : "Adicionar Dedução de Renda"
+                : newTrans.isInstallment
+                  ? `Lançar ${newTrans.installments}x Parcelas`
+                  : "Adicionar Lançamento"}
             </button>
           </div>
         </form>
@@ -475,6 +508,21 @@ Retorne APENAS o JSON, sem markdown.
             Histórico de {formatMonthYear(selectedMonthDate)}
           </h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex items-center gap-2">
+              <label htmlFor="type-filter" className="text-xs font-medium text-slate-600">
+                Tipo
+              </label>
+              <select
+                id="type-filter"
+                className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                <option value="expense">Despesas</option>
+                <option value="income">Renda</option>
+              </select>
+            </div>
             <div className="flex items-center gap-2">
               <label htmlFor="paid-by-filter" className="text-xs font-medium text-slate-600">
                 Pago por
@@ -502,6 +550,7 @@ Retorne APENAS o JSON, sem markdown.
                 className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
+                disabled={typeFilter === "income"}
               >
                 <option value="all">Todas</option>
                 {categories.map((category) => (
@@ -619,7 +668,7 @@ Retorne APENAS o JSON, sem markdown.
               {searchQuery.trim() ? (
                 <>
                   Nenhum lançamento encontrado para &quot;{searchQuery}&quot;
-                  {paidByFilter !== "all" || categoryFilter !== "all"
+                  {typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all"
                     ? " com os filtros selecionados"
                     : ""}
                   .
@@ -627,14 +676,10 @@ Retorne APENAS o JSON, sem markdown.
               ) : (
                 <>
                   Nenhum lançamento neste mês
-                  {paidByFilter === "all" && categoryFilter === "all"
-                    ? ""
-                    : paidByFilter !== "all" && categoryFilter !== "all"
-                      ? " para este pagador e categoria"
-                      : paidByFilter !== "all"
-                        ? " para este pagador"
-                        : " para esta categoria"}
-                  .
+                  {typeFilter !== "all" &&
+                    ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
+                  {paidByFilter !== "all" && " para este pagador"}
+                  {categoryFilter !== "all" && " nesta categoria"}.
                 </>
               )}
             </div>
@@ -646,13 +691,15 @@ Retorne APENAS o JSON, sem markdown.
               const selectedPerson = people.find((person) => person.id === transaction.paidBy);
               const isSelected = selectedIds.has(transaction.id);
               const canSelect = !transaction.isRecurring;
+              const isIncome = transaction.type === "income";
+              const isIncrement = transaction.isIncrement ?? true;
 
               return (
                 <div
                   key={transaction.id}
                   className={`p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group ${
                     isSelected ? "bg-indigo-50" : ""
-                  }`}
+                  } ${isIncome ? "border-l-4 border-l-green-500" : ""}`}
                 >
                   <div className="flex items-center gap-4">
                     {isSelectionMode && (
@@ -674,12 +721,30 @@ Retorne APENAS o JSON, sem markdown.
                         {isSelected && <Check size={12} strokeWidth={3} />}
                       </button>
                     )}
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gray-400">
-                      {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${isIncome ? (isIncrement ? "bg-green-500" : "bg-orange-500") : "bg-gray-400"}`}
+                    >
+                      {isIncome ? (
+                        isIncrement ? (
+                          <TrendingUp size={18} />
+                        ) : (
+                          <TrendingDown size={18} />
+                        )
+                      ) : (
+                        (selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()
+                      )}
                     </div>
                     <div>
                       <h4 className="font-medium text-slate-800 flex items-center gap-2">
                         {transaction.description}
+                        {isIncome && (
+                          <span
+                            className={`${isIncrement ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"} text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1`}
+                          >
+                            {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            {isIncrement ? "Renda" : "Dedução"}
+                          </span>
+                        )}
                         {transaction.isRecurring && (
                           <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
                             <RefreshCw size={10} /> Recorrente
@@ -697,14 +762,21 @@ Retorne APENAS o JSON, sem markdown.
                         )}
                       </h4>
                       <p className="text-xs text-slate-500 flex gap-2">
-                        <span>{selectedCategory?.name}</span>
-                        <span>•</span>
+                        {selectedCategory?.name && (
+                          <>
+                            <span>{selectedCategory.name}</span>
+                            <span>•</span>
+                          </>
+                        )}
                         <span>{formatDateString(transaction.date)}</span>
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-700">
+                    <span
+                      className={`font-bold ${isIncome ? (isIncrement ? "text-green-600" : "text-orange-600") : "text-slate-700"}`}
+                    >
+                      {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
                       {formatCurrency(transaction.amount)}
                     </span>
                     {!isSelectionMode && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightLeft, PieChart } from "lucide-react";
+import { ArrowRightLeft, PieChart, TrendingDown, TrendingUp } from "lucide-react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
@@ -9,10 +9,12 @@ import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import {
   calculateCategorySummary,
-  calculatePeopleShare,
+  calculateIncomeBreakdown,
+  calculatePeopleShareWithIncomeTransactions,
   calculateSettlementData,
   calculateTotalExpenses,
   calculateTotalIncome,
+  getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
 import { formatCurrency, formatMonthYear, formatPercent } from "@/lib/format";
@@ -24,7 +26,15 @@ export function DashboardView() {
   const { transactionsForSelectedMonth } = useTransactions();
 
   const totalIncome = calculateTotalIncome(people);
-  const peopleWithShare = calculatePeopleShare(people, totalIncome);
+
+  // Calculate income from transactions (separate from people's base income)
+  const incomeBreakdown = calculateIncomeBreakdown(transactionsForSelectedMonth);
+
+  // Calculate people's share considering income transactions attributed to each person
+  const peopleWithShare = calculatePeopleShareWithIncomeTransactions(
+    people,
+    transactionsForSelectedMonth,
+  );
 
   const normalizeCategoryName = (name: string) =>
     name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
@@ -39,8 +49,12 @@ export function DashboardView() {
       )
       .map((category) => category.id),
   );
-  const transactionsExcludingGoalsAndFinancialFreedom = transactionsForSelectedMonth.filter(
+
+  // Get only expense transactions for various calculations
+  const expenseTransactions = getExpenseTransactions(transactionsForSelectedMonth);
+  const transactionsExcludingGoalsAndFinancialFreedom = expenseTransactions.filter(
     (transaction) =>
+      transaction.categoryId !== null &&
       !excludedFromFairDistributionCategoryIds.has(transaction.categoryId) &&
       !transaction.excludeFromSplit,
   );
@@ -57,6 +71,9 @@ export function DashboardView() {
     totalIncome,
   );
 
+  // Calculate effective income (base + transaction income)
+  const effectiveIncome = totalIncome + incomeBreakdown.netIncome;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <MonthNavigator />
@@ -64,7 +81,26 @@ export function DashboardView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <h3 className="text-slate-500 text-sm font-medium mb-1">Renda Total Familiar</h3>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalIncome)}</p>
+          <p className="text-2xl font-bold text-slate-800">{formatCurrency(effectiveIncome)}</p>
+          {(incomeBreakdown.totalIncomeIncrement > 0 ||
+            incomeBreakdown.totalIncomeDecrement > 0) && (
+            <div className="mt-2 pt-2 border-t border-slate-100">
+              <div className="text-xs text-slate-500 space-y-1">
+                {incomeBreakdown.totalIncomeIncrement > 0 && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <TrendingUp size={12} />
+                    <span>+ {formatCurrency(incomeBreakdown.totalIncomeIncrement)} adicionado</span>
+                  </div>
+                )}
+                {incomeBreakdown.totalIncomeDecrement > 0 && (
+                  <div className="flex items-center gap-1 text-orange-600">
+                    <TrendingDown size={12} />
+                    <span>- {formatCurrency(incomeBreakdown.totalIncomeDecrement)} deduzido</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <h3 className="text-slate-500 text-sm font-medium mb-1">
@@ -75,7 +111,7 @@ export function DashboardView() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <h3 className="text-slate-500 text-sm font-medium mb-1">Saldo Livre</h3>
           <p className="text-2xl font-bold text-green-600">
-            {formatCurrency(totalIncome - totalExpenses)}
+            {formatCurrency(effectiveIncome - totalExpenses)}
           </p>
         </div>
       </div>

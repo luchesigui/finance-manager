@@ -5,7 +5,16 @@ import { readJsonBody } from "@/lib/server/requestBodyValidation";
 import type { Transaction } from "@/lib/types";
 
 type BulkTransactionPatch = Partial<
-  Pick<Transaction, "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit">
+  Pick<
+    Transaction,
+    | "categoryId"
+    | "paidBy"
+    | "isRecurring"
+    | "isCreditCard"
+    | "excludeFromSplit"
+    | "type"
+    | "isIncrement"
+  >
 >;
 
 function isValidBulkTransactionPatch(value: unknown): value is BulkTransactionPatch {
@@ -16,6 +25,8 @@ function isValidBulkTransactionPatch(value: unknown): value is BulkTransactionPa
   if ("isRecurring" in record && typeof record.isRecurring !== "boolean") return false;
   if ("isCreditCard" in record && typeof record.isCreditCard !== "boolean") return false;
   if ("excludeFromSplit" in record && typeof record.excludeFromSplit !== "boolean") return false;
+  if ("type" in record && record.type !== "expense" && record.type !== "income") return false;
+  if ("isIncrement" in record && typeof record.isIncrement !== "boolean") return false;
   return true;
 }
 

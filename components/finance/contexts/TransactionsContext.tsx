@@ -67,11 +67,22 @@ type TransactionPatch = Partial<
     | "isCreditCard"
     | "excludeFromSplit"
     | "date"
+    | "type"
+    | "isIncrement"
   >
 >;
 
 type BulkTransactionPatch = Partial<
-  Pick<Transaction, "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit">
+  Pick<
+    Transaction,
+    | "categoryId"
+    | "paidBy"
+    | "isRecurring"
+    | "isCreditCard"
+    | "excludeFromSplit"
+    | "type"
+    | "isIncrement"
+  >
 >;
 
 type TransactionsContextValue = {
@@ -238,6 +249,10 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       const newTransactionsPayload: Array<Omit<Transaction, "id">> = [];
       const amountValue = newTransactionFormState.amount;
 
+      const isIncome = newTransactionFormState.type === "income";
+      // For income transactions, categoryId is null
+      const effectiveCategoryId = isIncome ? null : newTransactionFormState.categoryId;
+
       if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
         const installmentAmountValue = amountValue / newTransactionFormState.installments;
         const baseDateObject = parseDateString(baseDateString);
@@ -254,24 +269,28 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
               installmentIndex + 1
             }/${newTransactionFormState.installments})`,
             amount: installmentAmountValue,
-            categoryId: newTransactionFormState.categoryId,
+            categoryId: effectiveCategoryId,
             paidBy: newTransactionFormState.paidBy,
             isRecurring: false,
             isCreditCard: newTransactionFormState.isCreditCard,
             excludeFromSplit: newTransactionFormState.excludeFromSplit,
             date: toDateString(installmentDateObject),
+            type: newTransactionFormState.type,
+            isIncrement: newTransactionFormState.isIncrement,
           });
         }
       } else {
         newTransactionsPayload.push({
           description: newTransactionFormState.description,
           amount: amountValue,
-          categoryId: newTransactionFormState.categoryId,
+          categoryId: effectiveCategoryId,
           paidBy: newTransactionFormState.paidBy,
           isRecurring: newTransactionFormState.isRecurring,
           isCreditCard: newTransactionFormState.isCreditCard,
           excludeFromSplit: newTransactionFormState.excludeFromSplit,
           date: baseDateString,
+          type: newTransactionFormState.type,
+          isIncrement: newTransactionFormState.isIncrement,
         });
       }
 

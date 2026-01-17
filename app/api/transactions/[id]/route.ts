@@ -20,6 +20,8 @@ type TransactionPatch = Partial<
     | "isCreditCard"
     | "excludeFromSplit"
     | "date"
+    | "type"
+    | "isIncrement"
   >
 >;
 
@@ -34,6 +36,8 @@ function isValidTransactionPatch(value: unknown): value is TransactionPatch {
   if ("isCreditCard" in record && typeof record.isCreditCard !== "boolean") return false;
   if ("excludeFromSplit" in record && typeof record.excludeFromSplit !== "boolean") return false;
   if ("date" in record && typeof record.date !== "string") return false;
+  if ("type" in record && record.type !== "expense" && record.type !== "income") return false;
+  if ("isIncrement" in record && typeof record.isIncrement !== "boolean") return false;
   return true;
 }
 
