@@ -160,7 +160,15 @@ export function TransactionsView() {
 
       return true;
     });
-  }, [categoryFilter, paidByFilter, typeFilter, transactionsForSelectedMonth, searchQuery, categories, people]);
+  }, [
+    categoryFilter,
+    paidByFilter,
+    typeFilter,
+    transactionsForSelectedMonth,
+    searchQuery,
+    categories,
+    people,
+  ]);
 
   const visibleTransactionsTotal = useMemo(() => {
     return visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0);
@@ -627,7 +635,8 @@ Retorne APENAS o JSON, sem markdown.
               ) : (
                 <>
                   Nenhum lançamento neste mês
-                  {typeFilter !== "all" && ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
+                  {typeFilter !== "all" &&
+                    ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
                   {paidByFilter !== "all" && " para este pagador"}
                   {categoryFilter !== "all" && " nesta categoria"}.
                 </>

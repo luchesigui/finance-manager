@@ -18,11 +18,7 @@ import type { NewTransactionFormState } from "@/lib/types";
 
 /** Normalize category name for comparison (remove accents, trim, lowercase) */
 function normalizeCategoryName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .trim()
-    .toLowerCase();
+  return name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
 }
 
 /** Category names that should automatically exclude from split */
