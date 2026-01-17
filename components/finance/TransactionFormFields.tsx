@@ -1,19 +1,53 @@
 "use client";
 
 import { CreditCard, Layers, RefreshCw, UserX } from "lucide-react";
+import { useMemo } from "react";
 
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
+import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import type { NewTransactionFormState } from "@/lib/types";
 
+/** Generate month options for the selector */
+function generateMonthOptions(currentDate: Date): Array<{ value: string; label: string }> {
+  const options: Array<{ value: string; label: string }> = [];
+  const monthNames = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
+
+  // Show 2 months before and 2 months after the current month
+  for (let offset = -2; offset <= 2; offset++) {
+    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const value = `${year}-${String(month + 1).padStart(2, "0")}`;
+    const label = `${monthNames[month]} ${year}`;
+    options.push({ value, label });
+  }
+
+  return options;
+}
+
+/** Get current month in YYYY-MM format */
+function getCurrentYearMonth(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
 /** Normalize category name for comparison (remove accents, trim, lowercase) */
 function normalizeCategoryName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .trim()
-    .toLowerCase();
+  return name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
 }
 
 /** Category names that should automatically exclude from split */
@@ -48,6 +82,14 @@ export function TransactionFormFields({
 }: TransactionFormFieldsProps) {
   const { categories } = useCategories();
   const { people } = usePeople();
+  const { selectedMonthDate } = useCurrentMonth();
+
+  // Generate month options based on the current selected month
+  const monthOptions = useMemo(() => generateMonthOptions(selectedMonthDate), [selectedMonthDate]);
+  const currentYearMonth = useMemo(
+    () => getCurrentYearMonth(selectedMonthDate),
+    [selectedMonthDate],
+  );
 
   /** Check if a category should auto-exclude from split by its ID */
   const shouldAutoExcludeFromSplit = (categoryId: string): boolean => {
@@ -251,18 +293,58 @@ export function TransactionFormFields({
         <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label
-              htmlFor={inputId("date")}
+              htmlFor={inputId("month-selector")}
               className="block text-xs font-medium text-slate-500 mb-1"
             >
-              Data {showInstallmentFields && "(Opcional)"}
+              Mês {showInstallmentFields && "(Opcional)"}
             </label>
-            <input
-              id={inputId("date")}
-              type="date"
-              className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600 bg-white"
-              value={formState.date}
-              onChange={(e) => setFormState({ ...formState, date: e.target.value })}
-            />
+            <select
+              id={inputId("month-selector")}
+              className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600"
+              value={
+                formState.dateSelectionMode === "specific"
+                  ? "specific"
+                  : formState.selectedMonth || currentYearMonth
+              }
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "specific") {
+                  // Switch to specific date mode
+                  setFormState({
+                    ...formState,
+                    dateSelectionMode: "specific",
+                    date: formState.date || "",
+                  });
+                } else {
+                  // Set the month and the date to the 1st of that month
+                  const dateString = `${value}-01`;
+                  setFormState({
+                    ...formState,
+                    dateSelectionMode: "month",
+                    selectedMonth: value,
+                    date: dateString,
+                  });
+                }
+              }}
+            >
+              {monthOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+              <option value="specific">Data específica</option>
+            </select>
+            {formState.dateSelectionMode === "specific" && (
+              <div className="mt-2 animate-in slide-in-from-top-1 duration-200">
+                <input
+                  id={inputId("date")}
+                  type="date"
+                  className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-slate-600 bg-white"
+                  value={formState.date}
+                  onChange={(e) => setFormState({ ...formState, date: e.target.value })}
+                />
+              </div>
+            )}
           </div>
 
           <div>
