@@ -4,6 +4,7 @@ import {
   BrainCircuit,
   Check,
   CreditCard,
+  Filter,
   Loader2,
   Pencil,
   Plus,
@@ -66,6 +67,7 @@ export function TransactionsView() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -508,61 +510,21 @@ Retorne APENAS o JSON, sem markdown.
             Histórico de {formatMonthYear(selectedMonthDate)}
           </h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex items-center gap-2">
-              <label htmlFor="type-filter" className="text-xs font-medium text-slate-600">
-                Tipo
-              </label>
-              <select
-                id="type-filter"
-                className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-              >
-                <option value="all">Todos</option>
-                <option value="expense">Despesas</option>
-                <option value="income">Renda</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="paid-by-filter" className="text-xs font-medium text-slate-600">
-                Pago por
-              </label>
-              <select
-                id="paid-by-filter"
-                className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                value={paidByFilter}
-                onChange={(e) => setPaidByFilter(e.target.value)}
-              >
-                <option value="all">Todos</option>
-                {people.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="category-filter" className="text-xs font-medium text-slate-600">
-                Categoria
-              </label>
-              <select
-                id="category-filter"
-                className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                disabled={typeFilter === "income"}
-              >
-                <option value="all">Todas</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
             <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full w-fit">
               {visibleTransactionsForSelectedMonth.length} itens
             </span>
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isFilterOpen
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+              }`}
+              title="Filtrar lançamentos"
+            >
+              <Filter size={16} />
+            </button>
             <button
               type="button"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -588,6 +550,80 @@ Retorne APENAS o JSON, sem markdown.
             </button>
           </div>
         </div>
+
+        {/* Filter options */}
+        {isFilterOpen && (
+          <div className="p-3 border-b border-slate-100 bg-slate-50 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("all");
+                    setPaidByFilter("all");
+                    setCategoryFilter("all");
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                >
+                  <X size={12} />
+                  Limpar filtros
+                </button>
+              )}
+              <div className="flex items-center gap-2">
+                <label htmlFor="type-filter" className="text-xs font-medium text-slate-600">
+                  Tipo
+                </label>
+                <select
+                  id="type-filter"
+                  className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="expense">Despesas</option>
+                  <option value="income">Renda</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="paid-by-filter" className="text-xs font-medium text-slate-600">
+                  Atribuído à
+                </label>
+                <select
+                  id="paid-by-filter"
+                  className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  value={paidByFilter}
+                  onChange={(e) => setPaidByFilter(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  {people.map((person) => (
+                    <option key={person.id} value={person.id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="category-filter" className="text-xs font-medium text-slate-600">
+                  Categoria
+                </label>
+                <select
+                  id="category-filter"
+                  className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  disabled={typeFilter === "income"}
+                >
+                  <option value="all">Todas</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search input */}
         {isSearchOpen && (
