@@ -27,8 +27,8 @@ function generateMonthOptions(currentDate: Date): Array<{ value: string; label: 
     "Dezembro",
   ];
 
-  // Show 6 months before and 6 months after the current month
-  for (let offset = -6; offset <= 6; offset++) {
+  // Show 2 months before and 2 months after the current month
+  for (let offset = -2; offset <= 2; offset++) {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
     const year = date.getFullYear();
     const month = date.getMonth();
