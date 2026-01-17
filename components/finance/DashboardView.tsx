@@ -178,14 +178,16 @@ export function DashboardView() {
             </thead>
             <tbody>
               {categorySummary.map((cat) => {
-                const isFinancialFreedom =
-                  normalizeCategoryName(cat.name) === normalizeCategoryName("Liberdade Financeira");
+                const normalizedCatName = normalizeCategoryName(cat.name);
+                const isGoalOrSavingsCategory =
+                  normalizedCatName === normalizeCategoryName("Liberdade Financeira") ||
+                  normalizedCatName === normalizeCategoryName("Metas");
                 const isOverBudget = cat.realPercentOfIncome > cat.targetPercent;
                 const isBelowGoal = cat.realPercentOfIncome < cat.targetPercent;
 
-                // For "Liberdade Financeira", logic is inverted: we WANT to reach/exceed the goal
-                const showBadStatus = isFinancialFreedom ? isBelowGoal : isOverBudget;
-                const badStatusLabel = isFinancialFreedom ? "Faltando" : "Estourou";
+                // For "Liberdade Financeira" and "Metas", logic is inverted: we WANT to reach/exceed the goal
+                const showBadStatus = isGoalOrSavingsCategory ? isBelowGoal : isOverBudget;
+                const badStatusLabel = isGoalOrSavingsCategory ? "Faltando" : "Estourou";
 
                 return (
                   <tr
