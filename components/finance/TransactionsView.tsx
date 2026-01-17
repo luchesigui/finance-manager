@@ -48,6 +48,7 @@ export function TransactionsView() {
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -120,10 +121,15 @@ export function TransactionsView() {
   const visibleTransactionsForSelectedMonth = useMemo(() => {
     return transactionsForSelectedMonth.filter((transaction) => {
       if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
-      if (categoryFilter !== "all" && transaction.categoryId !== categoryFilter) return false;
+      if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
+      // Income transactions have no category, so they pass category filter if "all" or if specifically showing income
+      if (categoryFilter !== "all") {
+        if (transaction.categoryId === null) return false; // Income transactions don't match specific category filter
+        if (transaction.categoryId !== categoryFilter) return false;
+      }
       return true;
     });
-  }, [categoryFilter, paidByFilter, transactionsForSelectedMonth]);
+  }, [categoryFilter, paidByFilter, typeFilter, transactionsForSelectedMonth]);
 
   const visibleTransactionsTotal = useMemo(() => {
     return visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0);
@@ -420,6 +426,21 @@ Retorne APENAS o JSON, sem markdown.
           </h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
             <div className="flex items-center gap-2">
+              <label htmlFor="type-filter" className="text-xs font-medium text-slate-600">
+                Tipo
+              </label>
+              <select
+                id="type-filter"
+                className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="all">Todos</option>
+                <option value="expense">Despesas</option>
+                <option value="income">Renda</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
               <label htmlFor="paid-by-filter" className="text-xs font-medium text-slate-600">
                 Pago por
               </label>
@@ -446,6 +467,7 @@ Retorne APENAS o JSON, sem markdown.
                 className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
+                disabled={typeFilter === "income"}
               >
                 <option value="all">Todas</option>
                 {categories.map((category) => (
@@ -521,13 +543,9 @@ Retorne APENAS o JSON, sem markdown.
           {visibleTransactionsForSelectedMonth.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
               Nenhum lançamento neste mês
-              {paidByFilter === "all" && categoryFilter === "all"
-                ? ""
-                : paidByFilter !== "all" && categoryFilter !== "all"
-                  ? " para este pagador e categoria"
-                  : paidByFilter !== "all"
-                    ? " para este pagador"
-                    : " para esta categoria"}
+              {typeFilter !== "all" && ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
+              {paidByFilter !== "all" && " para este pagador"}
+              {categoryFilter !== "all" && " nesta categoria"}
               .
             </div>
           ) : (
@@ -601,8 +619,12 @@ Retorne APENAS o JSON, sem markdown.
                         )}
                       </h4>
                       <p className="text-xs text-slate-500 flex gap-2">
-                        <span>{selectedCategory?.name}</span>
-                        <span>•</span>
+                        {selectedCategory?.name && (
+                          <>
+                            <span>{selectedCategory.name}</span>
+                            <span>•</span>
+                          </>
+                        )}
                         <span>{formatDateString(transaction.date)}</span>
                       </p>
                     </div>

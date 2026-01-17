@@ -294,14 +294,16 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
+  const isIncome = t.type === "income";
+  
   const dbRow = {
     description: t.description,
     amount: t.amount,
-    category_id: t.categoryId,
+    category_id: isIncome ? null : t.categoryId,
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
-    is_credit_card: t.isCreditCard ?? false,
-    exclude_from_split: t.excludeFromSplit ?? false,
+    is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
+    exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
     date: t.date,
     household_id: householdId,
     type: t.type ?? "expense",

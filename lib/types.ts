@@ -19,7 +19,10 @@ export type Transaction = {
   id: number;
   description: string;
   amount: number;
-  categoryId: string;
+  /**
+   * Category ID. Required for expenses, optional (null) for income transactions.
+   */
+  categoryId: string | null;
   paidBy: string;
   isRecurring: boolean;
   /**

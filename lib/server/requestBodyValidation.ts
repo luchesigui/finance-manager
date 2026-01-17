@@ -43,11 +43,13 @@ export function validateUpdateByIdBody(
 function isTransactionCreatePayload(value: unknown): value is Omit<Transaction, "id"> {
   if (!isRecord(value)) return false;
 
-  // Base required fields
+  const isIncome = value.type === "income";
+
+  // Base required fields (categoryId is optional for income transactions)
   const hasBaseFields =
     typeof value.description === "string" &&
     typeof value.amount === "number" &&
-    typeof value.categoryId === "string" &&
+    (isIncome || typeof value.categoryId === "string") &&
     typeof value.paidBy === "string" &&
     typeof value.isRecurring === "boolean" &&
     typeof value.isCreditCard === "boolean" &&
@@ -55,6 +57,11 @@ function isTransactionCreatePayload(value: unknown): value is Omit<Transaction, 
     typeof value.date === "string";
 
   if (!hasBaseFields) return false;
+
+  // categoryId can be null/undefined for income, but if provided must be string
+  if ("categoryId" in value && value.categoryId !== null && typeof value.categoryId !== "string") {
+    return false;
+  }
 
   // Optional type field (defaults to 'expense' if not provided)
   if ("type" in value && value.type !== "expense" && value.type !== "income") {

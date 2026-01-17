@@ -243,6 +243,10 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       const newTransactionsPayload: Array<Omit<Transaction, "id">> = [];
       const amountValue = newTransactionFormState.amount;
 
+      const isIncome = newTransactionFormState.type === "income";
+      // For income transactions, categoryId is null
+      const effectiveCategoryId = isIncome ? null : newTransactionFormState.categoryId;
+
       if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
         const installmentAmountValue = amountValue / newTransactionFormState.installments;
         const baseDateObject = parseDateString(baseDateString);
@@ -259,7 +263,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
               installmentIndex + 1
             }/${newTransactionFormState.installments})`,
             amount: installmentAmountValue,
-            categoryId: newTransactionFormState.categoryId,
+            categoryId: effectiveCategoryId,
             paidBy: newTransactionFormState.paidBy,
             isRecurring: false,
             isCreditCard: newTransactionFormState.isCreditCard,
@@ -273,7 +277,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
         newTransactionsPayload.push({
           description: newTransactionFormState.description,
           amount: amountValue,
-          categoryId: newTransactionFormState.categoryId,
+          categoryId: effectiveCategoryId,
           paidBy: newTransactionFormState.paidBy,
           isRecurring: newTransactionFormState.isRecurring,
           isCreditCard: newTransactionFormState.isCreditCard,

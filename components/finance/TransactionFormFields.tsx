@@ -144,26 +144,29 @@ export function TransactionFormFields({
         />
       </div>
 
-      <div className="lg:col-span-2">
-        <label
-          htmlFor={inputId("category")}
-          className="block text-xs font-medium text-slate-500 mb-1"
-        >
-          Categoria
-        </label>
-        <select
-          id={inputId("category")}
-          className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          value={formState.categoryId}
-          onChange={(e) => setFormState({ ...formState, categoryId: e.target.value })}
-        >
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Category selector - only for expenses */}
+      {!isIncome && (
+        <div className="lg:col-span-2">
+          <label
+            htmlFor={inputId("category")}
+            className="block text-xs font-medium text-slate-500 mb-1"
+          >
+            Categoria
+          </label>
+          <select
+            id={inputId("category")}
+            className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            value={formState.categoryId}
+            onChange={(e) => setFormState({ ...formState, categoryId: e.target.value })}
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
         {/* Recurring checkbox - available for both expense and income */}
