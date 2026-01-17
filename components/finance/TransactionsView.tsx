@@ -563,7 +563,7 @@ Retorne APENAS o JSON, sem markdown.
                     setPaidByFilter("all");
                     setCategoryFilter("all");
                   }}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 mr-auto"
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
                 >
                   <X size={12} />
                   Limpar filtros
