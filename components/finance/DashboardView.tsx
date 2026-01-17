@@ -49,6 +49,7 @@ export function DashboardView() {
   const expenseTransactions = getExpenseTransactions(transactionsForSelectedMonth);
   const transactionsExcludingGoalsAndFinancialFreedom = expenseTransactions.filter(
     (transaction) =>
+      transaction.categoryId !== null &&
       !excludedFromFairDistributionCategoryIds.has(transaction.categoryId) &&
       !transaction.excludeFromSplit,
   );

@@ -169,7 +169,7 @@ export function TransactionsView() {
     setEditFormState({
       description: transaction.description,
       amount: transaction.amount,
-      categoryId: transaction.categoryId,
+      categoryId: transaction.categoryId ?? categories[0]?.id ?? "",
       paidBy: transaction.paidBy,
       isRecurring: transaction.isRecurring,
       isCreditCard: transaction.isCreditCard,
