@@ -34,6 +34,8 @@ const toTransaction = (row: any): Transaction => ({
   date: row.date,
   createdAt: row.created_at,
   householdId: row.household_id,
+  type: row.type ?? "expense",
+  isIncrement: row.is_increment ?? true,
 });
 
 function parseDateUtc(dateString: string): Date {
@@ -76,6 +78,8 @@ type TransactionRow = {
   is_credit_card?: boolean;
   created_at?: string;
   id?: number | string;
+  type?: "expense" | "income";
+  is_increment?: boolean;
   [key: string]: unknown;
 };
 
@@ -300,6 +304,8 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     exclude_from_split: t.excludeFromSplit ?? false,
     date: t.date,
     household_id: householdId,
+    type: t.type ?? "expense",
+    is_increment: t.isIncrement ?? true,
   };
 
   const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();
@@ -321,6 +327,8 @@ export async function updateTransaction(
       | "isCreditCard"
       | "excludeFromSplit"
       | "date"
+      | "type"
+      | "isIncrement"
     >
   >,
 ): Promise<Transaction> {
@@ -335,6 +343,8 @@ export async function updateTransaction(
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.date !== undefined) dbPatch.date = patch.date;
+  if (patch.type !== undefined) dbPatch.type = patch.type;
+  if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
 
   const { data, error } = await supabase
     .from("transactions")
@@ -363,7 +373,10 @@ export async function getTransaction(id: number): Promise<Transaction | null> {
 export async function bulkUpdateTransactions(
   ids: number[],
   patch: Partial<
-    Pick<Transaction, "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit">
+    Pick<
+      Transaction,
+      "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit" | "type" | "isIncrement"
+    >
   >,
 ): Promise<Transaction[]> {
   const supabase = await createClient();
@@ -374,6 +387,8 @@ export async function bulkUpdateTransactions(
   if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.type !== undefined) dbPatch.type = patch.type;
+  if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
 
   const { data, error } = await supabase
     .from("transactions")

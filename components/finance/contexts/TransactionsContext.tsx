@@ -67,11 +67,16 @@ type TransactionPatch = Partial<
     | "isCreditCard"
     | "excludeFromSplit"
     | "date"
+    | "type"
+    | "isIncrement"
   >
 >;
 
 type BulkTransactionPatch = Partial<
-  Pick<Transaction, "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit">
+  Pick<
+    Transaction,
+    "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit" | "type" | "isIncrement"
+  >
 >;
 
 type TransactionsContextValue = {
@@ -260,6 +265,8 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
             isCreditCard: newTransactionFormState.isCreditCard,
             excludeFromSplit: newTransactionFormState.excludeFromSplit,
             date: toDateString(installmentDateObject),
+            type: newTransactionFormState.type,
+            isIncrement: newTransactionFormState.isIncrement,
           });
         }
       } else {
@@ -272,6 +279,8 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
           isCreditCard: newTransactionFormState.isCreditCard,
           excludeFromSplit: newTransactionFormState.excludeFromSplit,
           date: baseDateString,
+          type: newTransactionFormState.type,
+          isIncrement: newTransactionFormState.isIncrement,
         });
       }
 

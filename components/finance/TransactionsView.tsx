@@ -10,6 +10,8 @@ import {
   RefreshCw,
   Sparkles,
   Trash2,
+  TrendingDown,
+  TrendingUp,
   UserX,
   X,
 } from "lucide-react";
@@ -80,6 +82,8 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    type: "expense",
+    isIncrement: true,
   });
 
   const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
@@ -93,6 +97,8 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    type: "expense",
+    isIncrement: true,
   });
 
   useEffect(() => {
@@ -145,6 +151,8 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: false,
+      type: "expense",
+      isIncrement: true,
     });
 
     setSmartInput("");
@@ -163,6 +171,8 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: transaction.excludeFromSplit,
+      type: transaction.type ?? "expense",
+      isIncrement: transaction.isIncrement ?? true,
     });
   };
 
@@ -183,6 +193,8 @@ export function TransactionsView() {
       isCreditCard: editFormState.isCreditCard,
       excludeFromSplit: editFormState.excludeFromSplit,
       date: editFormState.date,
+      type: editFormState.type,
+      isIncrement: editFormState.isIncrement,
     });
 
     setEditingTransaction(null);
@@ -367,8 +379,8 @@ Retorne APENAS o JSON, sem markdown.
         )}
 
         <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Plus className="bg-indigo-600 text-white rounded-full p-1" size={24} />
-          Nova Despesa Manual
+          <Plus className={`${newTrans.type === "income" ? "bg-green-600" : "bg-indigo-600"} text-white rounded-full p-1`} size={24} />
+          {newTrans.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
         </h3>
 
         <form
@@ -386,12 +398,16 @@ Retorne APENAS o JSON, sem markdown.
           <div className="lg:col-span-4 mt-2">
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className={`w-full ${newTrans.type === "income" ? "bg-green-600 hover:bg-green-700" : "bg-indigo-600 hover:bg-indigo-700"} text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2`}
             >
               <Plus size={18} />
-              {newTrans.isInstallment
-                ? `Lançar ${newTrans.installments}x Parcelas`
-                : "Adicionar Lançamento"}
+              {newTrans.type === "income"
+                ? newTrans.isIncrement
+                  ? "Adicionar Renda"
+                  : "Adicionar Dedução de Renda"
+                : newTrans.isInstallment
+                  ? `Lançar ${newTrans.installments}x Parcelas`
+                  : "Adicionar Lançamento"}
             </button>
           </div>
         </form>
@@ -522,13 +538,15 @@ Retorne APENAS o JSON, sem markdown.
               const selectedPerson = people.find((person) => person.id === transaction.paidBy);
               const isSelected = selectedIds.has(transaction.id);
               const canSelect = !transaction.isRecurring;
+              const isIncome = transaction.type === "income";
+              const isIncrement = transaction.isIncrement ?? true;
 
               return (
                 <div
                   key={transaction.id}
                   className={`p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group ${
                     isSelected ? "bg-indigo-50" : ""
-                  }`}
+                  } ${isIncome ? "border-l-4 border-l-green-500" : ""}`}
                 >
                   <div className="flex items-center gap-4">
                     {isSelectionMode && (
@@ -550,12 +568,22 @@ Retorne APENAS o JSON, sem markdown.
                         {isSelected && <Check size={12} strokeWidth={3} />}
                       </button>
                     )}
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gray-400">
-                      {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${isIncome ? (isIncrement ? "bg-green-500" : "bg-orange-500") : "bg-gray-400"}`}>
+                      {isIncome ? (
+                        isIncrement ? <TrendingUp size={18} /> : <TrendingDown size={18} />
+                      ) : (
+                        (selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()
+                      )}
                     </div>
                     <div>
                       <h4 className="font-medium text-slate-800 flex items-center gap-2">
                         {transaction.description}
+                        {isIncome && (
+                          <span className={`${isIncrement ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"} text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1`}>
+                            {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            {isIncrement ? "Renda" : "Dedução"}
+                          </span>
+                        )}
                         {transaction.isRecurring && (
                           <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
                             <RefreshCw size={10} /> Recorrente
@@ -580,7 +608,8 @@ Retorne APENAS o JSON, sem markdown.
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-slate-700">
+                    <span className={`font-bold ${isIncome ? (isIncrement ? "text-green-600" : "text-orange-600") : "text-slate-700"}`}>
+                      {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
                       {formatCurrency(transaction.amount)}
                     </span>
                     {!isSelectionMode && (

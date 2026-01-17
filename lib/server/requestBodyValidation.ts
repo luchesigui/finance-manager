@@ -43,7 +43,8 @@ export function validateUpdateByIdBody(
 function isTransactionCreatePayload(value: unknown): value is Omit<Transaction, "id"> {
   if (!isRecord(value)) return false;
 
-  return (
+  // Base required fields
+  const hasBaseFields =
     typeof value.description === "string" &&
     typeof value.amount === "number" &&
     typeof value.categoryId === "string" &&
@@ -51,8 +52,21 @@ function isTransactionCreatePayload(value: unknown): value is Omit<Transaction, 
     typeof value.isRecurring === "boolean" &&
     typeof value.isCreditCard === "boolean" &&
     typeof value.excludeFromSplit === "boolean" &&
-    typeof value.date === "string"
-  );
+    typeof value.date === "string";
+
+  if (!hasBaseFields) return false;
+
+  // Optional type field (defaults to 'expense' if not provided)
+  if ("type" in value && value.type !== "expense" && value.type !== "income") {
+    return false;
+  }
+
+  // Optional isIncrement field (defaults to true if not provided)
+  if ("isIncrement" in value && typeof value.isIncrement !== "boolean") {
+    return false;
+  }
+
+  return true;
 }
 
 export function validateCreateTransactionsBody(

@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Layers, RefreshCw, UserX } from "lucide-react";
+import { CreditCard, Layers, MinusCircle, PlusCircle, RefreshCw, TrendingDown, TrendingUp, UserX } from "lucide-react";
 
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
@@ -37,8 +37,76 @@ export function TransactionFormFields({
 
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
 
+  const isIncome = formState.type === "income";
+
   return (
     <>
+      {/* Transaction Type Selector */}
+      <div className="lg:col-span-4">
+        <label className="block text-xs font-medium text-slate-500 mb-2">Tipo de Lançamento</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setFormState({ ...formState, type: "expense", isIncrement: true })}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+              !isIncome
+                ? "border-red-500 bg-red-50 text-red-700"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            <MinusCircle size={18} />
+            <span className="font-medium">Despesa</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormState({ ...formState, type: "income", isIncrement: true })}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all ${
+              isIncome
+                ? "border-green-500 bg-green-50 text-green-700"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+            }`}
+          >
+            <PlusCircle size={18} />
+            <span className="font-medium">Renda</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Income Increment/Decrement Selector - Only show for income type */}
+      {isIncome && (
+        <div className="lg:col-span-4 animate-in slide-in-from-top-2 duration-200">
+          <label className="block text-xs font-medium text-slate-500 mb-2">Tipo de Renda</label>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setFormState({ ...formState, isIncrement: true })}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                formState.isIncrement
+                  ? "border-green-500 bg-green-50 text-green-700"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              <TrendingUp size={16} />
+              <span className="text-sm font-medium">Incremento</span>
+              <span className="text-xs text-slate-500">(Salário, Bônus)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormState({ ...formState, isIncrement: false })}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                !formState.isIncrement
+                  ? "border-orange-500 bg-orange-50 text-orange-700"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              <TrendingDown size={16} />
+              <span className="text-sm font-medium">Decremento</span>
+              <span className="text-xs text-slate-500">(Dedução, Estorno)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {showDescription && (
         <div className="lg:col-span-2">
           <label
@@ -50,7 +118,7 @@ export function TransactionFormFields({
           <input
             id={inputId("description")}
             type="text"
-            placeholder="Ex: Luz, Mercado, iFood..."
+            placeholder={isIncome ? "Ex: Salário, Freelance, Bônus..." : "Ex: Luz, Mercado, iFood..."}
             className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             value={formState.description}
             onChange={(e) => setFormState({ ...formState, description: e.target.value })}
@@ -98,6 +166,7 @@ export function TransactionFormFields({
       </div>
 
       <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
+        {/* Recurring checkbox - available for both expense and income */}
         {showInstallmentFields && !formState.isInstallment && (
           <div className="flex items-center gap-2">
             <input
@@ -134,7 +203,8 @@ export function TransactionFormFields({
           </div>
         )}
 
-        {showInstallmentFields && !formState.isRecurring && (
+        {/* Installment checkbox - only for expenses */}
+        {!isIncome && showInstallmentFields && !formState.isRecurring && (
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -157,40 +227,47 @@ export function TransactionFormFields({
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id={inputId("exclude-from-split")}
-            checked={formState.excludeFromSplit}
-            onChange={(e) => setFormState({ ...formState, excludeFromSplit: e.target.checked })}
-            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-          />
-          <label
-            htmlFor={inputId("exclude-from-split")}
-            className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-          >
-            <UserX size={14} /> Não entra na divisão?
-          </label>
-        </div>
+        {/* Exclude from split - only for expenses */}
+        {!isIncome && (
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={inputId("exclude-from-split")}
+              checked={formState.excludeFromSplit}
+              onChange={(e) => setFormState({ ...formState, excludeFromSplit: e.target.checked })}
+              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+            />
+            <label
+              htmlFor={inputId("exclude-from-split")}
+              className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
+            >
+              <UserX size={14} /> Não entra na divisão?
+            </label>
+          </div>
+        )}
 
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id={inputId("credit-card")}
-            checked={formState.isCreditCard}
-            onChange={(e) => setFormState({ ...formState, isCreditCard: e.target.checked })}
-            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-          />
-          <label
-            htmlFor={inputId("credit-card")}
-            className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-            title="Se marcado, o lançamento entra no mês seguinte"
-          >
-            <CreditCard size={14} /> Cartão de Crédito
-          </label>
-        </div>
+        {/* Credit card - only for expenses */}
+        {!isIncome && (
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id={inputId("credit-card")}
+              checked={formState.isCreditCard}
+              onChange={(e) => setFormState({ ...formState, isCreditCard: e.target.checked })}
+              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+            />
+            <label
+              htmlFor={inputId("credit-card")}
+              className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
+              title="Se marcado, o lançamento entra no mês seguinte"
+            >
+              <CreditCard size={14} /> Cartão de Crédito
+            </label>
+          </div>
+        )}
 
-        {showInstallmentFields && formState.isInstallment && (
+        {/* Installment count - only for expenses */}
+        {!isIncome && showInstallmentFields && formState.isInstallment && (
           <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
             <span className="text-sm text-slate-500">x</span>
             <input
