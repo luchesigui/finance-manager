@@ -8,6 +8,7 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  Search,
   Sparkles,
   Trash2,
   TrendingDown,
@@ -30,6 +31,20 @@ import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format"
 import { generateGeminiContent } from "@/lib/geminiClient";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
+// Fuzzy search function - checks if query characters appear in sequence
+const fuzzyMatch = (text: string, query: string): boolean => {
+  if (!query) return true;
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  let queryIndex = 0;
+  for (let i = 0; i < lowerText.length && queryIndex < lowerQuery.length; i++) {
+    if (lowerText[i] === lowerQuery[queryIndex]) {
+      queryIndex++;
+    }
+  }
+  return queryIndex === lowerQuery.length;
+};
+
 export function TransactionsView() {
   const { selectedMonthDate } = useCurrentMonth();
   const { people } = usePeople();
@@ -49,6 +64,8 @@ export function TransactionsView() {
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -127,9 +144,23 @@ export function TransactionsView() {
         if (transaction.categoryId === null) return false; // Income transactions don't match specific category filter
         if (transaction.categoryId !== categoryFilter) return false;
       }
+
+      // Fuzzy search filter
+      if (searchQuery.trim()) {
+        const category = categories.find((c) => c.id === transaction.categoryId);
+        const person = people.find((p) => p.id === transaction.paidBy);
+        const searchableText = [
+          transaction.description,
+          category?.name ?? "",
+          person?.name ?? "",
+          transaction.date,
+        ].join(" ");
+        if (!fuzzyMatch(searchableText, searchQuery)) return false;
+      }
+
       return true;
     });
-  }, [categoryFilter, paidByFilter, typeFilter, transactionsForSelectedMonth]);
+  }, [categoryFilter, paidByFilter, typeFilter, transactionsForSelectedMonth, searchQuery, categories, people]);
 
   const visibleTransactionsTotal = useMemo(() => {
     return visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0);
@@ -485,6 +516,18 @@ Retorne APENAS o JSON, sem markdown.
             </span>
             <button
               type="button"
+              onClick={() => setIsSearchOpen(!isSearchOpen)}
+              className={`p-1.5 rounded-lg transition-colors ${
+                isSearchOpen
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+              }`}
+              title="Buscar lançamentos"
+            >
+              <Search size={16} />
+            </button>
+            <button
+              type="button"
               onClick={toggleSelectionMode}
               className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
                 isSelectionMode
@@ -496,6 +539,34 @@ Retorne APENAS o JSON, sem markdown.
             </button>
           </div>
         </div>
+
+        {/* Search input */}
+        {isSearchOpen && (
+          <div className="p-3 border-b border-slate-100 bg-slate-50 animate-in slide-in-from-top-2 duration-200">
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por descrição, categoria, pessoa..."
+                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Bulk action bar */}
         {isSelectionMode && (
@@ -545,10 +616,22 @@ Retorne APENAS o JSON, sem markdown.
         <div className="divide-y divide-slate-100">
           {visibleTransactionsForSelectedMonth.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
-              Nenhum lançamento neste mês
-              {typeFilter !== "all" && ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
-              {paidByFilter !== "all" && " para este pagador"}
-              {categoryFilter !== "all" && " nesta categoria"}.
+              {searchQuery.trim() ? (
+                <>
+                  Nenhum lançamento encontrado para &quot;{searchQuery}&quot;
+                  {typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all"
+                    ? " com os filtros selecionados"
+                    : ""}
+                  .
+                </>
+              ) : (
+                <>
+                  Nenhum lançamento neste mês
+                  {typeFilter !== "all" && ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
+                  {paidByFilter !== "all" && " para este pagador"}
+                  {categoryFilter !== "all" && " nesta categoria"}.
+                </>
+              )}
             </div>
           ) : (
             visibleTransactionsForSelectedMonth.map((transaction) => {
