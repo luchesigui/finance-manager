@@ -2,52 +2,54 @@ import { NextResponse } from "next/server";
 
 import { createTransaction, getTransactions } from "@/lib/server/financeStore";
 import { readJsonBody, validateCreateTransactionsBody } from "@/lib/server/requestBodyValidation";
-import type { Transaction } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/transactions
+ * Fetches transactions, optionally filtered by year and month.
+ */
 export async function GET(request: Request) {
-  const url = new URL(request.url);
+  try {
+    const url = new URL(request.url);
+    const yearParam = url.searchParams.get("year");
+    const monthParam = url.searchParams.get("month");
 
-  const yearParam = url.searchParams.get("year");
-  const monthParam = url.searchParams.get("month");
+    const year = yearParam ? Number.parseInt(yearParam, 10) : undefined;
+    const month = monthParam ? Number.parseInt(monthParam, 10) : undefined;
 
-  let year: number | undefined;
-  let month: number | undefined;
-
-  if (yearParam && monthParam) {
-    year = Number.parseInt(yearParam, 10);
-    month = Number.parseInt(monthParam, 10);
+    const transactions = await getTransactions(year, month);
+    return NextResponse.json(transactions);
+  } catch (error) {
+    console.error("Failed to fetch transactions:", error);
+    return NextResponse.json({ error: "Failed to fetch transactions" }, { status: 500 });
   }
-
-  const transactions = await getTransactions(year, month);
-  return NextResponse.json(transactions);
 }
 
+/**
+ * POST /api/transactions
+ * Creates one or more transactions.
+ * Accepts a single transaction object or an array of transactions.
+ */
 export async function POST(request: Request) {
   const body = await readJsonBody(request);
-  const validationResult = validateCreateTransactionsBody(body);
+  const validation = validateCreateTransactionsBody(body);
 
-  if (!validationResult.isValid) {
+  if (!validation.isValid) {
     return NextResponse.json(
-      { error: validationResult.errorMessage },
-      { status: validationResult.statusCode ?? 400 },
+      { error: validation.errorMessage },
+      { status: validation.statusCode ?? 400 },
     );
   }
 
   try {
-    const createdTransactions = await Promise.all(
-      validationResult.value.transactions.map((t) => createTransaction(t)),
-    );
+    const { isBatch, transactions } = validation.value;
 
-    return NextResponse.json(
-      validationResult.value.isBatch ? createdTransactions : createdTransactions[0],
-      {
-        status: 201,
-      },
-    );
+    const created = await Promise.all(transactions.map((t) => createTransaction(t)));
+
+    return NextResponse.json(isBatch ? created : created[0], { status: 201 });
   } catch (error) {
-    console.error("Failed to create transactions", error);
+    console.error("Failed to create transactions:", error);
     return NextResponse.json({ error: "Failed to create transactions" }, { status: 500 });
   }
 }

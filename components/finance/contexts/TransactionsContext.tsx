@@ -5,90 +5,47 @@ import type React from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
-import { parseDateString } from "@/lib/format";
-import type { NewTransactionFormState, Transaction } from "@/lib/types";
+import { fetchJson, jsonRequestInit } from "@/lib/apiClient";
+import {
+  addMonthsClamped,
+  getAccountingYearMonth,
+  parseDateString,
+  toDateString,
+} from "@/lib/dateUtils";
+import type {
+  BulkTransactionPatch,
+  NewTransactionFormState,
+  Transaction,
+  TransactionPatch,
+} from "@/lib/types";
 
-function toDateString(date: Date): string {
-  const yearString = String(date.getFullYear());
-  const monthString = String(date.getMonth() + 1).padStart(2, "0");
-  const dayString = String(date.getDate()).padStart(2, "0");
-  return `${yearString}-${monthString}-${dayString}`;
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Compares transactions by creation date (descending) and ID.
+ */
+function compareByCreationDesc(a: Transaction, b: Transaction): number {
+  const createdAtCompare = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
+  return createdAtCompare !== 0 ? createdAtCompare : b.id - a.id;
 }
 
 /**
- * Adds months to a date, clamping the day to the last day of the target month when needed.
- * Example: Jan 31 + 1 month -> Feb 28/29.
+ * Builds the API URL for fetching transactions.
  */
-function addMonthsClamped(date: Date, monthsToAdd: number): Date {
-  const originalDay = date.getDate();
-  const targetMonthIndex = date.getMonth() + monthsToAdd;
-  const candidate = new Date(date.getFullYear(), targetMonthIndex, originalDay);
-
-  // If month rolled over, clamp to last day of the target month.
-  const expectedMonthIndex = ((targetMonthIndex % 12) + 12) % 12;
-  if (candidate.getMonth() !== expectedMonthIndex) {
-    return new Date(date.getFullYear(), targetMonthIndex + 1, 0);
-  }
-
-  return candidate;
+function buildTransactionsUrl(year: number, month: number): string {
+  return `/api/transactions?year=${encodeURIComponent(year)}&month=${encodeURIComponent(month)}`;
 }
 
-function getAccountingYearMonth(
-  dateString: string,
-  isCreditCard: boolean,
-): { year: number; month: number } {
-  const base = parseDateString(dateString);
-  const accountingDate = isCreditCard ? addMonthsClamped(base, 1) : base;
-  return { year: accountingDate.getFullYear(), month: accountingDate.getMonth() + 1 };
-}
-
-function compareTransactionsByCreationDesc(a: Transaction, b: Transaction): number {
-  const createdAtCompare = String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
-  if (createdAtCompare !== 0) return createdAtCompare;
-  return b.id - a.id;
-}
-
-async function fetchJson<T>(url: string, requestInit?: RequestInit): Promise<T> {
-  const response = await fetch(url, requestInit);
-  if (!response.ok) {
-    throw new Error(`${requestInit?.method ?? "GET"} ${url} failed: ${response.status}`);
-  }
-  return (await response.json()) as T;
-}
-
-type TransactionPatch = Partial<
-  Pick<
-    Transaction,
-    | "description"
-    | "amount"
-    | "categoryId"
-    | "paidBy"
-    | "isRecurring"
-    | "isCreditCard"
-    | "excludeFromSplit"
-    | "date"
-    | "type"
-    | "isIncrement"
-  >
->;
-
-type BulkTransactionPatch = Partial<
-  Pick<
-    Transaction,
-    | "categoryId"
-    | "paidBy"
-    | "isRecurring"
-    | "isCreditCard"
-    | "excludeFromSplit"
-    | "type"
-    | "isIncrement"
-  >
->;
+// ============================================================================
+// Context Types
+// ============================================================================
 
 type TransactionsContextValue = {
   transactionsForSelectedMonth: Transaction[];
   isTransactionsLoading: boolean;
-  addTransactionsFromFormState: (newTransactionFormState: NewTransactionFormState) => void;
+  addTransactionsFromFormState: (formState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
   updateTransactionById: (transactionId: number, patch: TransactionPatch) => void;
   bulkUpdateTransactions: (ids: number[], patch: BulkTransactionPatch) => void;
@@ -97,260 +54,217 @@ type TransactionsContextValue = {
 
 const TransactionsContext = createContext<TransactionsContextValue | null>(null);
 
+// ============================================================================
+// Provider Component
+// ============================================================================
+
 export function TransactionsProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const queryClient = useQueryClient();
   const { selectedYear, selectedMonthNumber, selectedMonthDate } = useCurrentMonth();
 
-  const transactionsQueryKey = useMemo(
+  const queryKey = useMemo(
     () => ["transactions", selectedYear, selectedMonthNumber] as const,
     [selectedYear, selectedMonthNumber],
   );
 
+  // Fetch transactions for the selected month
   const transactionsQuery = useQuery({
-    queryKey: transactionsQueryKey,
+    queryKey,
     queryFn: () =>
-      fetchJson<Transaction[]>(
-        `/api/transactions?year=${encodeURIComponent(
-          String(selectedYear),
-        )}&month=${encodeURIComponent(String(selectedMonthNumber))}`,
-      ),
+      fetchJson<Transaction[]>(buildTransactionsUrl(selectedYear, selectedMonthNumber)),
   });
 
-  const createTransactionsMutation = useMutation({
-    mutationFn: (newTransactionsPayload: Array<Omit<Transaction, "id">>) =>
-      fetchJson<Transaction[] | Transaction>("/api/transactions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTransactionsPayload),
-      }).then((createdTransactionsResponse) =>
-        Array.isArray(createdTransactionsResponse)
-          ? createdTransactionsResponse
-          : [createdTransactionsResponse],
-      ),
-    onSuccess: (createdTransactions) => {
-      const createdTransactionsInSelectedMonth = createdTransactions.filter(
-        (createdTransaction) => {
-          const accounting = getAccountingYearMonth(
-            createdTransaction.date,
-            createdTransaction.isCreditCard,
-          );
-          return accounting.year === selectedYear && accounting.month === selectedMonthNumber;
-        },
-      );
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: (payload: Array<Omit<Transaction, "id">>) =>
+      fetchJson<Transaction[] | Transaction>(
+        "/api/transactions",
+        jsonRequestInit("POST", payload),
+      ).then((response) => (Array.isArray(response) ? response : [response])),
+    onSuccess: (created) => {
+      // Filter to only transactions in the current month
+      const inCurrentMonth = created.filter((t) => {
+        const accounting = getAccountingYearMonth(t.date, t.isCreditCard);
+        return accounting.year === selectedYear && accounting.month === selectedMonthNumber;
+      });
 
-      if (createdTransactionsInSelectedMonth.length === 0) return;
+      if (inCurrentMonth.length === 0) return;
 
-      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) =>
-        [...createdTransactionsInSelectedMonth, ...existingTransactions].sort(
-          compareTransactionsByCreationDesc,
-        ),
+      queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
+        [...inCurrentMonth, ...existing].sort(compareByCreationDesc),
       );
     },
   });
 
-  const deleteTransactionMutation = useMutation({
-    mutationFn: (transactionId: number) =>
-      fetch(`/api/transactions/${encodeURIComponent(String(transactionId))}`, {
-        method: "DELETE",
-      }).then((deleteResponse) => {
-        if (!deleteResponse.ok) {
-          throw new Error(`DELETE /api/transactions/:id failed: ${deleteResponse.status}`);
-        }
+  // Delete mutation with optimistic update
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) =>
+      fetch(`/api/transactions/${encodeURIComponent(id)}`, { method: "DELETE" }).then((res) => {
+        if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
       }),
-    onMutate: async (transactionId) => {
-      await queryClient.cancelQueries({ queryKey: transactionsQueryKey });
-      const previousTransactions = queryClient.getQueryData<Transaction[]>(transactionsQueryKey);
-
-      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) =>
-        existingTransactions.filter((transaction) => transaction.id !== transactionId),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<Transaction[]>(queryKey);
+      queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
+        existing.filter((t) => t.id !== id),
       );
-
-      return { previousTransactions };
+      return { previous };
     },
-    onError: (_error, _transactionId, context) => {
-      if (context?.previousTransactions) {
-        queryClient.setQueryData(transactionsQueryKey, context.previousTransactions);
+    onError: (_error, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
       }
     },
   });
 
-  const updateTransactionMutation = useMutation({
-    mutationFn: ({
-      transactionId,
-      patch,
-    }: {
-      transactionId: number;
-      patch: TransactionPatch;
-    }) =>
-      fetchJson<Transaction>(`/api/transactions/${encodeURIComponent(String(transactionId))}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patch }),
-      }),
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: TransactionPatch }) =>
+      fetchJson<Transaction>(
+        `/api/transactions/${encodeURIComponent(id)}`,
+        jsonRequestInit("PATCH", { patch }),
+      ),
     onSuccess: () => {
-      // Updates can move a transaction between months; simplest is to refetch all.
+      // Updates can move transactions between months; refetch all
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
-  const bulkUpdateTransactionsMutation = useMutation({
+  // Bulk update mutation
+  const bulkUpdateMutation = useMutation({
     mutationFn: ({ ids, patch }: { ids: number[]; patch: BulkTransactionPatch }) =>
-      fetchJson<Transaction[]>("/api/transactions/bulk", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, patch }),
-      }),
+      fetchJson<Transaction[]>("/api/transactions/bulk", jsonRequestInit("PATCH", { ids, patch })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
-  const bulkDeleteTransactionsMutation = useMutation({
+  // Bulk delete mutation with optimistic update
+  const bulkDeleteMutation = useMutation({
     mutationFn: (ids: number[]) =>
-      fetch("/api/transactions/bulk", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      }).then((response) => {
-        if (!response.ok) {
-          throw new Error(`DELETE /api/transactions/bulk failed: ${response.status}`);
-        }
+      fetch("/api/transactions/bulk", jsonRequestInit("DELETE", { ids })).then((res) => {
+        if (!res.ok) throw new Error(`DELETE bulk failed: ${res.status}`);
       }),
     onMutate: async (ids) => {
-      await queryClient.cancelQueries({ queryKey: transactionsQueryKey });
-      const previousTransactions = queryClient.getQueryData<Transaction[]>(transactionsQueryKey);
-
-      queryClient.setQueryData<Transaction[]>(transactionsQueryKey, (existingTransactions = []) =>
-        existingTransactions.filter((transaction) => !ids.includes(transaction.id)),
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<Transaction[]>(queryKey);
+      const idsSet = new Set(ids);
+      queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
+        existing.filter((t) => !idsSet.has(t.id)),
       );
-
-      return { previousTransactions };
+      return { previous };
     },
     onError: (_error, _ids, context) => {
-      if (context?.previousTransactions) {
-        queryClient.setQueryData(transactionsQueryKey, context.previousTransactions);
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous);
       }
     },
   });
 
-  const addTransactionsFromFormState = useCallback<
-    TransactionsContextValue["addTransactionsFromFormState"]
-  >(
-    (newTransactionFormState) => {
-      if (!newTransactionFormState.description || newTransactionFormState.amount == null) return;
+  // ============================================================================
+  // Actions
+  // ============================================================================
 
-      let baseDateString = newTransactionFormState.date;
+  const addTransactionsFromFormState = useCallback(
+    (formState: NewTransactionFormState) => {
+      if (!formState.description || formState.amount == null) return;
+
+      // Determine base date
+      let baseDateString = formState.date;
       if (!baseDateString) {
-        const yearString = String(selectedMonthDate.getFullYear());
-        const monthString = String(selectedMonthDate.getMonth() + 1).padStart(2, "0");
-        baseDateString = `${yearString}-${monthString}-01`;
+        baseDateString = toDateString(
+          new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1),
+        );
       }
 
-      const newTransactionsPayload: Array<Omit<Transaction, "id">> = [];
-      const amountValue = newTransactionFormState.amount;
+      const isIncome = formState.type === "income";
+      const categoryId = isIncome ? null : formState.categoryId;
 
-      const isIncome = newTransactionFormState.type === "income";
-      // For income transactions, categoryId is null
-      const effectiveCategoryId = isIncome ? null : newTransactionFormState.categoryId;
+      const payload: Array<Omit<Transaction, "id">> = [];
 
-      if (newTransactionFormState.isInstallment && newTransactionFormState.installments > 1) {
-        const installmentAmountValue = amountValue / newTransactionFormState.installments;
-        const baseDateObject = parseDateString(baseDateString);
+      if (formState.isInstallment && formState.installments > 1) {
+        // Create installment transactions
+        const installmentAmount = formState.amount / formState.installments;
+        const baseDate = parseDateString(baseDateString);
 
-        for (
-          let installmentIndex = 0;
-          installmentIndex < newTransactionFormState.installments;
-          installmentIndex++
-        ) {
-          const installmentDateObject = addMonthsClamped(baseDateObject, installmentIndex);
-
-          newTransactionsPayload.push({
-            description: `${newTransactionFormState.description} (${
-              installmentIndex + 1
-            }/${newTransactionFormState.installments})`,
-            amount: installmentAmountValue,
-            categoryId: effectiveCategoryId,
-            paidBy: newTransactionFormState.paidBy,
+        for (let i = 0; i < formState.installments; i++) {
+          const installmentDate = addMonthsClamped(baseDate, i);
+          payload.push({
+            description: `${formState.description} (${i + 1}/${formState.installments})`,
+            amount: installmentAmount,
+            categoryId,
+            paidBy: formState.paidBy,
             isRecurring: false,
-            isCreditCard: newTransactionFormState.isCreditCard,
-            excludeFromSplit: newTransactionFormState.excludeFromSplit,
-            date: toDateString(installmentDateObject),
-            type: newTransactionFormState.type,
-            isIncrement: newTransactionFormState.isIncrement,
+            isCreditCard: formState.isCreditCard,
+            excludeFromSplit: formState.excludeFromSplit,
+            date: toDateString(installmentDate),
+            type: formState.type,
+            isIncrement: formState.isIncrement,
           });
         }
       } else {
-        newTransactionsPayload.push({
-          description: newTransactionFormState.description,
-          amount: amountValue,
-          categoryId: effectiveCategoryId,
-          paidBy: newTransactionFormState.paidBy,
-          isRecurring: newTransactionFormState.isRecurring,
-          isCreditCard: newTransactionFormState.isCreditCard,
-          excludeFromSplit: newTransactionFormState.excludeFromSplit,
+        // Single transaction
+        payload.push({
+          description: formState.description,
+          amount: formState.amount,
+          categoryId,
+          paidBy: formState.paidBy,
+          isRecurring: formState.isRecurring,
+          isCreditCard: formState.isCreditCard,
+          excludeFromSplit: formState.excludeFromSplit,
           date: baseDateString,
-          type: newTransactionFormState.type,
-          isIncrement: newTransactionFormState.isIncrement,
+          type: formState.type,
+          isIncrement: formState.isIncrement,
         });
       }
 
-      createTransactionsMutation.mutate(newTransactionsPayload);
+      createMutation.mutate(payload);
     },
-    [createTransactionsMutation, selectedMonthDate],
+    [createMutation, selectedMonthDate],
   );
 
-  const deleteTransactionById = useCallback<TransactionsContextValue["deleteTransactionById"]>(
-    (transactionId) => {
-      deleteTransactionMutation.mutate(transactionId);
-    },
-    [deleteTransactionMutation],
+  const deleteTransactionById = useCallback(
+    (id: number) => deleteMutation.mutate(id),
+    [deleteMutation],
   );
 
-  const updateTransactionById = useCallback<TransactionsContextValue["updateTransactionById"]>(
-    (transactionId, patch) => {
-      updateTransactionMutation.mutate({ transactionId, patch });
-    },
-    [updateTransactionMutation],
+  const updateTransactionById = useCallback(
+    (id: number, patch: TransactionPatch) => updateMutation.mutate({ id, patch }),
+    [updateMutation],
   );
 
-  const bulkUpdateTransactionsCallback = useCallback<
-    TransactionsContextValue["bulkUpdateTransactions"]
-  >(
-    (ids, patch) => {
-      bulkUpdateTransactionsMutation.mutate({ ids, patch });
-    },
-    [bulkUpdateTransactionsMutation],
+  const bulkUpdateTransactionsAction = useCallback(
+    (ids: number[], patch: BulkTransactionPatch) => bulkUpdateMutation.mutate({ ids, patch }),
+    [bulkUpdateMutation],
   );
 
-  const bulkDeleteTransactionsCallback = useCallback<
-    TransactionsContextValue["bulkDeleteTransactions"]
-  >(
-    (ids) => {
-      bulkDeleteTransactionsMutation.mutate(ids);
-    },
-    [bulkDeleteTransactionsMutation],
+  const bulkDeleteTransactionsAction = useCallback(
+    (ids: number[]) => bulkDeleteMutation.mutate(ids),
+    [bulkDeleteMutation],
   );
+
+  // ============================================================================
+  // Context Value
+  // ============================================================================
 
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
-      transactionsForSelectedMonth: [...(transactionsQuery.data ?? [])].sort(
-        compareTransactionsByCreationDesc,
-      ),
+      transactionsForSelectedMonth: [...(transactionsQuery.data ?? [])].sort(compareByCreationDesc),
       isTransactionsLoading: transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
-      bulkUpdateTransactions: bulkUpdateTransactionsCallback,
-      bulkDeleteTransactions: bulkDeleteTransactionsCallback,
+      bulkUpdateTransactions: bulkUpdateTransactionsAction,
+      bulkDeleteTransactions: bulkDeleteTransactionsAction,
     }),
     [
+      transactionsQuery.data,
+      transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
-      bulkUpdateTransactionsCallback,
-      bulkDeleteTransactionsCallback,
-      transactionsQuery.data,
-      transactionsQuery.isLoading,
+      bulkUpdateTransactionsAction,
+      bulkDeleteTransactionsAction,
     ],
   );
 
@@ -359,10 +273,14 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   );
 }
 
+// ============================================================================
+// Hook
+// ============================================================================
+
 export function useTransactions(): TransactionsContextValue {
-  const contextValue = useContext(TransactionsContext);
-  if (!contextValue) {
+  const context = useContext(TransactionsContext);
+  if (!context) {
     throw new Error("useTransactions must be used within TransactionsProvider");
   }
-  return contextValue;
+  return context;
 }

@@ -12,30 +12,41 @@ import {
   calculateTotalIncome,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { fetchJson } from "@/lib/apiClient";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
 import { formatPercent } from "@/lib/format";
-import type { Category, Person } from "@/lib/types";
+import type { Category, CurrentUserResponse, Person, PersonPatch } from "@/lib/types";
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`GET ${url} failed: ${response.status}`);
+// ============================================================================
+// Types
+// ============================================================================
+
+type PersonEdits = Record<string, { name: string; income: number }>;
+type CategoryEdits = Record<string, { targetPercent: number }>;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function initializePersonEdits(people: Person[]): PersonEdits {
+  const edits: PersonEdits = {};
+  for (const person of people) {
+    edits[person.id] = { name: person.name, income: person.income };
   }
-  return (await response.json()) as T;
+  return edits;
 }
 
-type PersonEdits = {
-  [personId: string]: {
-    name: string;
-    income: number;
-  };
-};
+function initializeCategoryEdits(categories: Category[]): CategoryEdits {
+  const edits: CategoryEdits = {};
+  for (const category of categories) {
+    edits[category.id] = { targetPercent: category.targetPercent };
+  }
+  return edits;
+}
 
-type CategoryEdits = {
-  [categoryId: string]: {
-    targetPercent: number;
-  };
-};
+// ============================================================================
+// Component
+// ============================================================================
 
 export function SettingsView() {
   const { people, updatePeople, createPerson, deletePerson } = usePeople();
@@ -46,137 +57,117 @@ export function SettingsView() {
     isUpdating: isUpdatingDefaultPayer,
   } = useDefaultPayer();
 
+  // Form state
   const [newPersonName, setNewPersonName] = useState("");
   const [newPersonIncome, setNewPersonIncome] = useState<number | null>(null);
-  const [isCreatingPerson, setIsCreatingPerson] = useState(false);
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);
+
+  // Loading states
+  const [isCreatingPerson, setIsCreatingPerson] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingCategories, setIsSavingCategories] = useState(false);
   const [deletingPersonId, setDeletingPersonId] = useState<string | null>(null);
 
-  // Local state for editing participants
+  // Edit states
   const [personEdits, setPersonEdits] = useState<PersonEdits>({});
-
-  // Local state for editing categories
   const [categoryEdits, setCategoryEdits] = useState<CategoryEdits>({});
 
-  // Get current user ID
+  // Fetch current user
   const { data: userData } = useQuery({
     queryKey: ["currentUser"],
-    queryFn: () => fetchJson<{ userId: string }>("/api/user"),
+    queryFn: () => fetchJson<CurrentUserResponse>("/api/user"),
   });
 
   const currentUserId = userData?.userId;
 
-  // Initialize edits from people data
+  // Initialize edits when data loads
   useEffect(() => {
-    const initialEdits: PersonEdits = {};
-    for (const person of people) {
-      initialEdits[person.id] = {
-        name: person.name,
-        income: person.income,
-      };
-    }
-    setPersonEdits(initialEdits);
+    setPersonEdits(initializePersonEdits(people));
   }, [people]);
 
-  // Initialize edits from categories data
   useEffect(() => {
-    const initialEdits: CategoryEdits = {};
-    for (const category of categories) {
-      initialEdits[category.id] = {
-        targetPercent: category.targetPercent,
-      };
-    }
-    setCategoryEdits(initialEdits);
+    setCategoryEdits(initializeCategoryEdits(categories));
   }, [categories]);
 
   // Separate current user from other participants
-  const currentUserPerson = people.find((p) => p.linkedUserId === currentUserId);
-  const otherPeople = people.filter((p) => p.linkedUserId !== currentUserId);
+  const currentUserPerson = useMemo(
+    () => people.find((p) => p.linkedUserId === currentUserId),
+    [people, currentUserId],
+  );
 
-  // Use edited values for calculations
+  const otherPeople = useMemo(
+    () => people.filter((p) => p.linkedUserId !== currentUserId),
+    [people, currentUserId],
+  );
+
+  // Calculate shares using edited values
   const editedPeople = useMemo(() => {
     return people.map((person) => {
       const edits = personEdits[person.id];
-      if (edits) {
-        return { ...person, name: edits.name, income: edits.income };
-      }
-      return person;
+      return edits ? { ...person, name: edits.name, income: edits.income } : person;
     });
   }, [people, personEdits]);
 
   const totalIncome = calculateTotalIncome(editedPeople);
   const peopleWithShare = calculatePeopleShare(editedPeople, totalIncome);
-  const currentUserWithShare = currentUserPerson
-    ? peopleWithShare.find((p) => p.id === currentUserPerson.id)
-    : null;
-  const otherPeopleWithShare = peopleWithShare.filter((p) => p.linkedUserId !== currentUserId);
 
-  // Check if there are unsaved changes for people
+  const currentUserWithShare = useMemo(
+    () => (currentUserPerson ? peopleWithShare.find((p) => p.id === currentUserPerson.id) : null),
+    [currentUserPerson, peopleWithShare],
+  );
+
+  const otherPeopleWithShare = useMemo(
+    () => peopleWithShare.filter((p) => p.linkedUserId !== currentUserId),
+    [peopleWithShare, currentUserId],
+  );
+
+  // Check for unsaved changes
   const hasUnsavedChanges = useMemo(() => {
     return people.some((person) => {
       const edits = personEdits[person.id];
-      if (!edits) return false;
-      return edits.name !== person.name || edits.income !== person.income;
+      return edits && (edits.name !== person.name || edits.income !== person.income);
     });
   }, [people, personEdits]);
 
-  // Check if there are unsaved changes for categories
   const hasUnsavedCategoryChanges = useMemo(() => {
     return categories.some((category) => {
       const edits = categoryEdits[category.id];
-      if (!edits) return false;
-      return edits.targetPercent !== category.targetPercent;
+      return edits && edits.targetPercent !== category.targetPercent;
     });
   }, [categories, categoryEdits]);
 
-  // Calculate total percentage from edited categories
   const totalCategoryPercent = useMemo(() => {
     return categories.reduce((sum, category) => {
       const edits = categoryEdits[category.id];
-      if (edits) {
-        return sum + edits.targetPercent;
-      }
-      return sum + category.targetPercent;
+      return sum + (edits?.targetPercent ?? category.targetPercent);
     }, 0);
   }, [categories, categoryEdits]);
+
+  // ============================================================================
+  // Handlers
+  // ============================================================================
 
   const updatePersonEdit = (personId: string, field: "name" | "income", value: string | number) => {
     setPersonEdits((prev) => ({
       ...prev,
-      [personId]: {
-        ...prev[personId],
-        [field]: value,
-      },
+      [personId]: { ...prev[personId], [field]: value },
     }));
   };
 
   const updateCategoryEdit = (categoryId: string, value: number) => {
     setCategoryEdits((prev) => {
-      const currentEdit = prev[categoryId] || {
-        targetPercent: categories.find((c) => c.id === categoryId)?.targetPercent ?? 0,
-      };
-
-      // Validate that total doesn't exceed 100%
+      // Validate total doesn't exceed 100%
       const otherCategoriesTotal = categories.reduce((sum, cat) => {
         if (cat.id === categoryId) return sum;
         const edits = prev[cat.id];
         return sum + (edits?.targetPercent ?? cat.targetPercent);
       }, 0);
 
-      const newTotal = otherCategoriesTotal + value;
-      if (newTotal > 100) {
-        // Don't allow the change if it would exceed 100%
-        return prev;
-      }
+      if (otherCategoriesTotal + value > 100) return prev;
 
       return {
         ...prev,
-        [categoryId]: {
-          ...currentEdit,
-          targetPercent: value,
-        },
+        [categoryId]: { targetPercent: value },
       };
     });
   };
@@ -189,23 +180,21 @@ export function SettingsView() {
       const updates = people
         .map((person) => {
           const edits = personEdits[person.id];
-          if (!edits) return null;
-          if (edits.name === person.name && edits.income === person.income) return null;
+          if (!edits || (edits.name === person.name && edits.income === person.income)) {
+            return null;
+          }
           return {
             personId: person.id,
-            patch: {
-              name: edits.name,
-              income: edits.income,
-            } as Partial<Omit<Person, "id">>,
+            patch: { name: edits.name, income: edits.income } as PersonPatch,
           };
         })
-        .filter((update): update is NonNullable<typeof update> => update !== null);
+        .filter((u): u is NonNullable<typeof u> => u !== null);
 
       if (updates.length > 0) {
         await updatePeople(updates);
       }
     } catch (error) {
-      console.error("Failed to save participants", error);
+      console.error("Failed to save participants:", error);
       alert("Falha ao salvar alterações. Por favor, tente novamente.");
     } finally {
       setIsSaving(false);
@@ -215,7 +204,6 @@ export function SettingsView() {
   const handleSaveCategories = async () => {
     if (!hasUnsavedCategoryChanges) return;
 
-    // Validate total is exactly 100%
     if (totalCategoryPercent !== 100) {
       alert("O total das categorias deve ser exatamente 100%.");
       return;
@@ -226,22 +214,21 @@ export function SettingsView() {
       const updates = categories
         .map((category) => {
           const edits = categoryEdits[category.id];
-          if (!edits) return null;
-          if (edits.targetPercent === category.targetPercent) return null;
+          if (!edits || edits.targetPercent === category.targetPercent) {
+            return null;
+          }
           return {
             categoryId: category.id,
-            patch: {
-              targetPercent: edits.targetPercent,
-            } as Partial<Omit<Category, "id">>,
+            patch: { targetPercent: edits.targetPercent },
           };
         })
-        .filter((update): update is NonNullable<typeof update> => update !== null);
+        .filter((u): u is NonNullable<typeof u> => u !== null);
 
       if (updates.length > 0) {
         await updateCategories(updates);
       }
     } catch (error) {
-      console.error("Failed to save categories", error);
+      console.error("Failed to save categories:", error);
       alert("Falha ao salvar alterações. Por favor, tente novamente.");
     } finally {
       setIsSavingCategories(false);
@@ -254,15 +241,12 @@ export function SettingsView() {
 
     setIsCreatingPerson(true);
     try {
-      await createPerson({
-        name: newPersonName,
-        income: newPersonIncome,
-      });
+      await createPerson({ name: newPersonName, income: newPersonIncome });
       setNewPersonName("");
       setNewPersonIncome(null);
       setShowNewPersonForm(false);
     } catch (error) {
-      console.error("Failed to create person", error);
+      console.error("Failed to create person:", error);
       alert("Falha ao criar participante. Por favor, tente novamente.");
     } finally {
       setIsCreatingPerson(false);
@@ -270,29 +254,30 @@ export function SettingsView() {
   };
 
   const handleDeletePerson = async (personId: string) => {
-    if (!confirm("Tem certeza que deseja remover este participante?")) {
-      return;
-    }
+    if (!confirm("Tem certeza que deseja remover este participante?")) return;
 
     setDeletingPersonId(personId);
     try {
       await deletePerson(personId);
-      // Remove from local edits if present
       setPersonEdits((prev) => {
-        const updated = { ...prev };
-        delete updated[personId];
-        return updated;
+        const { [personId]: _, ...rest } = prev;
+        return rest;
       });
     } catch (error) {
-      console.error("Failed to delete person", error);
+      console.error("Failed to delete person:", error);
       alert("Falha ao remover participante. Por favor, tente novamente.");
     } finally {
       setDeletingPersonId(null);
     }
   };
 
+  // ============================================================================
+  // Render
+  // ============================================================================
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Participants Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
@@ -313,51 +298,14 @@ export function SettingsView() {
         </div>
 
         <div className="space-y-4">
-          {/* Current User - Fixed Participant */}
+          {/* Current User */}
           {currentUserWithShare && personEdits[currentUserWithShare.id] && (
-            <div className="flex flex-col md:flex-row gap-3 items-end p-3 bg-indigo-50 rounded-lg border-2 border-indigo-200">
-              <div className="flex-1 w-full">
-                <label
-                  htmlFor={`person-name-${currentUserWithShare.id}`}
-                  className="text-xs text-indigo-700 font-medium"
-                >
-                  Nome (Você)
-                </label>
-                <input
-                  id={`person-name-${currentUserWithShare.id}`}
-                  type="text"
-                  value={personEdits[currentUserWithShare.id]?.name ?? ""}
-                  onChange={(event) =>
-                    updatePersonEdit(currentUserWithShare.id, "name", event.target.value)
-                  }
-                  className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-sm"
-                />
-              </div>
-
-              <div className="w-full md:w-48">
-                <label
-                  htmlFor={`person-income-${currentUserWithShare.id}`}
-                  className="text-xs text-indigo-700 font-medium"
-                >
-                  Renda Mensal
-                </label>
-                <div className="relative">
-                  <CurrencyInput
-                    id={`person-income-${currentUserWithShare.id}`}
-                    value={personEdits[currentUserWithShare.id]?.income ?? 0}
-                    onValueChange={(nextIncomeValue) =>
-                      updatePersonEdit(currentUserWithShare.id, "income", nextIncomeValue ?? 0)
-                    }
-                    className="w-full bg-white border border-indigo-300 rounded px-2 py-1 text-sm"
-                    placeholder="R$ 0,00"
-                  />
-                </div>
-              </div>
-
-              <div className="w-full md:w-auto text-xs text-indigo-700 px-2 py-[6px] bg-white border border-indigo-200 rounded font-medium">
-                Porcentagem: {formatPercent(currentUserWithShare.sharePercent * 100)}
-              </div>
-            </div>
+            <PersonEditRow
+              person={currentUserWithShare}
+              edits={personEdits[currentUserWithShare.id]}
+              onEditChange={updatePersonEdit}
+              isCurrentUser
+            />
           )}
 
           {/* Other Participants */}
@@ -366,65 +314,18 @@ export function SettingsView() {
             if (!edits) return null;
 
             return (
-              <div
+              <PersonEditRow
                 key={person.id}
-                className="flex flex-col md:flex-row gap-3 items-end p-3 bg-slate-50 rounded-lg"
-              >
-                <div className="flex-1 w-full">
-                  <label
-                    htmlFor={`person-name-${person.id}`}
-                    className="text-xs text-slate-500 font-medium"
-                  >
-                    Nome
-                  </label>
-                  <input
-                    id={`person-name-${person.id}`}
-                    type="text"
-                    value={edits.name}
-                    onChange={(event) => updatePersonEdit(person.id, "name", event.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
-                  />
-                </div>
-
-                <div className="w-full md:w-48">
-                  <label
-                    htmlFor={`person-income-${person.id}`}
-                    className="text-xs text-slate-500 font-medium"
-                  >
-                    Renda Mensal
-                  </label>
-                  <div className="relative">
-                    <CurrencyInput
-                      id={`person-income-${person.id}`}
-                      value={edits.income}
-                      onValueChange={(nextIncomeValue) =>
-                        updatePersonEdit(person.id, "income", nextIncomeValue ?? 0)
-                      }
-                      className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
-                      placeholder="R$ 0,00"
-                    />
-                  </div>
-                </div>
-
-                <div className="w-full md:w-auto text-xs text-slate-500 px-2 py-[6px] bg-white border border-slate-200 rounded">
-                  Porcentagem: {formatPercent(person.sharePercent * 100)}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleDeletePerson(person.id)}
-                  disabled={deletingPersonId === person.id}
-                  className="px-3 py-1 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                  title="Remover participante"
-                >
-                  <Trash2 size={16} />
-                  {deletingPersonId === person.id ? "Removendo..." : "Remover"}
-                </button>
-              </div>
+                person={person}
+                edits={edits}
+                onEditChange={updatePersonEdit}
+                onDelete={handleDeletePerson}
+                isDeleting={deletingPersonId === person.id}
+              />
             );
           })}
 
-          {/* Add New Participant Form */}
+          {/* Add New Person Form */}
           {showNewPersonForm ? (
             <form
               onSubmit={handleCreatePerson}
@@ -444,7 +345,6 @@ export function SettingsView() {
                   placeholder="Nome do participante"
                 />
               </div>
-
               <div className="w-full md:w-48">
                 <label htmlFor="new-person-income" className="text-xs text-slate-500 font-medium">
                   Renda Mensal
@@ -458,7 +358,6 @@ export function SettingsView() {
                   placeholder="R$ 0,00"
                 />
               </div>
-
               <div className="flex gap-2 w-full md:w-auto">
                 <button
                   type="submit"
@@ -492,6 +391,7 @@ export function SettingsView() {
           )}
         </div>
 
+        {/* Default Payer Selection */}
         <div className="mt-6 pt-4 border-t border-slate-100">
           <div className="flex items-center gap-2 mb-2">
             <p className="block text-sm font-medium text-slate-700">
@@ -513,11 +413,7 @@ export function SettingsView() {
                   type="radio"
                   name="defaultPayer"
                   checked={defaultPayerId === p.id}
-                  onChange={() => {
-                    if (!isUpdatingDefaultPayer) {
-                      setDefaultPayerId(p.id);
-                    }
-                  }}
+                  onChange={() => !isUpdatingDefaultPayer && setDefaultPayerId(p.id)}
                   disabled={isUpdatingDefaultPayer}
                   className="text-indigo-600 focus:ring-indigo-500 disabled:cursor-wait"
                 />
@@ -528,6 +424,7 @@ export function SettingsView() {
         </div>
       </div>
 
+      {/* Categories Section */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
@@ -561,10 +458,9 @@ export function SettingsView() {
                   <input
                     type="number"
                     value={edits.targetPercent}
-                    onChange={(event) => {
-                      const value = Number.parseFloat(event.target.value) || 0;
-                      updateCategoryEdit(cat.id, value);
-                    }}
+                    onChange={(e) =>
+                      updateCategoryEdit(cat.id, Number.parseFloat(e.target.value) || 0)
+                    }
                     className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
                     min="0"
                     max="100"
@@ -578,15 +474,99 @@ export function SettingsView() {
           <div className="flex justify-between items-center pt-4 border-t border-slate-100 mt-4">
             <span className="font-semibold text-slate-600">Total Planejado</span>
             <span
-              className={`font-bold ${
-                totalCategoryPercent === 100 ? "text-green-600" : "text-red-500"
-              }`}
+              className={`font-bold ${totalCategoryPercent === 100 ? "text-green-600" : "text-red-500"}`}
             >
               {totalCategoryPercent}%
             </span>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Sub-components
+// ============================================================================
+
+type PersonEditRowProps = {
+  person: { id: string; name: string; income: number; sharePercent: number };
+  edits: { name: string; income: number };
+  onEditChange: (personId: string, field: "name" | "income", value: string | number) => void;
+  onDelete?: (personId: string) => void;
+  isDeleting?: boolean;
+  isCurrentUser?: boolean;
+};
+
+function PersonEditRow({
+  person,
+  edits,
+  onEditChange,
+  onDelete,
+  isDeleting,
+  isCurrentUser,
+}: PersonEditRowProps) {
+  const bgClass = isCurrentUser ? "bg-indigo-50" : "bg-slate-50";
+  const borderClass = isCurrentUser ? "border-2 border-indigo-200" : "";
+  const labelColorClass = isCurrentUser ? "text-indigo-700" : "text-slate-500";
+  const inputBorderClass = isCurrentUser ? "border-indigo-300" : "border-slate-300";
+
+  return (
+    <div
+      className={`flex flex-col md:flex-row gap-3 items-end p-3 rounded-lg ${bgClass} ${borderClass}`}
+    >
+      <div className="flex-1 w-full">
+        <label
+          htmlFor={`person-name-${person.id}`}
+          className={`text-xs font-medium ${labelColorClass}`}
+        >
+          Nome {isCurrentUser && "(Você)"}
+        </label>
+        <input
+          id={`person-name-${person.id}`}
+          type="text"
+          value={edits.name}
+          onChange={(e) => onEditChange(person.id, "name", e.target.value)}
+          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
+        />
+      </div>
+
+      <div className="w-full md:w-48">
+        <label
+          htmlFor={`person-income-${person.id}`}
+          className={`text-xs font-medium ${labelColorClass}`}
+        >
+          Renda Mensal
+        </label>
+        <CurrencyInput
+          id={`person-income-${person.id}`}
+          value={edits.income}
+          onValueChange={(value) => onEditChange(person.id, "income", value ?? 0)}
+          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
+          placeholder="R$ 0,00"
+        />
+      </div>
+
+      <div
+        className={`w-full md:w-auto text-xs px-2 py-[6px] bg-white border rounded font-medium ${
+          isCurrentUser ? "text-indigo-700 border-indigo-200" : "text-slate-500 border-slate-200"
+        }`}
+      >
+        Porcentagem: {formatPercent(person.sharePercent * 100)}
+      </div>
+
+      {!isCurrentUser && onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(person.id)}
+          disabled={isDeleting}
+          className="px-3 py-1 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+          title="Remover participante"
+        >
+          <Trash2 size={16} />
+          {isDeleting ? "Removendo..." : "Remover"}
+        </button>
+      )}
     </div>
   );
 }
