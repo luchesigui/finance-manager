@@ -59,6 +59,16 @@ export type NewTransactionFormState = {
    * If true, this expense should be accounted for in the next month (credit card billing cycle).
    */
   isCreditCard: boolean;
+  /**
+   * Date selection mode:
+   * - 'month': User selects a month, transaction date is set to the 1st of that month
+   * - 'specific': User selects a specific date using the date picker
+   */
+  dateSelectionMode: "month" | "specific";
+  /**
+   * Selected month in YYYY-MM format (used when dateSelectionMode is 'month')
+   */
+  selectedMonth: string;
   /** YYYY-MM-DD */
   date: string;
   isInstallment: boolean;
