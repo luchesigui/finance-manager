@@ -7,6 +7,20 @@ import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import type { NewTransactionFormState } from "@/lib/types";
 
+/** Normalize category name for comparison (remove accents, trim, lowercase) */
+function normalizeCategoryName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .trim()
+    .toLowerCase();
+}
+
+/** Category names that should automatically exclude from split */
+const AUTO_EXCLUDE_FROM_SPLIT_CATEGORIES = new Set(
+  ["Liberdade Financeira", "Metas"].map(normalizeCategoryName),
+);
+
 type TransactionFormFieldsProps = {
   formState: NewTransactionFormState;
   setFormState: React.Dispatch<React.SetStateAction<NewTransactionFormState>>;
@@ -34,6 +48,13 @@ export function TransactionFormFields({
 }: TransactionFormFieldsProps) {
   const { categories } = useCategories();
   const { people } = usePeople();
+
+  /** Check if a category should auto-exclude from split by its ID */
+  const shouldAutoExcludeFromSplit = (categoryId: string): boolean => {
+    const category = categories.find((c) => c.id === categoryId);
+    if (!category) return false;
+    return AUTO_EXCLUDE_FROM_SPLIT_CATEGORIES.has(normalizeCategoryName(category.name));
+  };
 
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
 
@@ -87,7 +108,18 @@ export function TransactionFormFields({
           id={inputId("category")}
           className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           value={formState.categoryId}
-          onChange={(e) => setFormState({ ...formState, categoryId: e.target.value })}
+          onChange={(e) => {
+            const newCategoryId = e.target.value;
+            const newCategoryAutoExcludes = shouldAutoExcludeFromSplit(newCategoryId);
+            setFormState({
+              ...formState,
+              categoryId: newCategoryId,
+              // Auto-set excludeFromSplit based on category:
+              // - Metas/Liberdade Financeira: true
+              // - Other categories: false (clear it)
+              excludeFromSplit: newCategoryAutoExcludes,
+            });
+          }}
         >
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
