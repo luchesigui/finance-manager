@@ -333,7 +333,7 @@ export function TransactionFormFields({
       <details className="lg:col-span-4 rounded-lg border border-slate-200 bg-slate-50">
         <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-slate-700">
           Informações adicionais
-          <span className="ml-2 text-xs font-normal text-slate-500">(Data, Pago por)</span>
+          <span className="ml-2 text-xs font-normal text-slate-500">(Data, Atribuído à)</span>
         </summary>
         <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
