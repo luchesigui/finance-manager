@@ -554,7 +554,7 @@ Retorne APENAS o JSON, sem markdown.
         {/* Filter options */}
         {isFilterOpen && (
           <div className="p-3 border-b border-slate-100 bg-slate-50 animate-in slide-in-from-top-2 duration-200">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <div className="flex items-center gap-2">
                 <label htmlFor="type-filter" className="text-xs font-medium text-slate-600">
                   Tipo
@@ -572,7 +572,7 @@ Retorne APENAS o JSON, sem markdown.
               </div>
               <div className="flex items-center gap-2">
                 <label htmlFor="paid-by-filter" className="text-xs font-medium text-slate-600">
-                  Pago por
+                  Atribuído à
                 </label>
                 <select
                   id="paid-by-filter"
