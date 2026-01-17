@@ -111,9 +111,7 @@ export function DashboardView() {
             {formatCurrency(effectiveIncome - totalExpenses)}
           </p>
           {incomeBreakdown.netIncome !== 0 && (
-            <p className="text-xs text-slate-400 mt-1">
-              (Considerando renda lançada)
-            </p>
+            <p className="text-xs text-slate-400 mt-1">(Considerando renda lançada)</p>
           )}
         </div>
       </div>

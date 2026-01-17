@@ -385,7 +385,10 @@ Retorne APENAS o JSON, sem markdown.
         )}
 
         <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Plus className={`${newTrans.type === "income" ? "bg-green-600" : "bg-indigo-600"} text-white rounded-full p-1`} size={24} />
+          <Plus
+            className={`${newTrans.type === "income" ? "bg-green-600" : "bg-indigo-600"} text-white rounded-full p-1`}
+            size={24}
+          />
           {newTrans.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
         </h3>
 
@@ -545,8 +548,7 @@ Retorne APENAS o JSON, sem markdown.
               Nenhum lançamento neste mês
               {typeFilter !== "all" && ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
               {paidByFilter !== "all" && " para este pagador"}
-              {categoryFilter !== "all" && " nesta categoria"}
-              .
+              {categoryFilter !== "all" && " nesta categoria"}.
             </div>
           ) : (
             visibleTransactionsForSelectedMonth.map((transaction) => {
@@ -586,9 +588,15 @@ Retorne APENAS o JSON, sem markdown.
                         {isSelected && <Check size={12} strokeWidth={3} />}
                       </button>
                     )}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${isIncome ? (isIncrement ? "bg-green-500" : "bg-orange-500") : "bg-gray-400"}`}>
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${isIncome ? (isIncrement ? "bg-green-500" : "bg-orange-500") : "bg-gray-400"}`}
+                    >
                       {isIncome ? (
-                        isIncrement ? <TrendingUp size={18} /> : <TrendingDown size={18} />
+                        isIncrement ? (
+                          <TrendingUp size={18} />
+                        ) : (
+                          <TrendingDown size={18} />
+                        )
                       ) : (
                         (selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()
                       )}
@@ -597,7 +605,9 @@ Retorne APENAS o JSON, sem markdown.
                       <h4 className="font-medium text-slate-800 flex items-center gap-2">
                         {transaction.description}
                         {isIncome && (
-                          <span className={`${isIncrement ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"} text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1`}>
+                          <span
+                            className={`${isIncrement ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"} text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1`}
+                          >
                             {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                             {isIncrement ? "Renda" : "Dedução"}
                           </span>
@@ -630,7 +640,9 @@ Retorne APENAS o JSON, sem markdown.
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`font-bold ${isIncome ? (isIncrement ? "text-green-600" : "text-orange-600") : "text-slate-700"}`}>
+                    <span
+                      className={`font-bold ${isIncome ? (isIncrement ? "text-green-600" : "text-orange-600") : "text-slate-700"}`}
+                    >
                       {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
                       {formatCurrency(transaction.amount)}
                     </span>

@@ -75,7 +75,13 @@ type TransactionPatch = Partial<
 type BulkTransactionPatch = Partial<
   Pick<
     Transaction,
-    "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit" | "type" | "isIncrement"
+    | "categoryId"
+    | "paidBy"
+    | "isRecurring"
+    | "isCreditCard"
+    | "excludeFromSplit"
+    | "type"
+    | "isIncrement"
   >
 >;
 

@@ -7,7 +7,13 @@ import type { Transaction } from "@/lib/types";
 type BulkTransactionPatch = Partial<
   Pick<
     Transaction,
-    "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit" | "type" | "isIncrement"
+    | "categoryId"
+    | "paidBy"
+    | "isRecurring"
+    | "isCreditCard"
+    | "excludeFromSplit"
+    | "type"
+    | "isIncrement"
   >
 >;
 

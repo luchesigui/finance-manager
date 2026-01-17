@@ -295,7 +295,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
   const householdId = await getPrimaryHouseholdId();
 
   const isIncome = t.type === "income";
-  
+
   const dbRow = {
     description: t.description,
     amount: t.amount,
@@ -377,7 +377,13 @@ export async function bulkUpdateTransactions(
   patch: Partial<
     Pick<
       Transaction,
-      "categoryId" | "paidBy" | "isRecurring" | "isCreditCard" | "excludeFromSplit" | "type" | "isIncrement"
+      | "categoryId"
+      | "paidBy"
+      | "isRecurring"
+      | "isCreditCard"
+      | "excludeFromSplit"
+      | "type"
+      | "isIncrement"
     >
   >,
 ): Promise<Transaction[]> {

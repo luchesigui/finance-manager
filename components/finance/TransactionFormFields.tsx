@@ -1,6 +1,15 @@
 "use client";
 
-import { CreditCard, Layers, MinusCircle, PlusCircle, RefreshCw, TrendingDown, TrendingUp, UserX } from "lucide-react";
+import {
+  CreditCard,
+  Layers,
+  MinusCircle,
+  PlusCircle,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+  UserX,
+} from "lucide-react";
 
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
@@ -43,7 +52,7 @@ export function TransactionFormFields({
     <>
       {/* Transaction Type Selector */}
       <div className="lg:col-span-4">
-        <label className="block text-xs font-medium text-slate-500 mb-2">Tipo de Lançamento</label>
+        <span className="block text-xs font-medium text-slate-500 mb-2">Tipo de Lançamento</span>
         <div className="flex gap-2">
           <button
             type="button"
@@ -75,7 +84,7 @@ export function TransactionFormFields({
       {/* Income Increment/Decrement Selector - Only show for income type */}
       {isIncome && (
         <div className="lg:col-span-4 animate-in slide-in-from-top-2 duration-200">
-          <label className="block text-xs font-medium text-slate-500 mb-2">Tipo de Renda</label>
+          <span className="block text-xs font-medium text-slate-500 mb-2">Tipo de Renda</span>
           <div className="flex gap-2">
             <button
               type="button"
@@ -118,7 +127,9 @@ export function TransactionFormFields({
           <input
             id={inputId("description")}
             type="text"
-            placeholder={isIncome ? "Ex: Salário, Freelance, Bônus..." : "Ex: Luz, Mercado, iFood..."}
+            placeholder={
+              isIncome ? "Ex: Salário, Freelance, Bônus..." : "Ex: Luz, Mercado, iFood..."
+            }
             className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             value={formState.description}
             onChange={(e) => setFormState({ ...formState, description: e.target.value })}
