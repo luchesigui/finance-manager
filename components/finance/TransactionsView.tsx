@@ -555,6 +555,20 @@ Retorne APENAS o JSON, sem markdown.
         {isFilterOpen && (
           <div className="p-3 border-b border-slate-100 bg-slate-50 animate-in slide-in-from-top-2 duration-200">
             <div className="flex flex-wrap items-center justify-end gap-3">
+              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("all");
+                    setPaidByFilter("all");
+                    setCategoryFilter("all");
+                  }}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1 mr-auto"
+                >
+                  <X size={12} />
+                  Limpar filtros
+                </button>
+              )}
               <div className="flex items-center gap-2">
                 <label htmlFor="type-filter" className="text-xs font-medium text-slate-600">
                   Tipo
@@ -607,20 +621,6 @@ Retorne APENAS o JSON, sem markdown.
                   ))}
                 </select>
               </div>
-              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all") && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTypeFilter("all");
-                    setPaidByFilter("all");
-                    setCategoryFilter("all");
-                  }}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-                >
-                  <X size={12} />
-                  Limpar filtros
-                </button>
-              )}
             </div>
           </div>
         )}
