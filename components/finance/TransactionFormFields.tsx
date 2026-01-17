@@ -110,12 +110,14 @@ export function TransactionFormFields({
           value={formState.categoryId}
           onChange={(e) => {
             const newCategoryId = e.target.value;
-            const autoExclude = shouldAutoExcludeFromSplit(newCategoryId);
+            const newCategoryAutoExcludes = shouldAutoExcludeFromSplit(newCategoryId);
             setFormState({
               ...formState,
               categoryId: newCategoryId,
-              // Auto-set excludeFromSplit for Metas/Liberdade Financeira categories
-              excludeFromSplit: autoExclude ? true : formState.excludeFromSplit,
+              // Auto-set excludeFromSplit based on category:
+              // - Metas/Liberdade Financeira: true
+              // - Other categories: false (clear it)
+              excludeFromSplit: newCategoryAutoExcludes,
             });
           }}
         >
