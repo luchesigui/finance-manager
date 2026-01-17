@@ -76,14 +76,15 @@ export function DashboardView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
           <h3 className="text-slate-500 text-sm font-medium mb-1">Renda Total Familiar</h3>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalIncome)}</p>
-          {incomeBreakdown.netIncome !== 0 && (
+          <p className="text-2xl font-bold text-slate-800">{formatCurrency(effectiveIncome)}</p>
+          {(incomeBreakdown.totalIncomeIncrement > 0 ||
+            incomeBreakdown.totalIncomeDecrement > 0) && (
             <div className="mt-2 pt-2 border-t border-slate-100">
               <div className="text-xs text-slate-500 space-y-1">
                 {incomeBreakdown.totalIncomeIncrement > 0 && (
                   <div className="flex items-center gap-1 text-green-600">
                     <TrendingUp size={12} />
-                    <span>+ {formatCurrency(incomeBreakdown.totalIncomeIncrement)} lançado</span>
+                    <span>+ {formatCurrency(incomeBreakdown.totalIncomeIncrement)} adicionado</span>
                   </div>
                 )}
                 {incomeBreakdown.totalIncomeDecrement > 0 && (
@@ -92,9 +93,6 @@ export function DashboardView() {
                     <span>- {formatCurrency(incomeBreakdown.totalIncomeDecrement)} deduzido</span>
                   </div>
                 )}
-                <div className="font-medium text-slate-700">
-                  Efetivo: {formatCurrency(effectiveIncome)}
-                </div>
               </div>
             </div>
           )}
@@ -110,9 +108,6 @@ export function DashboardView() {
           <p className="text-2xl font-bold text-green-600">
             {formatCurrency(effectiveIncome - totalExpenses)}
           </p>
-          {incomeBreakdown.netIncome !== 0 && (
-            <p className="text-xs text-slate-400 mt-1">(Considerando renda lançada)</p>
-          )}
         </div>
       </div>
 

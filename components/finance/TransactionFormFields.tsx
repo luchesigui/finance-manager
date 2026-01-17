@@ -114,7 +114,7 @@ export function TransactionFormFields({
             >
               <TrendingUp size={16} />
               <span className="text-sm font-medium">Incremento</span>
-              <span className="text-xs text-slate-500">(Salário, Bônus)</span>
+              <span className="text-xs text-slate-500">(Bônus, 13º salário)</span>
             </button>
             <button
               type="button"
@@ -357,7 +357,7 @@ export function TransactionFormFields({
               htmlFor={inputId("paid-by")}
               className="block text-xs font-medium text-slate-500 mb-1"
             >
-              Pago por
+              Atribuir à
             </label>
             <select
               id={inputId("paid-by")}
