@@ -84,6 +84,13 @@ export function TransactionsView() {
     excludeFromSplit: null,
   });
 
+  // Helper to get current month string (YYYY-MM)
+  const getCurrentYearMonth = () => {
+    const year = selectedMonthDate.getFullYear();
+    const month = String(selectedMonthDate.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
   // Edit modal state
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [editFormState, setEditFormState] = useState<NewTransactionFormState>({
@@ -93,6 +100,8 @@ export function TransactionsView() {
     paidBy: "",
     isRecurring: false,
     isCreditCard: false,
+    dateSelectionMode: "month",
+    selectedMonth: getCurrentYearMonth(),
     date: "",
     isInstallment: false,
     installments: 2,
@@ -106,6 +115,8 @@ export function TransactionsView() {
     paidBy: defaultPayerId,
     isRecurring: false,
     isCreditCard: false,
+    dateSelectionMode: "month",
+    selectedMonth: getCurrentYearMonth(),
     date: "",
     isInstallment: false,
     installments: 2,
@@ -172,6 +183,8 @@ export function TransactionsView() {
       paidBy: defaultPayerId,
       isRecurring: false,
       isCreditCard: false,
+      dateSelectionMode: "month",
+      selectedMonth: getCurrentYearMonth(),
       date: "",
       isInstallment: false,
       installments: 2,
@@ -183,6 +196,14 @@ export function TransactionsView() {
 
   const handleOpenEditModal = (transaction: Transaction) => {
     setEditingTransaction(transaction);
+
+    // Determine if the transaction date is the 1st of a month (month mode) or a specific date
+    const dateParts = transaction.date.split("-");
+    const day = dateParts[2] ? Number.parseInt(dateParts[2], 10) : 1;
+    const isFirstOfMonth = day === 1;
+    const selectedMonth =
+      dateParts[0] && dateParts[1] ? `${dateParts[0]}-${dateParts[1]}` : getCurrentYearMonth();
+
     setEditFormState({
       description: transaction.description,
       amount: transaction.amount,
@@ -190,6 +211,8 @@ export function TransactionsView() {
       paidBy: transaction.paidBy,
       isRecurring: transaction.isRecurring,
       isCreditCard: transaction.isCreditCard,
+      dateSelectionMode: isFirstOfMonth ? "month" : "specific",
+      selectedMonth: selectedMonth,
       date: transaction.date,
       isInstallment: false,
       installments: 2,
@@ -259,14 +282,32 @@ Retorne APENAS o JSON, sem markdown.
           date?: string;
         };
 
-        setNewTrans((prev) => ({
-          ...prev,
-          description: data.description ?? prev.description,
-          amount: data.amount ?? prev.amount,
-          categoryId: data.categoryId ?? prev.categoryId,
-          paidBy: data.paidBy ?? defaultPayerId,
-          date: data.date ?? prev.date,
-        }));
+        setNewTrans((prev) => {
+          // If AI returned a date, determine if it's a specific date or first of month
+          let dateSelectionMode: "month" | "specific" = prev.dateSelectionMode;
+          let selectedMonth = prev.selectedMonth;
+          let dateValue = prev.date;
+
+          if (data.date) {
+            const dateParts = data.date.split("-");
+            const day = dateParts[2] ? Number.parseInt(dateParts[2], 10) : 1;
+            dateSelectionMode = day === 1 ? "month" : "specific";
+            selectedMonth =
+              dateParts[0] && dateParts[1] ? `${dateParts[0]}-${dateParts[1]}` : prev.selectedMonth;
+            dateValue = data.date;
+          }
+
+          return {
+            ...prev,
+            description: data.description ?? prev.description,
+            amount: data.amount ?? prev.amount,
+            categoryId: data.categoryId ?? prev.categoryId,
+            paidBy: data.paidBy ?? defaultPayerId,
+            dateSelectionMode,
+            selectedMonth,
+            date: dateValue,
+          };
+        });
       }
     } catch (error) {
       console.error("Erro parsing AI JSON", error);
