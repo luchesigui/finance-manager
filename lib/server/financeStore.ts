@@ -262,7 +262,14 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
           return accounting.year === year && accounting.month === month;
         }) ?? [];
 
-    const allTransactions = [...currentMonthData, ...virtualTransactions];
+    // Deduplicate: recurring transactions from the previous month that are also credit card
+    // can appear both in currentMonthData (fetched directly) and in virtualTransactions
+    // (materialized from template). We keep the one from currentMonthData and filter out
+    // duplicates from virtualTransactions.
+    const existingIds = new Set(currentMonthData.map((t) => t.id));
+    const uniqueVirtualTransactions = virtualTransactions.filter((t) => !existingIds.has(t.id));
+
+    const allTransactions = [...currentMonthData, ...uniqueVirtualTransactions];
 
     // Re-sort by creation time (most recent first)
     allTransactions.sort(
