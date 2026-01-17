@@ -10,7 +10,7 @@ import { useTransactions } from "@/components/finance/contexts/TransactionsConte
 import {
   calculateCategorySummary,
   calculateIncomeBreakdown,
-  calculatePeopleShare,
+  calculatePeopleShareWithIncomeTransactions,
   calculateSettlementData,
   calculateTotalExpenses,
   calculateTotalIncome,
@@ -26,10 +26,15 @@ export function DashboardView() {
   const { transactionsForSelectedMonth } = useTransactions();
 
   const totalIncome = calculateTotalIncome(people);
-  const peopleWithShare = calculatePeopleShare(people, totalIncome);
 
   // Calculate income from transactions (separate from people's base income)
   const incomeBreakdown = calculateIncomeBreakdown(transactionsForSelectedMonth);
+
+  // Calculate people's share considering income transactions attributed to each person
+  const peopleWithShare = calculatePeopleShareWithIncomeTransactions(
+    people,
+    transactionsForSelectedMonth,
+  );
 
   const normalizeCategoryName = (name: string) =>
     name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();

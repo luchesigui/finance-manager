@@ -33,6 +33,47 @@ export function calculatePeopleShare(people: Person[], totalIncome: number): Per
 }
 
 /**
+ * Calculates each person's effective income considering income transactions.
+ * Returns PersonWithShare with updated income and sharePercent based on effective income.
+ */
+export function calculatePeopleShareWithIncomeTransactions(
+  people: Person[],
+  transactions: Transaction[],
+): PersonWithShare[] {
+  const incomeTransactions = getIncomeTransactions(transactions);
+
+  // Calculate effective income for each person
+  const peopleWithEffectiveIncome = people.map((person) => {
+    const personIncomeTransactions = incomeTransactions.filter((t) => t.paidBy === person.id);
+
+    const increments = personIncomeTransactions
+      .filter((t) => t.isIncrement)
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const decrements = personIncomeTransactions
+      .filter((t) => !t.isIncrement)
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    const effectiveIncome = person.income + increments - decrements;
+
+    return {
+      ...person,
+      income: effectiveIncome,
+      baseIncome: person.income,
+    };
+  });
+
+  // Calculate total effective income
+  const totalEffectiveIncome = peopleWithEffectiveIncome.reduce((acc, p) => acc + p.income, 0);
+
+  // Calculate share percentages based on effective income
+  return peopleWithEffectiveIncome.map((person) => ({
+    ...person,
+    sharePercent: totalEffectiveIncome > 0 ? person.income / totalEffectiveIncome : 0,
+  }));
+}
+
+/**
  * Calculates total expenses from transactions, excluding income transactions.
  */
 export function calculateTotalExpenses(transactions: Transaction[]): number {
