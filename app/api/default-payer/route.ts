@@ -1,37 +1,39 @@
 import { NextResponse } from "next/server";
 
+import { updateDefaultPayerBodySchema } from "@/lib/schemas";
 import { getDefaultPayerId, updateDefaultPayerId } from "@/lib/server/financeStore";
-import { readJsonBody } from "@/lib/server/requestBodyValidation";
+import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/default-payer
+ * Gets the default payer ID for the household.
+ */
 export async function GET() {
   try {
     const defaultPayerId = await getDefaultPayerId();
     return NextResponse.json({ defaultPayerId });
   } catch (error) {
-    console.error("Failed to get default payer", error);
+    console.error("Failed to get default payer:", error);
     return NextResponse.json({ error: "Failed to get default payer" }, { status: 500 });
   }
 }
 
+/**
+ * PATCH /api/default-payer
+ * Updates the default payer for the household.
+ */
 export async function PATCH(request: Request) {
   const body = await readJsonBody(request);
+  const validation = validateBody(body, updateDefaultPayerBodySchema);
 
-  if (!body || typeof body !== "object" || !("personId" in body)) {
-    return NextResponse.json({ error: "Expected { personId: string }" }, { status: 400 });
-  }
-
-  const { personId } = body as { personId: unknown };
-
-  if (typeof personId !== "string") {
-    return NextResponse.json(
-      { error: "Invalid type. Expected { personId: string }" },
-      { status: 400 },
-    );
+  if (!validation.success) {
+    return validation.response;
   }
 
   try {
+    const { personId } = validation.data;
     await updateDefaultPayerId(personId);
 
     // Verify the update actually happened
@@ -41,9 +43,7 @@ export async function PATCH(request: Request) {
         `Update verification failed: expected ${personId}, got ${updatedDefaultPayerId}`,
       );
       return NextResponse.json(
-        {
-          error: "Update verification failed - database may not have been updated",
-        },
+        { error: "Update verification failed - database may not have been updated" },
         { status: 500 },
       );
     }
@@ -53,7 +53,7 @@ export async function PATCH(request: Request) {
       defaultPayerId: updatedDefaultPayerId,
     });
   } catch (error) {
-    console.error("Failed to update default payer", error);
+    console.error("Failed to update default payer:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { error: "Failed to update default payer", details: errorMessage },

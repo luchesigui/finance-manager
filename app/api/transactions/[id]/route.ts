@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { updateTransactionBodySchema } from "@/lib/schemas";
 import { deleteTransaction, getTransaction, updateTransaction } from "@/lib/server/financeStore";
-import {
-  parseNumericId,
-  readJsonBody,
-  validateTransactionPatch,
-} from "@/lib/server/requestBodyValidation";
+import { parseNumericId, readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -22,13 +19,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   const body = await readJsonBody(request);
-  const validation = validateTransactionPatch(body);
+  const validation = validateBody(body, updateTransactionBodySchema);
 
-  if (!validation.isValid) {
-    return NextResponse.json(
-      { error: validation.errorMessage },
-      { status: validation.statusCode ?? 400 },
-    );
+  if (!validation.success) {
+    return validation.response;
   }
 
   try {
@@ -37,7 +31,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const updated = await updateTransaction(transactionId, validation.value);
+    const updated = await updateTransaction(transactionId, validation.data.patch);
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Failed to update transaction:", error);

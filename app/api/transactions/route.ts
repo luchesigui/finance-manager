@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { createTransactionsBodySchema } from "@/lib/schemas";
 import { createTransaction, getTransactions } from "@/lib/server/financeStore";
-import { readJsonBody, validateCreateTransactionsBody } from "@/lib/server/requestBodyValidation";
+import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -33,21 +34,19 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   const body = await readJsonBody(request);
-  const validation = validateCreateTransactionsBody(body);
+  const validation = validateBody(body, createTransactionsBodySchema);
 
-  if (!validation.isValid) {
-    return NextResponse.json(
-      { error: validation.errorMessage },
-      { status: validation.statusCode ?? 400 },
-    );
+  if (!validation.success) {
+    return validation.response;
   }
 
   try {
-    const { isBatch, transactions } = validation.value;
+    const payload = Array.isArray(validation.data) ? validation.data : [validation.data];
+    const created = await Promise.all(payload.map((t) => createTransaction(t)));
 
-    const created = await Promise.all(transactions.map((t) => createTransaction(t)));
-
-    return NextResponse.json(isBatch ? created : created[0], { status: 201 });
+    return NextResponse.json(Array.isArray(validation.data) ? created : created[0], {
+      status: 201,
+    });
   } catch (error) {
     console.error("Failed to create transactions:", error);
     return NextResponse.json({ error: "Failed to create transactions" }, { status: 500 });

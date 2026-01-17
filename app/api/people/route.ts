@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { createPersonBodySchema, updatePersonBodySchema } from "@/lib/schemas";
 import { createPerson, deletePerson, getPeople, updatePerson } from "@/lib/server/financeStore";
-import {
-  readJsonBody,
-  validateCreatePersonBody,
-  validateUpdateByIdBody,
-} from "@/lib/server/requestBodyValidation";
+import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
 import type { PersonPatch } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -30,17 +27,14 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   const body = await readJsonBody(request);
-  const validation = validateCreatePersonBody(body);
+  const validation = validateBody(body, createPersonBodySchema);
 
-  if (!validation.isValid) {
-    return NextResponse.json(
-      { error: validation.errorMessage },
-      { status: validation.statusCode ?? 400 },
-    );
+  if (!validation.success) {
+    return validation.response;
   }
 
   try {
-    const newPerson = await createPerson(validation.value);
+    const newPerson = await createPerson(validation.data);
     return NextResponse.json(newPerson, { status: 201 });
   } catch (error) {
     console.error("Failed to create person:", error);
@@ -54,19 +48,16 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   const body = await readJsonBody(request);
-  const validation = validateUpdateByIdBody(body, "personId");
+  const validation = validateBody(body, updatePersonBodySchema);
 
-  if (!validation.isValid) {
-    return NextResponse.json(
-      { error: validation.errorMessage },
-      { status: validation.statusCode ?? 400 },
-    );
+  if (!validation.success) {
+    return validation.response;
   }
 
   try {
     const updatedPerson = await updatePerson(
-      validation.value.entityId,
-      validation.value.patch as PersonPatch,
+      validation.data.personId,
+      validation.data.patch as PersonPatch,
     );
     return NextResponse.json(updatedPerson);
   } catch (error) {
