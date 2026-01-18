@@ -42,7 +42,7 @@ export async function POST(request: Request) {
 
   try {
     const payload = Array.isArray(validation.data) ? validation.data : [validation.data];
-    const created = await Promise.all(payload.map((t) => createTransaction(t)));
+    const created = await Promise.all(payload.map((transaction) => createTransaction(transaction)));
 
     return NextResponse.json(Array.isArray(validation.data) ? created : created[0], {
       status: 201,

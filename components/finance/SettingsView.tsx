@@ -91,12 +91,12 @@ export function SettingsView() {
 
   // Separate current user from other participants
   const currentUserPerson = useMemo(
-    () => people.find((p) => p.linkedUserId === currentUserId),
+    () => people.find((person) => person.linkedUserId === currentUserId),
     [people, currentUserId],
   );
 
   const otherPeople = useMemo(
-    () => people.filter((p) => p.linkedUserId !== currentUserId),
+    () => people.filter((person) => person.linkedUserId !== currentUserId),
     [people, currentUserId],
   );
 
@@ -112,12 +112,15 @@ export function SettingsView() {
   const peopleWithShare = calculatePeopleShare(editedPeople, totalIncome);
 
   const currentUserWithShare = useMemo(
-    () => (currentUserPerson ? peopleWithShare.find((p) => p.id === currentUserPerson.id) : null),
+    () =>
+      currentUserPerson
+        ? peopleWithShare.find((person) => person.id === currentUserPerson.id)
+        : null,
     [currentUserPerson, peopleWithShare],
   );
 
   const otherPeopleWithShare = useMemo(
-    () => peopleWithShare.filter((p) => p.linkedUserId !== currentUserId),
+    () => peopleWithShare.filter((person) => person.linkedUserId !== currentUserId),
     [peopleWithShare, currentUserId],
   );
 
@@ -400,11 +403,11 @@ export function SettingsView() {
             {isUpdatingDefaultPayer && <span className="text-xs text-slate-500">Salvando...</span>}
           </div>
           <div className="flex gap-4">
-            {people.map((p) => (
+            {people.map((person) => (
               <label
-                key={p.id}
+                key={person.id}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all ${
-                  defaultPayerId === p.id
+                  defaultPayerId === person.id
                     ? "border-indigo-500 bg-indigo-50 text-indigo-700"
                     : "border-slate-200 hover:bg-slate-50"
                 } ${isUpdatingDefaultPayer ? "opacity-50 cursor-wait" : ""}`}
@@ -412,12 +415,12 @@ export function SettingsView() {
                 <input
                   type="radio"
                   name="defaultPayer"
-                  checked={defaultPayerId === p.id}
-                  onChange={() => !isUpdatingDefaultPayer && setDefaultPayerId(p.id)}
+                  checked={defaultPayerId === person.id}
+                  onChange={() => !isUpdatingDefaultPayer && setDefaultPayerId(person.id)}
                   disabled={isUpdatingDefaultPayer}
                   className="text-indigo-600 focus:ring-indigo-500 disabled:cursor-wait"
                 />
-                {p.name}
+                {person.name}
               </label>
             ))}
           </div>

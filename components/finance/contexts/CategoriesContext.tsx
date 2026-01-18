@@ -49,7 +49,7 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
       fetchJson<Category>("/api/categories", jsonRequestInit("PATCH", { categoryId, patch })),
     onSuccess: (updated) => {
       queryClient.setQueryData<Category[]>(CATEGORIES_QUERY_KEY, (existing = []) =>
-        existing.map((c) => (c.id === updated.id ? updated : c)),
+        existing.map((category) => (category.id === updated.id ? updated : category)),
       );
     },
   });
@@ -79,8 +79,8 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
 
       // Batch update the cache
       queryClient.setQueryData<Category[]>(CATEGORIES_QUERY_KEY, (existing = []) => {
-        const updatedMap = new Map(updatedCategories.map((c) => [c.id, c]));
-        return existing.map((c) => updatedMap.get(c.id) ?? c);
+        const updatedMap = new Map(updatedCategories.map((category) => [category.id, category]));
+        return existing.map((category) => updatedMap.get(category.id) ?? category);
       });
     },
     [queryClient],

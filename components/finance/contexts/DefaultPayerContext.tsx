@@ -46,7 +46,7 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   // Find the owner's person (linked to current user)
   const ownerPerson = useMemo(() => {
     if (!currentUserId) return null;
-    return people.find((p) => p.linkedUserId === currentUserId) ?? null;
+    return people.find((person) => person.linkedUserId === currentUserId) ?? null;
   }, [people, currentUserId]);
 
   // Fetch default payer from database
@@ -79,7 +79,7 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   const defaultPayerId = useMemo(() => {
     // Priority 1: Valid database value
     if (defaultPayerData?.defaultPayerId) {
-      const exists = people.some((p) => p.id === defaultPayerData.defaultPayerId);
+      const exists = people.some((person) => person.id === defaultPayerData.defaultPayerId);
       if (exists) return defaultPayerData.defaultPayerId;
     }
 
@@ -96,7 +96,7 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   // Set default payer with validation
   const setDefaultPayerId = useCallback(
     (personId: string) => {
-      const exists = people.some((p) => p.id === personId);
+      const exists = people.some((person) => person.id === personId);
       if (!exists) {
         console.warn("Attempted to set default payer to non-existent person");
         return;

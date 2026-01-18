@@ -33,14 +33,14 @@ export type IncomeBreakdown = {
  * Filters transactions by type. Use sparingly - prefer single-pass processing when possible.
  */
 export function getExpenseTransactions(transactions: Transaction[]): Transaction[] {
-  return transactions.filter((t) => t.type !== "income");
+  return transactions.filter((transaction) => transaction.type !== "income");
 }
 
 /**
  * Filters transactions by type. Use sparingly - prefer single-pass processing when possible.
  */
 export function getIncomeTransactions(transactions: Transaction[]): Transaction[] {
-  return transactions.filter((t) => t.type === "income");
+  return transactions.filter((transaction) => transaction.type === "income");
 }
 
 // ============================================================================

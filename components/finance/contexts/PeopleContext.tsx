@@ -51,7 +51,7 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
       fetchJson<Person>("/api/people", jsonRequestInit("PATCH", { personId, patch })),
     onSuccess: (updated) => {
       queryClient.setQueryData<Person[]>(PEOPLE_QUERY_KEY, (existing = []) =>
-        existing.map((p) => (p.id === updated.id ? updated : p)),
+        existing.map((person) => (person.id === updated.id ? updated : person)),
       );
     },
   });
@@ -74,7 +74,7 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
       fetchJson<{ success: boolean }>(`/api/people?personId=${personId}`, { method: "DELETE" }),
     onSuccess: (_, personId) => {
       queryClient.setQueryData<Person[]>(PEOPLE_QUERY_KEY, (existing = []) =>
-        existing.filter((p) => p.id !== personId),
+        existing.filter((person) => person.id !== personId),
       );
     },
   });
@@ -104,8 +104,8 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
 
       // Batch update the cache
       queryClient.setQueryData<Person[]>(PEOPLE_QUERY_KEY, (existing = []) => {
-        const updatedMap = new Map(updatedPeople.map((p) => [p.id, p]));
-        return existing.map((p) => updatedMap.get(p.id) ?? p);
+        const updatedMap = new Map(updatedPeople.map((person) => [person.id, person]));
+        return existing.map((person) => updatedMap.get(person.id) ?? person);
       });
     },
     [queryClient],

@@ -44,13 +44,18 @@ export function DashboardView() {
 
   // Build set of excluded category IDs for fair distribution
   const excludedCategoryIds = new Set(
-    categories.filter((c) => shouldCategoryAutoExcludeFromSplit(c.name)).map((c) => c.id),
+    categories
+      .filter((category) => shouldCategoryAutoExcludeFromSplit(category.name))
+      .map((category) => category.id),
   );
 
   // Filter transactions for fair distribution calculation
   const expenseTransactions = getExpenseTransactions(transactionsForSelectedMonth);
   const transactionsForFairDistribution = expenseTransactions.filter(
-    (t) => t.categoryId !== null && !excludedCategoryIds.has(t.categoryId) && !t.excludeFromSplit,
+    (transaction) =>
+      transaction.categoryId !== null &&
+      !excludedCategoryIds.has(transaction.categoryId) &&
+      !transaction.excludeFromSplit,
   );
 
   // Calculate totals and summaries
@@ -175,9 +180,9 @@ function FairDistributionSection({
   hasTransactions,
   selectedMonthDate,
 }: FairDistributionSectionProps) {
-  const debtors = settlementData.filter((p) => p.balance < -0.01);
-  const creditors = settlementData.filter((p) => p.balance > 0.01);
-  const isSettled = settlementData.every((p) => Math.abs(p.balance) < 1);
+  const debtors = settlementData.filter((person) => person.balance < -0.01);
+  const creditors = settlementData.filter((person) => person.balance > 0.01);
+  const isSettled = settlementData.every((person) => Math.abs(person.balance) < 1);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

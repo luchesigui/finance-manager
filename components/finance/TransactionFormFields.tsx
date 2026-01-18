@@ -87,7 +87,7 @@ export function TransactionFormFields({
    * Handles category change with auto-exclude logic.
    */
   const handleCategoryChange = (categoryId: string) => {
-    const category = categories.find((c) => c.id === categoryId);
+    const category = categories.find((cat) => cat.id === categoryId);
     const shouldAutoExclude = category ? shouldCategoryAutoExcludeFromSplit(category.name) : false;
 
     setFormState({
@@ -241,9 +241,9 @@ export function TransactionFormFields({
             value={formState.categoryId}
             onChange={(e) => handleCategoryChange(e.target.value)}
           >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>

@@ -403,7 +403,9 @@ async function getTransactionsForMonth(
 
   // Deduplicate: keep transactions from currentMonthData over virtual ones
   const existingIds = new Set(currentMonthData.map((t: TransactionRow) => t.id));
-  const uniqueVirtualTransactions = virtualTransactions.filter((t) => !existingIds.has(t.id));
+  const uniqueVirtualTransactions = virtualTransactions.filter(
+    (transaction) => !existingIds.has(transaction.id),
+  );
 
   const allTransactions = [...currentMonthData, ...uniqueVirtualTransactions];
 
@@ -458,20 +460,20 @@ async function materializeRecurringTransactions(
   ];
 
   const virtualTransactions =
-    (recurringData as TransactionRow[] | null)?.flatMap((t) => {
-      const originalDate = parseDateStringUtc(t.date);
+    (recurringData as TransactionRow[] | null)?.flatMap((recurringTransaction) => {
+      const originalDate = parseDateStringUtc(recurringTransaction.date);
       const day = originalDate.getUTCDate();
 
-      return monthsToMaterialize.map((m) => {
-        let targetDate = new Date(Date.UTC(m.year, m.month - 1, day));
+      return monthsToMaterialize.map((targetMonth) => {
+        let targetDate = new Date(Date.UTC(targetMonth.year, targetMonth.month - 1, day));
 
         // Clamp to last day of month if day overflowed
-        if (targetDate.getUTCMonth() !== m.month - 1) {
-          targetDate = new Date(Date.UTC(m.year, m.month, 0));
+        if (targetDate.getUTCMonth() !== targetMonth.month - 1) {
+          targetDate = new Date(Date.UTC(targetMonth.year, targetMonth.month, 0));
         }
 
         return {
-          ...t,
+          ...recurringTransaction,
           date: targetDate.toISOString().split("T")[0],
         };
       });

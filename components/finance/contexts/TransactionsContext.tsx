@@ -83,8 +83,8 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       ).then((response) => (Array.isArray(response) ? response : [response])),
     onSuccess: (created) => {
       // Filter to only transactions in the current month
-      const inCurrentMonth = created.filter((t) => {
-        const accounting = getAccountingYearMonth(t.date, t.isCreditCard);
+      const inCurrentMonth = created.filter((transaction) => {
+        const accounting = getAccountingYearMonth(transaction.date, transaction.isCreditCard);
         return accounting.year === selectedYear && accounting.month === selectedMonthNumber;
       });
 
@@ -106,7 +106,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<Transaction[]>(queryKey);
       queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
-        existing.filter((t) => t.id !== id),
+        existing.filter((transaction) => transaction.id !== id),
       );
       return { previous };
     },
@@ -150,7 +150,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       const previous = queryClient.getQueryData<Transaction[]>(queryKey);
       const idsSet = new Set(ids);
       queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
-        existing.filter((t) => !idsSet.has(t.id)),
+        existing.filter((transaction) => !idsSet.has(transaction.id)),
       );
       return { previous };
     },
