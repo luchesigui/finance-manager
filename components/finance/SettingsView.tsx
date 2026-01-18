@@ -7,10 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
-import {
-  calculatePeopleShare,
-  calculateTotalIncome,
-} from "@/components/finance/hooks/useFinanceCalculations";
+import { calculateTotalIncome } from "@/components/finance/hooks/useFinanceCalculations";
+import { PersonEditRow } from "@/components/finance/PersonEditRow";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { fetchJson } from "@/lib/apiClient";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
@@ -109,20 +107,6 @@ export function SettingsView() {
   }, [people, personEdits]);
 
   const totalIncome = calculateTotalIncome(editedPeople);
-  const peopleWithShare = calculatePeopleShare(editedPeople, totalIncome);
-
-  const currentUserWithShare = useMemo(
-    () =>
-      currentUserPerson
-        ? peopleWithShare.find((person) => person.id === currentUserPerson.id)
-        : null,
-    [currentUserPerson, peopleWithShare],
-  );
-
-  const otherPeopleWithShare = useMemo(
-    () => peopleWithShare.filter((person) => person.linkedUserId !== currentUserId),
-    [peopleWithShare, currentUserId],
-  );
 
   // Check for unsaved changes
   const hasUnsavedChanges = useMemo(() => {
@@ -302,17 +286,19 @@ export function SettingsView() {
 
         <div className="space-y-4">
           {/* Current User */}
-          {currentUserWithShare && personEdits[currentUserWithShare.id] && (
+          {currentUserPerson && personEdits[currentUserPerson.id] && (
             <PersonEditRow
-              person={currentUserWithShare}
-              edits={personEdits[currentUserWithShare.id]}
+              person={currentUserPerson}
+              editedIncome={personEdits[currentUserPerson.id].income}
+              edits={personEdits[currentUserPerson.id]}
+              totalIncome={totalIncome}
               onEditChange={updatePersonEdit}
               isCurrentUser
             />
           )}
 
           {/* Other Participants */}
-          {otherPeopleWithShare.map((person) => {
+          {otherPeople.map((person) => {
             const edits = personEdits[person.id];
             if (!edits) return null;
 
@@ -320,7 +306,9 @@ export function SettingsView() {
               <PersonEditRow
                 key={person.id}
                 person={person}
+                editedIncome={edits.income}
                 edits={edits}
+                totalIncome={totalIncome}
                 onEditChange={updatePersonEdit}
                 onDelete={handleDeletePerson}
                 isDeleting={deletingPersonId === person.id}
@@ -488,88 +476,3 @@ export function SettingsView() {
   );
 }
 
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-type PersonEditRowProps = {
-  person: { id: string; name: string; income: number; sharePercent: number };
-  edits: { name: string; income: number };
-  onEditChange: (personId: string, field: "name" | "income", value: string | number) => void;
-  onDelete?: (personId: string) => void;
-  isDeleting?: boolean;
-  isCurrentUser?: boolean;
-};
-
-function PersonEditRow({
-  person,
-  edits,
-  onEditChange,
-  onDelete,
-  isDeleting,
-  isCurrentUser,
-}: PersonEditRowProps) {
-  const bgClass = isCurrentUser ? "bg-indigo-50" : "bg-slate-50";
-  const borderClass = isCurrentUser ? "border-2 border-indigo-200" : "";
-  const labelColorClass = isCurrentUser ? "text-indigo-700" : "text-slate-500";
-  const inputBorderClass = isCurrentUser ? "border-indigo-300" : "border-slate-300";
-
-  return (
-    <div
-      className={`flex flex-col md:flex-row gap-3 items-end p-3 rounded-lg ${bgClass} ${borderClass}`}
-    >
-      <div className="flex-1 w-full">
-        <label
-          htmlFor={`person-name-${person.id}`}
-          className={`text-xs font-medium ${labelColorClass}`}
-        >
-          Nome {isCurrentUser && "(Você)"}
-        </label>
-        <input
-          id={`person-name-${person.id}`}
-          type="text"
-          value={edits.name}
-          onChange={(e) => onEditChange(person.id, "name", e.target.value)}
-          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
-        />
-      </div>
-
-      <div className="w-full md:w-48">
-        <label
-          htmlFor={`person-income-${person.id}`}
-          className={`text-xs font-medium ${labelColorClass}`}
-        >
-          Renda Mensal
-        </label>
-        <CurrencyInput
-          id={`person-income-${person.id}`}
-          value={edits.income}
-          onValueChange={(value) => onEditChange(person.id, "income", value ?? 0)}
-          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
-          placeholder="R$ 0,00"
-        />
-      </div>
-
-      <div
-        className={`w-full md:w-auto text-xs px-2 py-[6px] bg-white border rounded font-medium ${
-          isCurrentUser ? "text-indigo-700 border-indigo-200" : "text-slate-500 border-slate-200"
-        }`}
-      >
-        Porcentagem: {formatPercent(person.sharePercent * 100)}
-      </div>
-
-      {!isCurrentUser && onDelete && (
-        <button
-          type="button"
-          onClick={() => onDelete(person.id)}
-          disabled={isDeleting}
-          className="px-3 py-1 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-          title="Remover participante"
-        >
-          <Trash2 size={16} />
-          {isDeleting ? "Removendo..." : "Remover"}
-        </button>
-      )}
-    </div>
-  );
-}

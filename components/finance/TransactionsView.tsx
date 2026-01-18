@@ -183,9 +183,6 @@ export function TransactionsView() {
     people,
   ]);
 
-  const visibleTransactionsTotal = useMemo(() => {
-    return visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0);
-  }, [visibleTransactionsForSelectedMonth]);
 
   useEffect(() => {
     setNewTrans((prev) => ({
@@ -853,7 +850,9 @@ Retorne APENAS o JSON, sem markdown.
               Total ({visibleTransactionsForSelectedMonth.length} lançamentos)
             </span>
             <span className="font-bold text-lg text-slate-800">
-              {formatCurrency(visibleTransactionsTotal)}
+              {formatCurrency(
+                visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0),
+              )}
             </span>
           </div>
         )}
