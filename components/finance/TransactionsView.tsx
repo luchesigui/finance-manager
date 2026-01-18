@@ -183,7 +183,6 @@ export function TransactionsView() {
     people,
   ]);
 
-
   useEffect(() => {
     setNewTrans((prev) => ({
       ...prev,

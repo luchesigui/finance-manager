@@ -4,11 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { PieChart, Plus, Save, Trash2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { PersonEditRow } from "@/components/finance/PersonEditRow";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { calculateTotalIncome } from "@/components/finance/hooks/useFinanceCalculations";
-import { PersonEditRow } from "@/components/finance/PersonEditRow";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { fetchJson } from "@/lib/apiClient";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
@@ -475,4 +475,3 @@ export function SettingsView() {
     </div>
   );
 }
-

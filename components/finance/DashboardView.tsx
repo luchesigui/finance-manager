@@ -1,8 +1,8 @@
 "use client";
 
-import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { CategorySummaryTable } from "@/components/finance/CategorySummaryTable";
 import { FairDistributionSection } from "@/components/finance/FairDistributionSection";
+import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { SummaryCards } from "@/components/finance/SummaryCards";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
