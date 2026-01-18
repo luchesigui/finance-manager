@@ -160,8 +160,8 @@ export function TransactionsView() {
 
       // Fuzzy search filter
       if (searchQuery.trim()) {
-        const category = categories.find((c) => c.id === transaction.categoryId);
-        const person = people.find((p) => p.id === transaction.paidBy);
+        const category = categories.find((cat) => cat.id === transaction.categoryId);
+        const person = people.find((pers) => pers.id === transaction.paidBy);
         const searchableText = [
           transaction.description,
           category?.name ?? "",
@@ -182,10 +182,6 @@ export function TransactionsView() {
     categories,
     people,
   ]);
-
-  const visibleTransactionsTotal = useMemo(() => {
-    return visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0);
-  }, [visibleTransactionsForSelectedMonth]);
 
   useEffect(() => {
     setNewTrans((prev) => ({
@@ -366,8 +362,8 @@ Retorne APENAS o JSON, sem markdown.
 
   const selectAllVisibleTransactions = () => {
     const nonRecurringIds = visibleTransactionsForSelectedMonth
-      .filter((t) => !t.isRecurring)
-      .map((t) => t.id);
+      .filter((transaction) => !transaction.isRecurring)
+      .map((transaction) => transaction.id);
     setSelectedIds(new Set(nonRecurringIds));
   };
 
@@ -853,7 +849,9 @@ Retorne APENAS o JSON, sem markdown.
               Total ({visibleTransactionsForSelectedMonth.length} lançamentos)
             </span>
             <span className="font-bold text-lg text-slate-800">
-              {formatCurrency(visibleTransactionsTotal)}
+              {formatCurrency(
+                visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0),
+              )}
             </span>
           </div>
         )}
@@ -984,9 +982,9 @@ Retorne APENAS o JSON, sem markdown.
                       setBulkEditFormState((prev) => ({ ...prev, categoryId: e.target.value }))
                     }
                   >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
                       </option>
                     ))}
                   </select>
@@ -1024,9 +1022,9 @@ Retorne APENAS o JSON, sem markdown.
                       setBulkEditFormState((prev) => ({ ...prev, paidBy: e.target.value }))
                     }
                   >
-                    {people.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
+                    {people.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.name}
                       </option>
                     ))}
                   </select>

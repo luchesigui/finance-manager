@@ -16,71 +16,55 @@ import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import { toYearMonthString } from "@/lib/dateUtils";
 import type { NewTransactionFormState } from "@/lib/types";
 
-/** Generate month options for the selector */
-function generateMonthOptions(currentDate: Date): Array<{ value: string; label: string }> {
-  const options: Array<{ value: string; label: string }> = [];
-  const monthNames = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-  ];
+// ============================================================================
+// Types
+// ============================================================================
 
-  // Show 2 months before and 2 months after the current month
+type MonthOption = {
+  value: string;
+  label: string;
+};
+
+type TransactionFormFieldsProps = {
+  formState: NewTransactionFormState;
+  setFormState: React.Dispatch<React.SetStateAction<NewTransactionFormState>>;
+  /** If true, shows installment-related fields (for new transaction form). */
+  showInstallmentFields?: boolean;
+  /** If true, shows description field. */
+  showDescription?: boolean;
+  /** Prefix for input IDs to avoid conflicts when multiple forms are on the page. */
+  idPrefix?: string;
+};
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Generates month options for the selector (2 months before and after current).
+ */
+function generateMonthOptions(currentDate: Date): MonthOption[] {
+  const options: MonthOption[] = [];
+
   for (let offset = -2; offset <= 2; offset++) {
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
     const year = date.getFullYear();
     const month = date.getMonth();
     const value = `${year}-${String(month + 1).padStart(2, "0")}`;
-    const label = `${monthNames[month]} ${year}`;
+    const label = `${MONTH_NAMES_PT_BR[month]} ${year}`;
     options.push({ value, label });
   }
 
   return options;
 }
 
-/** Get current month in YYYY-MM format */
-function getCurrentYearMonth(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-/** Normalize category name for comparison (remove accents, trim, lowercase) */
-function normalizeCategoryName(name: string): string {
-  return name.normalize("NFD").replace(/\p{M}/gu, "").trim().toLowerCase();
-}
-
-/** Category names that should automatically exclude from split */
-const AUTO_EXCLUDE_FROM_SPLIT_CATEGORIES = new Set(
-  ["Liberdade Financeira", "Metas"].map(normalizeCategoryName),
-);
-
-type TransactionFormFieldsProps = {
-  formState: NewTransactionFormState;
-  setFormState: React.Dispatch<React.SetStateAction<NewTransactionFormState>>;
-  /**
-   * If true, shows installment-related fields (for new transaction form).
-   * If false, hides installment fields (for editing).
-   */
-  showInstallmentFields?: boolean;
-  /**
-   * If true, shows description field.
-   */
-  showDescription?: boolean;
-  /**
-   * Prefix for input IDs to avoid conflicts when multiple forms are on the page.
-   */
-  idPrefix?: string;
-};
+// ============================================================================
+// Component
+// ============================================================================
 
 export function TransactionFormFields({
   formState,
@@ -93,23 +77,45 @@ export function TransactionFormFields({
   const { people } = usePeople();
   const { selectedMonthDate } = useCurrentMonth();
 
-  // Generate month options based on the current selected month
   const monthOptions = useMemo(() => generateMonthOptions(selectedMonthDate), [selectedMonthDate]);
-  const currentYearMonth = useMemo(
-    () => getCurrentYearMonth(selectedMonthDate),
-    [selectedMonthDate],
-  );
-
-  /** Check if a category should auto-exclude from split by its ID */
-  const shouldAutoExcludeFromSplit = (categoryId: string): boolean => {
-    const category = categories.find((c) => c.id === categoryId);
-    if (!category) return false;
-    return AUTO_EXCLUDE_FROM_SPLIT_CATEGORIES.has(normalizeCategoryName(category.name));
-  };
+  const currentYearMonth = useMemo(() => toYearMonthString(selectedMonthDate), [selectedMonthDate]);
 
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
-
   const isIncome = formState.type === "income";
+
+  /**
+   * Handles category change with auto-exclude logic.
+   */
+  const handleCategoryChange = (categoryId: string) => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    const shouldAutoExclude = category ? shouldCategoryAutoExcludeFromSplit(category.name) : false;
+
+    setFormState({
+      ...formState,
+      categoryId,
+      excludeFromSplit: shouldAutoExclude,
+    });
+  };
+
+  /**
+   * Handles month/date selection change.
+   */
+  const handleDateSelectionChange = (value: string) => {
+    if (value === "specific") {
+      setFormState({
+        ...formState,
+        dateSelectionMode: "specific",
+        date: formState.date || "",
+      });
+    } else {
+      setFormState({
+        ...formState,
+        dateSelectionMode: "month",
+        selectedMonth: value,
+        date: `${value}-01`,
+      });
+    }
+  };
 
   return (
     <>
@@ -144,7 +150,7 @@ export function TransactionFormFields({
         </div>
       </div>
 
-      {/* Income Increment/Decrement Selector - Only show for income type */}
+      {/* Income Increment/Decrement Selector */}
       {isIncome && (
         <div className="lg:col-span-4 animate-in slide-in-from-top-2 duration-200">
           <span className="block text-xs font-medium text-slate-500 mb-2">Tipo de Renda</span>
@@ -179,6 +185,7 @@ export function TransactionFormFields({
         </div>
       )}
 
+      {/* Description Field */}
       {showDescription && (
         <div className="lg:col-span-2">
           <label
@@ -201,6 +208,7 @@ export function TransactionFormFields({
         </div>
       )}
 
+      {/* Amount Field */}
       <div className="lg:col-span-2">
         <label
           htmlFor={inputId("amount")}
@@ -213,12 +221,12 @@ export function TransactionFormFields({
           placeholder="R$ 0,00"
           className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           value={formState.amount}
-          onValueChange={(amountValue) => setFormState({ ...formState, amount: amountValue })}
+          onValueChange={(value) => setFormState({ ...formState, amount: value })}
           required
         />
       </div>
 
-      {/* Category selector - only for expenses */}
+      {/* Category Selector (expenses only) */}
       {!isIncome && (
         <div className="lg:col-span-2">
           <label
@@ -231,31 +239,21 @@ export function TransactionFormFields({
             id={inputId("category")}
             className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
             value={formState.categoryId}
-            onChange={(e) => {
-              const newCategoryId = e.target.value;
-              const newCategoryAutoExcludes = shouldAutoExcludeFromSplit(newCategoryId);
-              setFormState({
-                ...formState,
-                categoryId: newCategoryId,
-                // Auto-set excludeFromSplit based on category:
-                // - Metas/Liberdade Financeira: true
-                // - Other categories: false (clear it)
-                excludeFromSplit: newCategoryAutoExcludes,
-              });
-            }}
+            onChange={(e) => handleCategoryChange(e.target.value)}
           >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
         </div>
       )}
 
+      {/* Checkbox Options */}
       <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
-        {/* Recurring checkbox - available for both expense and income */}
-        {showInstallmentFields && !formState.isInstallment && (
+        {/* Recurring Checkbox */}
+        {(showInstallmentFields ? !formState.isInstallment : true) && (
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -273,37 +271,14 @@ export function TransactionFormFields({
           </div>
         )}
 
-        {!showInstallmentFields && (
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id={inputId("recurring")}
-              checked={formState.isRecurring}
-              onChange={(e) => setFormState({ ...formState, isRecurring: e.target.checked })}
-              className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-            />
-            <label
-              htmlFor={inputId("recurring")}
-              className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-            >
-              <RefreshCw size={14} /> Recorrente?
-            </label>
-          </div>
-        )}
-
-        {/* Installment checkbox - only for expenses */}
+        {/* Installment Checkbox (expenses only) */}
         {!isIncome && showInstallmentFields && !formState.isRecurring && (
           <div className="flex items-center gap-2">
             <input
               type="checkbox"
               id={inputId("installment")}
               checked={formState.isInstallment}
-              onChange={(e) =>
-                setFormState({
-                  ...formState,
-                  isInstallment: e.target.checked,
-                })
-              }
+              onChange={(e) => setFormState({ ...formState, isInstallment: e.target.checked })}
               className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
             />
             <label
@@ -315,7 +290,7 @@ export function TransactionFormFields({
           </div>
         )}
 
-        {/* Exclude from split - only for expenses */}
+        {/* Exclude from Split (expenses only) */}
         {!isIncome && (
           <div className="flex items-center gap-2">
             <input
@@ -334,7 +309,7 @@ export function TransactionFormFields({
           </div>
         )}
 
-        {/* Credit card - only for expenses */}
+        {/* Credit Card (expenses only) */}
         {!isIncome && (
           <div className="flex items-center gap-2">
             <input
@@ -354,7 +329,7 @@ export function TransactionFormFields({
           </div>
         )}
 
-        {/* Installment count - only for expenses */}
+        {/* Installment Count */}
         {!isIncome && showInstallmentFields && formState.isInstallment && (
           <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
             <span className="text-sm text-slate-500">x</span>
@@ -376,12 +351,14 @@ export function TransactionFormFields({
         )}
       </div>
 
+      {/* Additional Information (collapsible) */}
       <details className="lg:col-span-4 rounded-lg border border-slate-200 bg-slate-50">
         <summary className="cursor-pointer select-none px-4 py-3 text-sm font-medium text-slate-700">
           Informações adicionais
           <span className="ml-2 text-xs font-normal text-slate-500">(Data, Atribuído à)</span>
         </summary>
         <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Month/Date Selector */}
           <div>
             <label
               htmlFor={inputId("month-selector")}
@@ -397,26 +374,7 @@ export function TransactionFormFields({
                   ? "specific"
                   : formState.selectedMonth || currentYearMonth
               }
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === "specific") {
-                  // Switch to specific date mode
-                  setFormState({
-                    ...formState,
-                    dateSelectionMode: "specific",
-                    date: formState.date || "",
-                  });
-                } else {
-                  // Set the month and the date to the 1st of that month
-                  const dateString = `${value}-01`;
-                  setFormState({
-                    ...formState,
-                    dateSelectionMode: "month",
-                    selectedMonth: value,
-                    date: dateString,
-                  });
-                }
-              }}
+              onChange={(e) => handleDateSelectionChange(e.target.value)}
             >
               {monthOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -438,6 +396,7 @@ export function TransactionFormFields({
             )}
           </div>
 
+          {/* Person Selector */}
           <div>
             <label
               htmlFor={inputId("paid-by")}

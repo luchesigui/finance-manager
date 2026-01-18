@@ -1,108 +1,51 @@
 import "server-only";
 
-import type { Transaction } from "@/lib/types";
+import { NextResponse } from "next/server";
+import type { ZodSchema } from "zod";
 
-export type ValidationResult<ValidValue> =
-  | { isValid: true; value: ValidValue }
-  | { isValid: false; errorMessage: string; statusCode?: number };
-
+/**
+ * Safely reads and parses JSON from a request body.
+ * Returns null if parsing fails.
+ */
 export async function readJsonBody(request: Request): Promise<unknown> {
   try {
-    return (await request.json()) as unknown;
+    return await request.json();
   } catch {
     return null;
   }
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === "object";
-}
-
-export function validateUpdateByIdBody(
+/**
+ * Validates request body against a Zod schema.
+ * Returns the validated data or a NextResponse with error details.
+ */
+export function validateBody<T>(
   body: unknown,
-  idFieldName: "personId" | "categoryId",
-): ValidationResult<{ entityId: string; patch: Record<string, unknown> }> {
-  if (!isRecord(body)) {
-    return { isValid: false, errorMessage: "Invalid body", statusCode: 400 };
-  }
+  schema: ZodSchema<T>,
+): { success: true; data: T } | { success: false; response: NextResponse } {
+  const result = schema.safeParse(body);
 
-  const rawEntityId = body[idFieldName];
-  const rawPatch = body.patch;
-
-  if (typeof rawEntityId !== "string" || !isRecord(rawPatch)) {
+  if (!result.success) {
+    const errors = result.error.flatten();
     return {
-      isValid: false,
-      errorMessage: `Expected { ${idFieldName}: string, patch: object }`,
-      statusCode: 400,
+      success: false,
+      response: NextResponse.json(
+        {
+          error: "Validation failed",
+          details: errors.fieldErrors,
+        },
+        { status: 400 },
+      ),
     };
   }
 
-  return { isValid: true, value: { entityId: rawEntityId, patch: rawPatch } };
+  return { success: true, data: result.data };
 }
 
-function isTransactionCreatePayload(value: unknown): value is Omit<Transaction, "id"> {
-  if (!isRecord(value)) return false;
-
-  const isIncome = value.type === "income";
-
-  // Base required fields (categoryId is optional for income transactions)
-  const hasBaseFields =
-    typeof value.description === "string" &&
-    typeof value.amount === "number" &&
-    (isIncome || typeof value.categoryId === "string") &&
-    typeof value.paidBy === "string" &&
-    typeof value.isRecurring === "boolean" &&
-    typeof value.isCreditCard === "boolean" &&
-    typeof value.excludeFromSplit === "boolean" &&
-    typeof value.date === "string";
-
-  if (!hasBaseFields) return false;
-
-  // categoryId can be null/undefined for income, but if provided must be string
-  if ("categoryId" in value && value.categoryId !== null && typeof value.categoryId !== "string") {
-    return false;
-  }
-
-  // Optional type field (defaults to 'expense' if not provided)
-  if ("type" in value && value.type !== "expense" && value.type !== "income") {
-    return false;
-  }
-
-  // Optional isIncrement field (defaults to true if not provided)
-  if ("isIncrement" in value && typeof value.isIncrement !== "boolean") {
-    return false;
-  }
-
-  return true;
-}
-
-export function validateCreateTransactionsBody(
-  body: unknown,
-): ValidationResult<{ isBatch: boolean; transactions: Array<Omit<Transaction, "id">> }> {
-  const payloadItems = Array.isArray(body) ? body : [body];
-
-  if (payloadItems.length === 0) {
-    return { isValid: false, errorMessage: "Empty payload", statusCode: 400 };
-  }
-
-  const transactions: Array<Omit<Transaction, "id">> = [];
-
-  for (let payloadIndex = 0; payloadIndex < payloadItems.length; payloadIndex++) {
-    const payloadItem = payloadItems[payloadIndex];
-
-    if (!isTransactionCreatePayload(payloadItem)) {
-      return {
-        isValid: false,
-        errorMessage: `Invalid transaction at index ${payloadIndex}`,
-        statusCode: 400,
-      };
-    }
-
-    transactions.push(payloadItem);
-  }
-
-  return {
-    isValid: true,
-    value: { isBatch: Array.isArray(body), transactions },
-  };
+/**
+ * Parses a numeric ID from a string parameter.
+ */
+export function parseNumericId(value: string): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
 }

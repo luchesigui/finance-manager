@@ -20,7 +20,8 @@
     "lucide-react": "^0.476.0",
     "next": "^16.0.10",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
