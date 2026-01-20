@@ -5,6 +5,7 @@ import {
   Check,
   CreditCard,
   Filter,
+  Gem,
   Loader2,
   Pencil,
   Plus,
@@ -111,6 +112,7 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    isForecast: false,
     type: "expense",
     isIncrement: true,
   });
@@ -128,6 +130,7 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    isForecast: false,
     type: "expense",
     isIncrement: true,
   });
@@ -183,6 +186,13 @@ export function TransactionsView() {
     people,
   ]);
 
+  const visibleConcreteTransactions = useMemo(
+    () => visibleTransactionsForSelectedMonth.filter((transaction) => !transaction.isForecast),
+    [visibleTransactionsForSelectedMonth],
+  );
+  const visibleForecastCount =
+    visibleTransactionsForSelectedMonth.length - visibleConcreteTransactions.length;
+
   useEffect(() => {
     setNewTrans((prev) => ({
       ...prev,
@@ -207,6 +217,7 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: false,
+      isForecast: false,
       type: "expense",
       isIncrement: true,
     });
@@ -237,6 +248,7 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: transaction.excludeFromSplit,
+      isForecast: transaction.isForecast,
       type: transaction.type ?? "expense",
       isIncrement: transaction.isIncrement ?? true,
     });
@@ -258,6 +270,7 @@ export function TransactionsView() {
       isRecurring: editFormState.isRecurring,
       isCreditCard: editFormState.isCreditCard,
       excludeFromSplit: editFormState.excludeFromSplit,
+      isForecast: editFormState.isForecast,
       date: editFormState.date,
       type: editFormState.type,
       isIncrement: editFormState.isIncrement,
@@ -725,6 +738,7 @@ Retorne APENAS o JSON, sem markdown.
               const canSelect = !transaction.isRecurring;
               const isIncome = transaction.type === "income";
               const isIncrement = transaction.isIncrement ?? true;
+              const isForecast = transaction.isForecast;
 
               return (
                 <div
@@ -777,6 +791,11 @@ Retorne APENAS o JSON, sem markdown.
                             {isIncrement ? "Renda" : "Dedução"}
                           </span>
                         )}
+                        {isForecast && (
+                          <span className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <Gem size={10} /> Previsão
+                          </span>
+                        )}
                         {transaction.isRecurring && (
                           <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
                             <RefreshCw size={10} /> Recorrente
@@ -815,6 +834,20 @@ Retorne APENAS o JSON, sem markdown.
                       <>
                         <button
                           type="button"
+                          onClick={() =>
+                            updateTransactionById(transaction.id, { isForecast: !isForecast })
+                          }
+                          className={`p-2 transition-all ${
+                            isForecast
+                              ? "text-slate-300 hover:text-amber-500"
+                              : "text-amber-500 hover:text-amber-600"
+                          }`}
+                          title={isForecast ? "Marcar como concreto" : "Marcar como previsão"}
+                        >
+                          <Gem size={16} />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleOpenEditModal(transaction)}
                           className="text-slate-300 hover:text-indigo-500 p-2 transition-all"
                           title="Editar"
@@ -846,12 +879,11 @@ Retorne APENAS o JSON, sem markdown.
         {visibleTransactionsForSelectedMonth.length > 0 && (
           <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
             <span className="font-semibold text-slate-700">
-              Total ({visibleTransactionsForSelectedMonth.length} lançamentos)
+              Total ({visibleConcreteTransactions.length} lançamento(s)
+              {visibleForecastCount > 0 ? ` + ${visibleForecastCount} previsão` : ""})
             </span>
             <span className="font-bold text-lg text-slate-800">
-              {formatCurrency(
-                visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0),
-              )}
+              {formatCurrency(visibleConcreteTransactions.reduce((sum, t) => sum + t.amount, 0))}
             </span>
           </div>
         )}

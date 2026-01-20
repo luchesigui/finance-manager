@@ -2,6 +2,7 @@
 
 import {
   CreditCard,
+  Gem,
   Layers,
   MinusCircle,
   PlusCircle,
@@ -328,6 +329,24 @@ export function TransactionFormFields({
             </label>
           </div>
         )}
+
+        {/* Forecast */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id={inputId("forecast")}
+            checked={formState.isForecast}
+            onChange={(e) => setFormState({ ...formState, isForecast: e.target.checked })}
+            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+          />
+          <label
+            htmlFor={inputId("forecast")}
+            className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
+            title="Não entra nos totais"
+          >
+            <Gem size={14} /> Previsão?
+          </label>
+        </div>
 
         {/* Installment Count */}
         {!isIncome && showInstallmentFields && formState.isInstallment && (

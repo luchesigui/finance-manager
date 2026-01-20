@@ -31,6 +31,8 @@ export type Transaction = {
   isCreditCard: boolean;
   /** If true, transaction should not be considered in fair split calculation. */
   excludeFromSplit: boolean;
+  /** If true, transaction is a forecast and excluded from calculations. */
+  isForecast: boolean;
   /** YYYY-MM-DD format */
   date: string;
   /** ISO timestamp from DB. Optional for backwards compatibility. */
@@ -57,6 +59,7 @@ export type TransactionPatch = Partial<
     | "isRecurring"
     | "isCreditCard"
     | "excludeFromSplit"
+    | "isForecast"
     | "date"
     | "type"
     | "isIncrement"
@@ -72,6 +75,7 @@ export type BulkTransactionPatch = Partial<
     | "isRecurring"
     | "isCreditCard"
     | "excludeFromSplit"
+    | "isForecast"
     | "type"
     | "isIncrement"
   >
@@ -106,6 +110,7 @@ export type NewTransactionFormState = {
   isInstallment: boolean;
   installments: number;
   excludeFromSplit: boolean;
+  isForecast: boolean;
   type: TransactionType;
   isIncrement: boolean;
 };
@@ -141,6 +146,7 @@ export type TransactionRow = {
   is_recurring: boolean;
   is_credit_card?: boolean;
   exclude_from_split?: boolean;
+  is_forecast?: boolean;
   date: string;
   created_at?: string;
   household_id?: string;
