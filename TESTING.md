@@ -1,11 +1,11 @@
 # Testing Documentation
 
-This project has comprehensive test coverage for core features including unit tests, integration tests, and workflow tests.
+This project has comprehensive test coverage for core features including unit tests, API integration tests, workflow tests, and functional tests.
 
 ## Test Statistics
 
-- **Total Tests**: 204 passing ✅
-- **Test Files**: 9
+- **Total Tests**: 287 passing ✅
+- **Test Files**: 12
 - **Test Framework**: Vitest with happy-dom environment
 
 ## Running Tests
@@ -117,6 +117,44 @@ Tests for end-to-end user workflows:
 - ✅ **Bulk Operations**: Update/delete multiple transactions at once
 - ✅ **Forecast Transactions**: Handle forecast inclusion/exclusion from calculations
 
+### 4. Functional Tests (83 tests)
+
+#### Transaction History (`__tests__/functional/transaction-history.test.ts`) - 25 tests
+Tests for transaction list display and filtering:
+- ✅ **Month Filtering**: Filter transactions by accounting month (with credit card offset)
+- ✅ **Display Formatting**: Format amounts, dates, person names, category names
+- ✅ **Sorting**: Sort transactions by creation date (most recent first)
+- ✅ **Type Filtering**: Filter by expense/income
+- ✅ **Transaction Flags**: Identify recurring, credit card, forecast transactions
+- ✅ **Search**: Search by description, filter by category/person
+- ✅ **Multiple Criteria**: Combine multiple filters
+- ✅ **Pagination**: Handle large lists, select/deselect transactions
+- ✅ **Empty States**: Handle months with no transactions
+
+#### Dashboard Display (`__tests__/functional/dashboard.test.ts`) - 22 tests
+Tests for dashboard summary cards and calculations:
+- ✅ **Summary Cards**: Display total income, expenses, balance
+- ✅ **Category Summary**: Show spending by category with percentages
+- ✅ **Over Budget Alerts**: Highlight categories exceeding targets
+- ✅ **Settlement Display**: Show who paid what, fair share amounts, balances
+- ✅ **Income Breakdown**: Display base income and adjustments
+- ✅ **Performance Indicators**: Spending percentage, savings rate
+- ✅ **Warnings**: Alert when spending exceeds income
+- ✅ **Formatting**: Format all numbers as currency/percentages
+
+#### Month Navigation (`__tests__/functional/month-navigation.test.ts`) - 36 tests
+Tests for month selection and navigation:
+- ✅ **Month Display**: Format current month for display
+- ✅ **Previous/Next Navigation**: Navigate between months
+- ✅ **Year Boundaries**: Handle December → January transitions
+- ✅ **Month-End Dates**: Handle Jan 31 → Feb 28/29 correctly
+- ✅ **Current Month**: Reset to current month functionality
+- ✅ **State Management**: Track selected month, generate API URLs
+- ✅ **UI Behavior**: Enable/disable buttons, show/hide "Today" button
+- ✅ **All Months**: Format all 12 months in Portuguese
+- ✅ **Transaction Refetch**: Trigger API calls when month changes
+- ✅ **Keyboard Shortcuts**: Support arrow key navigation
+
 ## What's Being Tested
 
 ### ✅ Forms & Data Submission
@@ -147,6 +185,16 @@ The integration tests verify the complete data flow:
 2. API endpoint → Database operation
 3. Database → Domain types → Calculations
 4. Calculations → Dashboard/UI
+
+### ✅ Display & User Experience
+The functional tests verify the UI displays correctly:
+- Transaction history shows correct filtered transactions
+- Month navigation updates the displayed transactions
+- Dashboard summary cards show accurate totals
+- Category breakdown displays spending vs targets
+- Settlement information shows who owes whom
+- All numbers formatted correctly (currency, percentages)
+- Search and filtering work as expected
 
 ## Test Examples
 
@@ -193,6 +241,10 @@ finance-manager/
 ├── __mocks__/                    # Mock modules
 │   └── server-only.ts           # Server-only module mock
 ├── __tests__/
+│   ├── functional/              # Functional/feature tests
+│   │   ├── transaction-history.test.ts  # Transaction list tests
+│   │   ├── dashboard.test.ts            # Dashboard display tests
+│   │   └── month-navigation.test.ts     # Month navigation tests
 │   └── integration/             # Integration/workflow tests
 │       └── transaction-workflow.test.ts
 ├── app/api/                     # API route tests
