@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { fetchJson, jsonRequestInit } from "@/lib/apiClient";
@@ -44,10 +44,13 @@ function buildTransactionsUrl(year: number, month: number): string {
 
 type TransactionsContextValue = {
   transactionsForSelectedMonth: Transaction[];
+  transactionsForCalculations: Transaction[];
   isTransactionsLoading: boolean;
   addTransactionsFromFormState: (formState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
   updateTransactionById: (transactionId: number, patch: TransactionPatch) => void;
+  isForecastIncluded: (transactionId: number) => boolean;
+  setForecastInclusionOverride: (transactionId: number, include: boolean) => void;
   bulkUpdateTransactions: (ids: number[], patch: BulkTransactionPatch) => void;
   bulkDeleteTransactions: (ids: number[]) => void;
 };
@@ -61,6 +64,9 @@ const TransactionsContext = createContext<TransactionsContextValue | null>(null)
 export function TransactionsProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const queryClient = useQueryClient();
   const { selectedYear, selectedMonthNumber, selectedMonthDate } = useCurrentMonth();
+  const [forecastInclusionOverrides, setForecastInclusionOverrides] = useState<
+    Record<number, boolean>
+  >({});
 
   const queryKey = useMemo(
     () => ["transactions", selectedYear, selectedMonthNumber] as const,
@@ -130,6 +136,23 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     },
   });
 
+  const setForecastInclusionOverride = useCallback((transactionId: number, include: boolean) => {
+    setForecastInclusionOverrides((prev) => {
+      if (include) {
+        if (prev[transactionId]) return prev;
+        return { ...prev, [transactionId]: true };
+      }
+      if (!prev[transactionId]) return prev;
+      const { [transactionId]: _removed, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  const isForecastIncluded = useCallback(
+    (transactionId: number) => forecastInclusionOverrides[transactionId] === true,
+    [forecastInclusionOverrides],
+  );
+
   // Bulk update mutation
   const bulkUpdateMutation = useMutation({
     mutationFn: ({ ids, patch }: { ids: number[]; patch: BulkTransactionPatch }) =>
@@ -197,6 +220,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
             isRecurring: false,
             isCreditCard: formState.isCreditCard,
             excludeFromSplit: formState.excludeFromSplit,
+            isForecast: formState.isForecast,
             date: toDateString(installmentDate),
             type: formState.type,
             isIncrement: formState.isIncrement,
@@ -212,6 +236,7 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
           isRecurring: formState.isRecurring,
           isCreditCard: formState.isCreditCard,
           excludeFromSplit: formState.excludeFromSplit,
+          isForecast: formState.isForecast,
           date: baseDateString,
           type: formState.type,
           isIncrement: formState.isIncrement,
@@ -247,22 +272,44 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   // Context Value
   // ============================================================================
 
+  const transactionsForSelectedMonth = useMemo(
+    () => [...(transactionsQuery.data ?? [])].sort(compareByCreationDesc),
+    [transactionsQuery.data],
+  );
+
+  const transactionsForCalculations = useMemo(() => {
+    const base = transactionsQuery.data ?? [];
+    return base
+      .filter((transaction) => !transaction.isForecast || forecastInclusionOverrides[transaction.id])
+      .map((transaction) => {
+        if (!transaction.isForecast) return transaction;
+        if (!forecastInclusionOverrides[transaction.id]) return transaction;
+        return { ...transaction, isForecast: false };
+      });
+  }, [transactionsQuery.data, forecastInclusionOverrides]);
+
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
-      transactionsForSelectedMonth: [...(transactionsQuery.data ?? [])].sort(compareByCreationDesc),
+      transactionsForSelectedMonth,
+      transactionsForCalculations,
       isTransactionsLoading: transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      isForecastIncluded,
+      setForecastInclusionOverride,
       bulkUpdateTransactions: bulkUpdateTransactionsAction,
       bulkDeleteTransactions: bulkDeleteTransactionsAction,
     }),
     [
-      transactionsQuery.data,
+      transactionsForSelectedMonth,
+      transactionsForCalculations,
       transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      isForecastIncluded,
+      setForecastInclusionOverride,
       bulkUpdateTransactionsAction,
       bulkDeleteTransactionsAction,
     ],

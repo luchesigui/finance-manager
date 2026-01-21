@@ -63,6 +63,7 @@ function mapTransactionRow(row: TransactionRow): Transaction {
     isRecurring: row.is_recurring,
     isCreditCard: row.is_credit_card ?? false,
     excludeFromSplit: row.exclude_from_split ?? false,
+    isForecast: row.is_forecast ?? false,
     date: row.date,
     createdAt: row.created_at,
     householdId: row.household_id,
@@ -107,6 +108,7 @@ function toTransactionDbPatch(patch: TransactionPatch): Record<string, unknown> 
   if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.date !== undefined) dbPatch.date = patch.date;
   if (patch.type !== undefined) dbPatch.type = patch.type;
   if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
@@ -123,6 +125,7 @@ function toBulkTransactionDbPatch(patch: BulkTransactionPatch): Record<string, u
   if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.type !== undefined) dbPatch.type = patch.type;
   if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
   return dbPatch;
@@ -496,6 +499,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
   const householdId = await getPrimaryHouseholdId();
 
   const isIncome = t.type === "income";
+  const isForecast = t.isForecast ?? false;
 
   const dbRow = {
     description: t.description,
@@ -505,6 +509,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     is_recurring: t.isRecurring,
     is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
     exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
+    is_forecast: isForecast,
     date: t.date,
     household_id: householdId,
     type: t.type ?? "expense",

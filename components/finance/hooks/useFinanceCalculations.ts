@@ -30,17 +30,29 @@ export type IncomeBreakdown = {
 // ============================================================================
 
 /**
+ * Determines if a transaction should be counted in calculations.
+ */
+function isIncludedInTotals(transaction: Transaction): boolean {
+  if (!transaction.isForecast) return true;
+  return !transaction.excludeFromSplit;
+}
+
+/**
  * Filters transactions by type. Use sparingly - prefer single-pass processing when possible.
  */
 export function getExpenseTransactions(transactions: Transaction[]): Transaction[] {
-  return transactions.filter((transaction) => transaction.type !== "income");
+  return transactions.filter(
+    (transaction) => transaction.type !== "income" && isIncludedInTotals(transaction),
+  );
 }
 
 /**
  * Filters transactions by type. Use sparingly - prefer single-pass processing when possible.
  */
 export function getIncomeTransactions(transactions: Transaction[]): Transaction[] {
-  return transactions.filter((transaction) => transaction.type === "income");
+  return transactions.filter(
+    (transaction) => transaction.type === "income" && isIncludedInTotals(transaction),
+  );
 }
 
 // ============================================================================
@@ -75,7 +87,7 @@ export function calculateIncomeBreakdown(transactions: Transaction[]): IncomeBre
   let totalIncomeDecrement = 0;
 
   for (const t of transactions) {
-    if (t.type !== "income") continue;
+    if (t.type !== "income" || !isIncludedInTotals(t)) continue;
 
     if (t.isIncrement) {
       totalIncomeIncrement += t.amount;
@@ -99,7 +111,7 @@ function calculatePersonIncomeAdjustments(transactions: Transaction[]): Map<stri
   const adjustments = new Map<string, number>();
 
   for (const t of transactions) {
-    if (t.type !== "income") continue;
+    if (t.type !== "income" || !isIncludedInTotals(t)) continue;
 
     const current = adjustments.get(t.paidBy) ?? 0;
     const delta = t.isIncrement ? t.amount : -t.amount;
@@ -148,7 +160,7 @@ export function calculateTotalExpenses(transactions: Transaction[]): number {
   let total = 0;
 
   for (const t of transactions) {
-    if (t.type !== "income") {
+    if (t.type !== "income" && isIncludedInTotals(t)) {
       total += t.amount;
     }
   }
@@ -164,7 +176,7 @@ function buildCategorySpendingMap(transactions: Transaction[]): Map<string, numb
   const spendingMap = new Map<string, number>();
 
   for (const t of transactions) {
-    if (t.type === "income" || t.categoryId === null) continue;
+    if (t.type === "income" || t.categoryId === null || !isIncludedInTotals(t)) continue;
 
     const current = spendingMap.get(t.categoryId) ?? 0;
     spendingMap.set(t.categoryId, current + t.amount);
@@ -208,7 +220,7 @@ function buildPersonPaymentMap(transactions: Transaction[]): Map<string, number>
   const paymentMap = new Map<string, number>();
 
   for (const t of transactions) {
-    if (t.type === "income") continue;
+    if (t.type === "income" || !isIncludedInTotals(t)) continue;
 
     const current = paymentMap.get(t.paidBy) ?? 0;
     paymentMap.set(t.paidBy, current + t.amount);
@@ -268,6 +280,7 @@ export function calculateFinancialSummary(transactions: Transaction[]): Financia
   const personIncomeAdjustments = new Map<string, number>();
 
   for (const t of transactions) {
+    if (!isIncludedInTotals(t)) continue;
     if (t.type === "income") {
       // Income transaction
       const adjustment = personIncomeAdjustments.get(t.paidBy) ?? 0;

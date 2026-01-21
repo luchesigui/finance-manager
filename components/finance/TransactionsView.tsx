@@ -17,7 +17,7 @@ import {
   UserX,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { TransactionFormFields } from "@/components/finance/TransactionFormFields";
@@ -26,6 +26,7 @@ import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthConte
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
@@ -53,6 +54,7 @@ export function TransactionsView() {
   const { defaultPayerId } = useDefaultPayer();
   const {
     transactionsForSelectedMonth,
+    transactionsForCalculations,
     addTransactionsFromFormState,
     deleteTransactionById,
     updateTransactionById,
@@ -111,6 +113,7 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    isForecast: false,
     type: "expense",
     isIncrement: true,
   });
@@ -128,6 +131,7 @@ export function TransactionsView() {
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
+    isForecast: false,
     type: "expense",
     isIncrement: true,
   });
@@ -148,8 +152,8 @@ export function TransactionsView() {
     if (!stillExists) setCategoryFilter("all");
   }, [categoryFilter, categories]);
 
-  const visibleTransactionsForSelectedMonth = useMemo(() => {
-    return transactionsForSelectedMonth.filter((transaction) => {
+  const matchesFilters = useCallback(
+    (transaction: Transaction) => {
       if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
       if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
       // Income transactions have no category, so they pass category filter if "all" or if specifically showing income
@@ -172,16 +176,30 @@ export function TransactionsView() {
       }
 
       return true;
-    });
-  }, [
-    categoryFilter,
-    paidByFilter,
-    typeFilter,
-    transactionsForSelectedMonth,
-    searchQuery,
-    categories,
-    people,
-  ]);
+    },
+    [paidByFilter, typeFilter, categoryFilter, searchQuery, categories, people],
+  );
+
+  const visibleTransactionsForSelectedMonth = useMemo(
+    () => transactionsForSelectedMonth.filter(matchesFilters),
+    [transactionsForSelectedMonth, matchesFilters],
+  );
+  const visibleTransactionsForCalculations = useMemo(
+    () => transactionsForCalculations.filter(matchesFilters),
+    [transactionsForCalculations, matchesFilters],
+  );
+
+  const visibleCalculationIds = useMemo(
+    () => new Set(visibleTransactionsForCalculations.map((transaction) => transaction.id)),
+    [visibleTransactionsForCalculations],
+  );
+  const visibleExcludedForecastCount = useMemo(
+    () =>
+      visibleTransactionsForSelectedMonth.filter(
+        (transaction) => transaction.isForecast && !visibleCalculationIds.has(transaction.id),
+      ).length,
+    [visibleTransactionsForSelectedMonth, visibleCalculationIds],
+  );
 
   useEffect(() => {
     setNewTrans((prev) => ({
@@ -207,6 +225,7 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: false,
+      isForecast: false,
       type: "expense",
       isIncrement: true,
     });
@@ -237,6 +256,7 @@ export function TransactionsView() {
       isInstallment: false,
       installments: 2,
       excludeFromSplit: transaction.excludeFromSplit,
+      isForecast: transaction.isForecast,
       type: transaction.type ?? "expense",
       isIncrement: transaction.isIncrement ?? true,
     });
@@ -258,6 +278,7 @@ export function TransactionsView() {
       isRecurring: editFormState.isRecurring,
       isCreditCard: editFormState.isCreditCard,
       excludeFromSplit: editFormState.excludeFromSplit,
+      isForecast: editFormState.isForecast,
       date: editFormState.date,
       type: editFormState.type,
       isIncrement: editFormState.isIncrement,
@@ -725,6 +746,7 @@ Retorne APENAS o JSON, sem markdown.
               const canSelect = !transaction.isRecurring;
               const isIncome = transaction.type === "income";
               const isIncrement = transaction.isIncrement ?? true;
+              const isForecast = transaction.isForecast;
 
               return (
                 <div
@@ -775,6 +797,11 @@ Retorne APENAS o JSON, sem markdown.
                           >
                             {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                             {isIncrement ? "Renda" : "Dedução"}
+                          </span>
+                        )}
+                        {isForecast && (
+                          <span className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <CrystalBallLine size={10} className="text-amber-700" /> Previsão
                           </span>
                         )}
                         {transaction.isRecurring && (
@@ -846,11 +873,15 @@ Retorne APENAS o JSON, sem markdown.
         {visibleTransactionsForSelectedMonth.length > 0 && (
           <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
             <span className="font-semibold text-slate-700">
-              Total ({visibleTransactionsForSelectedMonth.length} lançamentos)
+              Total ({visibleTransactionsForCalculations.length} lançamento(s)
+              {visibleExcludedForecastCount > 0
+                ? ` + ${visibleExcludedForecastCount} previsão não considerada`
+                : ""}
+              )
             </span>
             <span className="font-bold text-lg text-slate-800">
               {formatCurrency(
-                visibleTransactionsForSelectedMonth.reduce((sum, t) => sum + t.amount, 0),
+                visibleTransactionsForCalculations.reduce((sum, t) => sum + t.amount, 0),
               )}
             </span>
           </div>

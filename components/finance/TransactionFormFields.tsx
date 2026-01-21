@@ -16,6 +16,7 @@ import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { toYearMonthString } from "@/lib/dateUtils";
 import type { NewTransactionFormState } from "@/lib/types";
@@ -82,6 +83,7 @@ export function TransactionFormFields({
 
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
   const isIncome = formState.type === "income";
+
 
   /**
    * Handles category change with auto-exclude logic.
@@ -328,6 +330,24 @@ export function TransactionFormFields({
             </label>
           </div>
         )}
+
+        {/* Forecast */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id={inputId("forecast")}
+            checked={formState.isForecast}
+            onChange={(e) => setFormState({ ...formState, isForecast: e.target.checked })}
+            className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+          />
+          <label
+            htmlFor={inputId("forecast")}
+            className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
+            title="Pode ser considerada na conta no resumo"
+          >
+            <CrystalBallLine size={14} /> Previsão?
+          </label>
+        </div>
 
         {/* Installment Count */}
         {!isIncome && showInstallmentFields && formState.isInstallment && (

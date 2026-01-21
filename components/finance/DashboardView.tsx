@@ -13,7 +13,7 @@ export function DashboardView() {
   const { selectedMonthDate } = useCurrentMonth();
   const { people } = usePeople();
   const { categories } = useCategories();
-  const { transactionsForSelectedMonth } = useTransactions();
+  const { transactionsForSelectedMonth, transactionsForCalculations } = useTransactions();
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -30,7 +30,7 @@ export function DashboardView() {
       {/* Fair Distribution Section */}
       <FairDistributionSection
         people={people}
-        transactionsForSelectedMonth={transactionsForSelectedMonth}
+        transactionsForSelectedMonth={transactionsForCalculations}
         categories={categories}
         selectedMonthDate={selectedMonthDate}
       />
@@ -38,7 +38,7 @@ export function DashboardView() {
       {/* Category Summary Table */}
       <CategorySummaryTable
         categories={categories}
-        transactionsForSelectedMonth={transactionsForSelectedMonth}
+        transactionsForSelectedMonth={transactionsForCalculations}
         people={people}
       />
     </div>
