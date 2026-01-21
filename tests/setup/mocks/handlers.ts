@@ -6,13 +6,13 @@ const now = new Date();
 const currentYear = now.getFullYear();
 const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
 
-// Mock transactions with current date
+// Mock transactions with current date - comprehensive set for testing
 const mockTransactionsWithCurrentDate = [
   {
     id: 1,
     description: "Aluguel",
     amount: 1500,
-    categoryId: "cat-1",
+    categoryId: "cat-1", // Custos Fixos
     paidBy: "person-1",
     isRecurring: true,
     isCreditCard: false,
@@ -27,13 +27,88 @@ const mockTransactionsWithCurrentDate = [
     id: 2,
     description: "Mercado",
     amount: 500,
-    categoryId: "cat-1",
+    categoryId: "cat-1", // Custos Fixos
     paidBy: "person-2",
     isRecurring: false,
     isCreditCard: false,
     excludeFromSplit: false,
     isForecast: false,
     date: `${currentYear}-${currentMonth}-15`,
+    type: "expense" as const,
+    isIncrement: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 3,
+    description: "Netflix",
+    amount: 55,
+    categoryId: "cat-2", // Conforto
+    paidBy: "person-1",
+    isRecurring: true,
+    isCreditCard: true,
+    excludeFromSplit: false,
+    isForecast: false,
+    date: `${currentYear}-${currentMonth}-05`,
+    type: "expense" as const,
+    isIncrement: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 4,
+    description: "Investimento Mensal",
+    amount: 300,
+    categoryId: "cat-5", // Liberdade Financeira
+    paidBy: "person-1",
+    isRecurring: false,
+    isCreditCard: false,
+    excludeFromSplit: true, // Excluded from split
+    isForecast: false,
+    date: `${currentYear}-${currentMonth}-10`,
+    type: "expense" as const,
+    isIncrement: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 5,
+    description: "Bônus",
+    amount: 1000,
+    categoryId: null, // Income has no category
+    paidBy: "person-1",
+    isRecurring: false,
+    isCreditCard: false,
+    excludeFromSplit: false,
+    isForecast: false,
+    date: `${currentYear}-${currentMonth}-20`,
+    type: "income" as const,
+    isIncrement: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 6,
+    description: "Conta de Luz Prevista",
+    amount: 200,
+    categoryId: "cat-1", // Custos Fixos
+    paidBy: "person-1",
+    isRecurring: false,
+    isCreditCard: false,
+    excludeFromSplit: false,
+    isForecast: true, // Forecast transaction
+    date: `${currentYear}-${currentMonth}-25`,
+    type: "expense" as const,
+    isIncrement: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 7,
+    description: "Restaurante",
+    amount: 150,
+    categoryId: "cat-4", // Prazeres
+    paidBy: "person-2",
+    isRecurring: false,
+    isCreditCard: true,
+    excludeFromSplit: false,
+    isForecast: false,
+    date: `${currentYear}-${currentMonth}-12`,
     type: "expense" as const,
     isIncrement: true,
     createdAt: new Date().toISOString(),

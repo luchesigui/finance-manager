@@ -53,8 +53,17 @@ describe("TransactionEdit", () => {
       // Check that the edit modal has a description input with some value (pre-filled)
       const descriptionInput = document.getElementById("edit-description") as HTMLInputElement;
       expect(descriptionInput).toBeInTheDocument();
-      // The value should be one of the transaction descriptions
-      expect(["Aluguel", "Mercado"]).toContain(descriptionInput.value);
+      // The value should be one of the transaction descriptions from our mock data
+      const validDescriptions = [
+        "Aluguel",
+        "Mercado",
+        "Netflix",
+        "Investimento Mensal",
+        "Bônus",
+        "Conta de Luz Prevista",
+        "Restaurante",
+      ];
+      expect(validDescriptions).toContain(descriptionInput.value);
     });
 
     it("closes modal when cancel is clicked", async () => {
