@@ -2,7 +2,7 @@
 
 import {
   CreditCard,
-  Gem,
+  CrystalBall,
   Layers,
   MinusCircle,
   PlusCircle,
@@ -342,9 +342,9 @@ export function TransactionFormFields({
           <label
             htmlFor={inputId("forecast")}
             className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
-            title="Não entra nos totais"
+            title="Pode ser considerada na conta no resumo"
           >
-            <Gem size={14} /> Previsão?
+            <CrystalBall size={14} /> Previsão?
           </label>
         </div>
 

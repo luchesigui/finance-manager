@@ -1,7 +1,7 @@
 "use client";
 
-import { Gem, TrendingDown, TrendingUp } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CrystalBall, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
+import { useMemo } from "react";
 
 import {
   calculateIncomeBreakdown,
@@ -9,6 +9,7 @@ import {
   calculateTotalIncome,
   getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
+import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
@@ -26,7 +27,7 @@ export function SummaryCards({
   categories,
   selectedMonthDate,
 }: SummaryCardsProps) {
-  const [isForecastMode, setIsForecastMode] = useState(false);
+  const { updateTransactionById } = useTransactions();
 
   const forecastExpenses = useMemo(
     () =>
@@ -39,6 +40,7 @@ export function SummaryCards({
     () => forecastExpenses.reduce((sum, transaction) => sum + transaction.amount, 0),
     [forecastExpenses],
   );
+  const hasForecastExpenses = forecastExpenses.length > 0;
   const forecastCountLabel =
     forecastExpenses.length === 1 ? "1 item" : `${forecastExpenses.length} itens`;
 
@@ -72,109 +74,111 @@ export function SummaryCards({
     incomeBreakdown.totalIncomeIncrement > 0 || incomeBreakdown.totalIncomeDecrement > 0;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={() => setIsForecastMode((prev) => !prev)}
-          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1 ${
-            isForecastMode
-              ? "bg-amber-500 text-white hover:bg-amber-600"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
-        >
-          <Gem size={12} />
-          {isForecastMode ? "Ocultar Previsões" : "Modo Previsão"}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total Income Card */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm font-medium mb-1">Renda Total Familiar</h3>
-          <p className="text-2xl font-bold text-slate-800">{formatCurrency(effectiveIncome)}</p>
-          {hasIncomeTransactions && (
-            <div className="mt-2 pt-2 border-t border-slate-100">
-              <div className="text-xs text-slate-500 space-y-1">
-                {incomeBreakdown.totalIncomeIncrement > 0 && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <TrendingUp size={12} />
-                    <span>+ {formatCurrency(incomeBreakdown.totalIncomeIncrement)} adicionado</span>
-                  </div>
-                )}
-                {incomeBreakdown.totalIncomeDecrement > 0 && (
-                  <div className="flex items-center gap-1 text-orange-600">
-                    <TrendingDown size={12} />
-                    <span>- {formatCurrency(incomeBreakdown.totalIncomeDecrement)} deduzido</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Total Expenses Card */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm font-medium mb-1">
-            Total Gasto ({formatMonthYear(selectedMonthDate)})
-          </h3>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
-        </div>
-
-        {/* Free Balance Card */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="text-slate-500 text-sm font-medium mb-1">Saldo Livre</h3>
-          <p className="text-2xl font-bold text-green-600">
-            {formatCurrency(effectiveIncome - totalExpenses)}
-          </p>
-        </div>
-
-        {isForecastMode && (
-          <div className="md:col-span-3 bg-white p-6 rounded-xl shadow-sm border border-amber-100">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-1">
-                  <Gem size={14} className="text-amber-500" />
-                  Previsões de gastos
-                </h3>
-                <p className="text-2xl font-bold text-amber-600">
-                  {formatCurrency(forecastTotal)}
-                </p>
-              </div>
-              <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full w-fit">
-                {forecastCountLabel}
-              </span>
-            </div>
-
-            <div className="mt-4">
-              {forecastExpenses.length === 0 ? (
-                <p className="text-sm text-slate-400">Nenhuma previsão para este mês.</p>
-              ) : (
-                <ul className="divide-y divide-slate-100">
-                  {forecastExpenses.map((transaction) => (
-                    <li
-                      key={transaction.id}
-                      className="py-2 flex items-center justify-between gap-3"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-slate-700">
-                          {transaction.description}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {formatDateString(transaction.date)}
-                        </p>
-                      </div>
-                      <span className="text-sm font-semibold text-slate-700">
-                        {formatCurrency(transaction.amount)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Total Income Card */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <h3 className="text-slate-500 text-sm font-medium mb-1">Renda Total Familiar</h3>
+        <p className="text-2xl font-bold text-slate-800">{formatCurrency(effectiveIncome)}</p>
+        {hasIncomeTransactions && (
+          <div className="mt-2 pt-2 border-t border-slate-100">
+            <div className="text-xs text-slate-500 space-y-1">
+              {incomeBreakdown.totalIncomeIncrement > 0 && (
+                <div className="flex items-center gap-1 text-green-600">
+                  <TrendingUp size={12} />
+                  <span>+ {formatCurrency(incomeBreakdown.totalIncomeIncrement)} adicionado</span>
+                </div>
+              )}
+              {incomeBreakdown.totalIncomeDecrement > 0 && (
+                <div className="flex items-center gap-1 text-orange-600">
+                  <TrendingDown size={12} />
+                  <span>- {formatCurrency(incomeBreakdown.totalIncomeDecrement)} deduzido</span>
+                </div>
               )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Total Expenses Card */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <h3 className="text-slate-500 text-sm font-medium mb-1">
+          Total Gasto ({formatMonthYear(selectedMonthDate)})
+        </h3>
+        <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
+      </div>
+
+      {/* Free Balance Card */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <h3 className="text-slate-500 text-sm font-medium mb-1">Saldo Livre</h3>
+        <p className="text-2xl font-bold text-green-600">
+          {formatCurrency(effectiveIncome - totalExpenses)}
+        </p>
+      </div>
+
+      {hasForecastExpenses && (
+        <div className="md:col-span-3 bg-white p-6 rounded-xl shadow-sm border border-amber-100">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-1">
+                <CrystalBall size={14} className="text-amber-500" />
+                Previsões de gastos
+              </h3>
+              <p className="text-2xl font-bold text-amber-600">
+                {formatCurrency(forecastTotal)}
+              </p>
+            </div>
+            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full w-fit">
+              {forecastCountLabel}
+            </span>
+          </div>
+
+          <div className="mt-4">
+            <ul className="divide-y divide-slate-100">
+              {forecastExpenses.map((transaction) => {
+                const isIncluded = transaction.isForecastIncluded;
+                return (
+                  <li
+                    key={transaction.id}
+                    className="py-2 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">
+                        {transaction.description}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {formatDateString(transaction.date)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTransactionById(transaction.id, {
+                            isForecastIncluded: !isIncluded,
+                          })
+                        }
+                        className={`p-1.5 rounded-full transition-colors ${
+                          isIncluded
+                            ? "text-emerald-600 hover:text-emerald-700"
+                            : "text-slate-300 hover:text-slate-500"
+                        }`}
+                        title={
+                          isIncluded ? "Remover da conta" : "Considerar na conta"
+                        }
+                      >
+                        <ThumbsUp size={14} fill={isIncluded ? "currentColor" : "none"} />
+                      </button>
+                      <span className="text-sm font-semibold text-slate-700">
+                        {formatCurrency(transaction.amount)}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

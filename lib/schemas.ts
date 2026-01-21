@@ -20,6 +20,7 @@ export const transactionPatchSchema = z
     isCreditCard: z.boolean(),
     excludeFromSplit: z.boolean(),
     isForecast: z.boolean(),
+    isForecastIncluded: z.boolean(),
     date: z.string(),
     type: transactionTypeSchema,
     isIncrement: z.boolean(),
@@ -34,6 +35,7 @@ export const bulkTransactionPatchSchema = z
     isCreditCard: z.boolean(),
     excludeFromSplit: z.boolean(),
     isForecast: z.boolean(),
+    isForecastIncluded: z.boolean(),
     type: transactionTypeSchema,
     isIncrement: z.boolean(),
   })
@@ -48,6 +50,7 @@ export const createTransactionSchema = z.object({
   isCreditCard: z.boolean(),
   excludeFromSplit: z.boolean(),
   isForecast: z.boolean().default(false),
+  isForecastIncluded: z.boolean().default(false),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   type: transactionTypeSchema.default("expense"),
   isIncrement: z.boolean().default(true),
