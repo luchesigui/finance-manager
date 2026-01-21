@@ -84,7 +84,6 @@ export function TransactionFormFields({
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
   const isIncome = formState.type === "income";
 
-
   /**
    * Handles category change with auto-exclude logic.
    */
