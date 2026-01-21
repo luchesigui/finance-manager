@@ -11,8 +11,10 @@ export default defineConfig({
     include: ["**/*.test.{ts,tsx}"],
     coverage: {
       reporter: ["text", "json", "html"],
-      exclude: ["node_modules/", "vitest.setup.ts"],
+      exclude: ["node_modules/", "vitest.setup.ts", "tests/setup/**"],
     },
+    // Increase timeout for integration tests
+    testTimeout: 10000,
   },
   resolve: {
     alias: {
