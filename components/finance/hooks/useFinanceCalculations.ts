@@ -33,7 +33,8 @@ export type IncomeBreakdown = {
  * Determines if a transaction should be counted in calculations.
  */
 function isIncludedInTotals(transaction: Transaction): boolean {
-  return !transaction.isForecast || transaction.isForecastIncluded;
+  if (!transaction.isForecast) return true;
+  return !transaction.excludeFromSplit;
 }
 
 /**

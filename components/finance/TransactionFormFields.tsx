@@ -84,6 +84,14 @@ export function TransactionFormFields({
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
   const isIncome = formState.type === "income";
 
+  const handleForecastToggle = (checked: boolean) => {
+    setFormState({
+      ...formState,
+      isForecast: checked,
+      excludeFromSplit: checked ? true : false,
+    });
+  };
+
   /**
    * Handles category change with auto-exclude logic.
    */
@@ -336,7 +344,7 @@ export function TransactionFormFields({
             type="checkbox"
             id={inputId("forecast")}
             checked={formState.isForecast}
-            onChange={(e) => setFormState({ ...formState, isForecast: e.target.checked })}
+            onChange={(e) => handleForecastToggle(e.target.checked)}
             className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
           />
           <label

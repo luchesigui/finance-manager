@@ -113,7 +113,6 @@ export function TransactionsView() {
     installments: 2,
     excludeFromSplit: false,
     isForecast: false,
-    isForecastIncluded: false,
     type: "expense",
     isIncrement: true,
   });
@@ -132,7 +131,6 @@ export function TransactionsView() {
     installments: 2,
     excludeFromSplit: false,
     isForecast: false,
-    isForecastIncluded: false,
     type: "expense",
     isIncrement: true,
   });
@@ -191,14 +189,14 @@ export function TransactionsView() {
   const visibleIncludedTransactions = useMemo(
     () =>
       visibleTransactionsForSelectedMonth.filter(
-        (transaction) => !transaction.isForecast || transaction.isForecastIncluded,
+        (transaction) => !transaction.isForecast || !transaction.excludeFromSplit,
       ),
     [visibleTransactionsForSelectedMonth],
   );
   const visibleExcludedForecastCount = useMemo(
     () =>
       visibleTransactionsForSelectedMonth.filter(
-        (transaction) => transaction.isForecast && !transaction.isForecastIncluded,
+        (transaction) => transaction.isForecast && transaction.excludeFromSplit,
       ).length,
     [visibleTransactionsForSelectedMonth],
   );
@@ -228,7 +226,6 @@ export function TransactionsView() {
       installments: 2,
       excludeFromSplit: false,
       isForecast: false,
-      isForecastIncluded: false,
       type: "expense",
       isIncrement: true,
     });
@@ -260,7 +257,6 @@ export function TransactionsView() {
       installments: 2,
       excludeFromSplit: transaction.excludeFromSplit,
       isForecast: transaction.isForecast,
-      isForecastIncluded: transaction.isForecastIncluded,
       type: transaction.type ?? "expense",
       isIncrement: transaction.isIncrement ?? true,
     });
@@ -283,7 +279,6 @@ export function TransactionsView() {
       isCreditCard: editFormState.isCreditCard,
       excludeFromSplit: editFormState.excludeFromSplit,
       isForecast: editFormState.isForecast,
-      isForecastIncluded: editFormState.isForecastIncluded,
       date: editFormState.date,
       type: editFormState.type,
       isIncrement: editFormState.isIncrement,

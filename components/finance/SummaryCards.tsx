@@ -136,7 +136,7 @@ export function SummaryCards({
           <div className="mt-4">
             <ul className="divide-y divide-slate-100">
               {forecastExpenses.map((transaction) => {
-                const isIncluded = transaction.isForecastIncluded;
+                const isIncluded = !transaction.excludeFromSplit;
                 return (
                   <li
                     key={transaction.id}
@@ -156,7 +156,7 @@ export function SummaryCards({
                         onClick={() =>
                           updateTransactionById(transaction.id, {
                             isForecast: false,
-                            isForecastIncluded: true,
+                            excludeFromSplit: false,
                           })
                         }
                         className="p-1.5 rounded-full text-emerald-600 hover:text-emerald-700 transition-colors"
@@ -168,7 +168,7 @@ export function SummaryCards({
                         type="button"
                         onClick={() =>
                           updateTransactionById(transaction.id, {
-                            isForecastIncluded: !isIncluded,
+                            excludeFromSplit: isIncluded,
                           })
                         }
                         className={`p-1.5 rounded-full transition-colors ${
