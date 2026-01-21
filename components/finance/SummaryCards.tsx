@@ -28,7 +28,7 @@ export function SummaryCards({
   categories,
   selectedMonthDate,
 }: SummaryCardsProps) {
-  const { updateTransactionById } = useTransactions();
+  const { updateTransactionById, setForecastInclusionOverride } = useTransactions();
 
   const forecastExpenses = useMemo(
     () =>
@@ -150,7 +150,7 @@ export function SummaryCards({
                         {formatDateString(transaction.date)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center">
                       <button
                         type="button"
                         onClick={() =>
@@ -167,20 +167,18 @@ export function SummaryCards({
                       <button
                         type="button"
                         onClick={() =>
-                          updateTransactionById(transaction.id, {
-                            excludeFromSplit: isIncluded,
-                          })
+                          setForecastInclusionOverride(transaction.id, !isIncluded)
                         }
                         className={`p-1.5 rounded-full transition-colors ${
                           isIncluded
-                            ? "text-indigo-600 hover:text-indigo-700"
+                            ? "text-slate-500 hover:text-slate-600"
                             : "text-slate-300 hover:text-slate-500"
                         }`}
                         title={isIncluded ? "Não considerar na conta" : "Considerar na conta"}
                       >
                         {isIncluded ? <Eye size={14} /> : <EyeOff size={14} />}
                       </button>
-                      <span className="text-sm font-semibold text-slate-700">
+                      <span className="text-sm font-semibold text-slate-700 ml-2">
                         {formatCurrency(transaction.amount)}
                       </span>
                     </div>

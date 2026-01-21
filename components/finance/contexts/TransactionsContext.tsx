@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type React from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { fetchJson, jsonRequestInit } from "@/lib/apiClient";
@@ -48,6 +48,7 @@ type TransactionsContextValue = {
   addTransactionsFromFormState: (formState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
   updateTransactionById: (transactionId: number, patch: TransactionPatch) => void;
+  setForecastInclusionOverride: (transactionId: number, include: boolean) => void;
   bulkUpdateTransactions: (ids: number[], patch: BulkTransactionPatch) => void;
   bulkDeleteTransactions: (ids: number[]) => void;
 };
@@ -61,6 +62,9 @@ const TransactionsContext = createContext<TransactionsContextValue | null>(null)
 export function TransactionsProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const queryClient = useQueryClient();
   const { selectedYear, selectedMonthNumber, selectedMonthDate } = useCurrentMonth();
+  const [forecastInclusionOverrides, setForecastInclusionOverrides] = useState<
+    Record<number, boolean>
+  >({});
 
   const queryKey = useMemo(
     () => ["transactions", selectedYear, selectedMonthNumber] as const,
@@ -129,6 +133,16 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
+
+  const setForecastInclusionOverride = useCallback(
+    (transactionId: number, include: boolean) => {
+      setForecastInclusionOverrides((prev) => {
+        if (prev[transactionId] === include) return prev;
+        return { ...prev, [transactionId]: include };
+      });
+    },
+    [],
+  );
 
   // Bulk update mutation
   const bulkUpdateMutation = useMutation({
@@ -249,22 +263,40 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   // Context Value
   // ============================================================================
 
+  const transactionsForSelectedMonth = useMemo(() => {
+    const base = transactionsQuery.data ?? [];
+    const hasOverrides = Object.keys(forecastInclusionOverrides).length > 0;
+    const sorted = hasOverrides
+      ? base.map((transaction) => {
+          if (!transaction.isForecast) return transaction;
+          const include = forecastInclusionOverrides[transaction.id];
+          if (include === undefined) return transaction;
+          const nextExclude = !include;
+          if (transaction.excludeFromSplit === nextExclude) return transaction;
+          return { ...transaction, excludeFromSplit: nextExclude };
+        })
+      : base;
+    return [...sorted].sort(compareByCreationDesc);
+  }, [transactionsQuery.data, forecastInclusionOverrides]);
+
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
-      transactionsForSelectedMonth: [...(transactionsQuery.data ?? [])].sort(compareByCreationDesc),
+      transactionsForSelectedMonth,
       isTransactionsLoading: transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      setForecastInclusionOverride,
       bulkUpdateTransactions: bulkUpdateTransactionsAction,
       bulkDeleteTransactions: bulkDeleteTransactionsAction,
     }),
     [
-      transactionsQuery.data,
+      transactionsForSelectedMonth,
       transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      setForecastInclusionOverride,
       bulkUpdateTransactionsAction,
       bulkDeleteTransactionsAction,
     ],
