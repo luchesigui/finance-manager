@@ -1,6 +1,6 @@
 "use client";
 
-import { CrystalBall, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
+import { ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 
 import {
@@ -10,6 +10,7 @@ import {
   getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
@@ -120,7 +121,7 @@ export function SummaryCards({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-1">
-                <CrystalBall size={14} className="text-amber-500" />
+                <CrystalBallLine size={14} className="text-amber-500" />
                 Previsões de gastos
               </h3>
               <p className="text-2xl font-bold text-amber-600">

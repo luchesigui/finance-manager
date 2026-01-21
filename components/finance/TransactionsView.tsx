@@ -4,7 +4,6 @@ import {
   BrainCircuit,
   Check,
   CreditCard,
-  CrystalBall,
   Filter,
   Loader2,
   Pencil,
@@ -27,6 +26,7 @@ import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthConte
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
@@ -806,7 +806,7 @@ Retorne APENAS o JSON, sem markdown.
                         )}
                         {isForecast && (
                           <span className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
-                            <CrystalBall size={10} /> Previsão
+                            <CrystalBallLine size={10} className="text-amber-700" /> Previsão
                           </span>
                         )}
                         {transaction.isRecurring && (

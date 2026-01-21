@@ -2,7 +2,6 @@
 
 import {
   CreditCard,
-  CrystalBall,
   Layers,
   MinusCircle,
   PlusCircle,
@@ -17,6 +16,7 @@ import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { toYearMonthString } from "@/lib/dateUtils";
 import type { NewTransactionFormState } from "@/lib/types";
@@ -344,7 +344,7 @@ export function TransactionFormFields({
             className="text-sm text-slate-600 flex items-center gap-1 cursor-pointer"
             title="Pode ser considerada na conta no resumo"
           >
-            <CrystalBall size={14} /> Previsão?
+            <CrystalBallLine size={14} /> Previsão?
           </label>
         </div>
 
