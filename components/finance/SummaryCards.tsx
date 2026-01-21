@@ -1,6 +1,6 @@
 "use client";
 
-import { ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
+import { Eye, EyeOff, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 
 import {
@@ -155,19 +155,30 @@ export function SummaryCards({
                         type="button"
                         onClick={() =>
                           updateTransactionById(transaction.id, {
+                            isForecast: false,
+                            isForecastIncluded: true,
+                          })
+                        }
+                        className="p-1.5 rounded-full text-emerald-600 hover:text-emerald-700 transition-colors"
+                        title="Marcar como oficial"
+                      >
+                        <ThumbsUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateTransactionById(transaction.id, {
                             isForecastIncluded: !isIncluded,
                           })
                         }
                         className={`p-1.5 rounded-full transition-colors ${
                           isIncluded
-                            ? "text-emerald-600 hover:text-emerald-700"
+                            ? "text-indigo-600 hover:text-indigo-700"
                             : "text-slate-300 hover:text-slate-500"
                         }`}
-                        title={
-                          isIncluded ? "Remover da conta" : "Considerar na conta"
-                        }
+                        title={isIncluded ? "Não considerar na conta" : "Considerar na conta"}
                       >
-                        <ThumbsUp size={14} fill={isIncluded ? "currentColor" : "none"} />
+                        {isIncluded ? <Eye size={14} /> : <EyeOff size={14} />}
                       </button>
                       <span className="text-sm font-semibold text-slate-700">
                         {formatCurrency(transaction.amount)}
