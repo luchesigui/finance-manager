@@ -129,9 +129,7 @@ export function SummaryCards({
                 <CrystalBallLine size={14} className="text-amber-500" />
                 Previsões de gastos
               </h3>
-              <p className="text-2xl font-bold text-amber-600">
-                {formatCurrency(forecastTotal)}
-              </p>
+              <p className="text-2xl font-bold text-amber-600">{formatCurrency(forecastTotal)}</p>
             </div>
             <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full w-fit">
               {forecastCountLabel}
@@ -143,17 +141,12 @@ export function SummaryCards({
               {forecastExpenses.map((transaction) => {
                 const isIncluded = isForecastIncluded(transaction.id);
                 return (
-                  <li
-                    key={transaction.id}
-                    className="py-2 flex items-center justify-between gap-3"
-                  >
+                  <li key={transaction.id} className="py-2 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-slate-700">
                         {transaction.description}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        {formatDateString(transaction.date)}
-                      </p>
+                      <p className="text-xs text-slate-500">{formatDateString(transaction.date)}</p>
                     </div>
                     <div className="flex items-center">
                       <button
@@ -171,9 +164,7 @@ export function SummaryCards({
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          setForecastInclusionOverride(transaction.id, !isIncluded)
-                        }
+                        onClick={() => setForecastInclusionOverride(transaction.id, !isIncluded)}
                         className={`p-1.5 rounded-full transition-colors ${
                           isIncluded
                             ? "text-slate-500 hover:text-slate-600"
