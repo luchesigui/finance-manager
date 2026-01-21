@@ -28,7 +28,12 @@ export function SummaryCards({
   categories,
   selectedMonthDate,
 }: SummaryCardsProps) {
-  const { updateTransactionById, setForecastInclusionOverride } = useTransactions();
+  const {
+    updateTransactionById,
+    setForecastInclusionOverride,
+    isForecastIncluded,
+    transactionsForCalculations,
+  } = useTransactions();
 
   const forecastExpenses = useMemo(
     () =>
@@ -49,7 +54,7 @@ export function SummaryCards({
   const totalIncome = calculateTotalIncome(people);
 
   // Calculate income breakdown
-  const incomeBreakdown = calculateIncomeBreakdown(transactionsForSelectedMonth);
+  const incomeBreakdown = calculateIncomeBreakdown(transactionsForCalculations);
   const effectiveIncome = totalIncome + incomeBreakdown.netIncome;
 
   // Build set of excluded category IDs for fair distribution
@@ -60,7 +65,7 @@ export function SummaryCards({
   );
 
   // Filter transactions for fair distribution calculation
-  const expenseTransactions = getExpenseTransactions(transactionsForSelectedMonth);
+  const expenseTransactions = getExpenseTransactions(transactionsForCalculations);
   const transactionsForFairDistribution = expenseTransactions.filter(
     (transaction) =>
       transaction.categoryId !== null &&
@@ -136,7 +141,7 @@ export function SummaryCards({
           <div className="mt-4">
             <ul className="divide-y divide-slate-100">
               {forecastExpenses.map((transaction) => {
-                const isIncluded = !transaction.excludeFromSplit;
+                const isIncluded = isForecastIncluded(transaction.id);
                 return (
                   <li
                     key={transaction.id}

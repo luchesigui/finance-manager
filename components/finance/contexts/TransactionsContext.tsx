@@ -44,10 +44,12 @@ function buildTransactionsUrl(year: number, month: number): string {
 
 type TransactionsContextValue = {
   transactionsForSelectedMonth: Transaction[];
+  transactionsForCalculations: Transaction[];
   isTransactionsLoading: boolean;
   addTransactionsFromFormState: (formState: NewTransactionFormState) => void;
   deleteTransactionById: (transactionId: number) => void;
   updateTransactionById: (transactionId: number, patch: TransactionPatch) => void;
+  isForecastIncluded: (transactionId: number) => boolean;
   setForecastInclusionOverride: (transactionId: number, include: boolean) => void;
   bulkUpdateTransactions: (ids: number[], patch: BulkTransactionPatch) => void;
   bulkDeleteTransactions: (ids: number[]) => void;
@@ -134,14 +136,21 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
     },
   });
 
-  const setForecastInclusionOverride = useCallback(
-    (transactionId: number, include: boolean) => {
-      setForecastInclusionOverrides((prev) => {
-        if (prev[transactionId] === include) return prev;
-        return { ...prev, [transactionId]: include };
-      });
-    },
-    [],
+  const setForecastInclusionOverride = useCallback((transactionId: number, include: boolean) => {
+    setForecastInclusionOverrides((prev) => {
+      if (include) {
+        if (prev[transactionId]) return prev;
+        return { ...prev, [transactionId]: true };
+      }
+      if (!prev[transactionId]) return prev;
+      const { [transactionId]: _removed, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
+  const isForecastIncluded = useCallback(
+    (transactionId: number) => forecastInclusionOverrides[transactionId] === true,
+    [forecastInclusionOverrides],
   );
 
   // Bulk update mutation
@@ -263,39 +272,43 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   // Context Value
   // ============================================================================
 
-  const transactionsForSelectedMonth = useMemo(() => {
+  const transactionsForSelectedMonth = useMemo(
+    () => [...(transactionsQuery.data ?? [])].sort(compareByCreationDesc),
+    [transactionsQuery.data],
+  );
+
+  const transactionsForCalculations = useMemo(() => {
     const base = transactionsQuery.data ?? [];
-    const hasOverrides = Object.keys(forecastInclusionOverrides).length > 0;
-    const sorted = hasOverrides
-      ? base.map((transaction) => {
-          if (!transaction.isForecast) return transaction;
-          const include = forecastInclusionOverrides[transaction.id];
-          if (include === undefined) return transaction;
-          const nextExclude = !include;
-          if (transaction.excludeFromSplit === nextExclude) return transaction;
-          return { ...transaction, excludeFromSplit: nextExclude };
-        })
-      : base;
-    return [...sorted].sort(compareByCreationDesc);
+    return base
+      .filter((transaction) => !transaction.isForecast || forecastInclusionOverrides[transaction.id])
+      .map((transaction) => {
+        if (!transaction.isForecast) return transaction;
+        if (!forecastInclusionOverrides[transaction.id]) return transaction;
+        return { ...transaction, isForecast: false };
+      });
   }, [transactionsQuery.data, forecastInclusionOverrides]);
 
   const contextValue = useMemo<TransactionsContextValue>(
     () => ({
       transactionsForSelectedMonth,
+      transactionsForCalculations,
       isTransactionsLoading: transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      isForecastIncluded,
       setForecastInclusionOverride,
       bulkUpdateTransactions: bulkUpdateTransactionsAction,
       bulkDeleteTransactions: bulkDeleteTransactionsAction,
     }),
     [
       transactionsForSelectedMonth,
+      transactionsForCalculations,
       transactionsQuery.isLoading,
       addTransactionsFromFormState,
       deleteTransactionById,
       updateTransactionById,
+      isForecastIncluded,
       setForecastInclusionOverride,
       bulkUpdateTransactionsAction,
       bulkDeleteTransactionsAction,

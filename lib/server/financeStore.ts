@@ -508,7 +508,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
     is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
-    exclude_from_split: isForecast ? true : isIncome ? false : (t.excludeFromSplit ?? false),
+    exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
     is_forecast: isForecast,
     date: t.date,
     household_id: householdId,

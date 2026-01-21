@@ -17,7 +17,7 @@ import {
   UserX,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { TransactionFormFields } from "@/components/finance/TransactionFormFields";
@@ -54,6 +54,7 @@ export function TransactionsView() {
   const { defaultPayerId } = useDefaultPayer();
   const {
     transactionsForSelectedMonth,
+    transactionsForCalculations,
     addTransactionsFromFormState,
     deleteTransactionById,
     updateTransactionById,
@@ -151,8 +152,8 @@ export function TransactionsView() {
     if (!stillExists) setCategoryFilter("all");
   }, [categoryFilter, categories]);
 
-  const visibleTransactionsForSelectedMonth = useMemo(() => {
-    return transactionsForSelectedMonth.filter((transaction) => {
+  const matchesFilters = useCallback(
+    (transaction: Transaction) => {
       if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
       if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
       // Income transactions have no category, so they pass category filter if "all" or if specifically showing income
@@ -175,30 +176,29 @@ export function TransactionsView() {
       }
 
       return true;
-    });
-  }, [
-    categoryFilter,
-    paidByFilter,
-    typeFilter,
-    transactionsForSelectedMonth,
-    searchQuery,
-    categories,
-    people,
-  ]);
+    },
+    [paidByFilter, typeFilter, categoryFilter, searchQuery, categories, people],
+  );
 
-  const visibleIncludedTransactions = useMemo(
-    () =>
-      visibleTransactionsForSelectedMonth.filter(
-        (transaction) => !transaction.isForecast || !transaction.excludeFromSplit,
-      ),
-    [visibleTransactionsForSelectedMonth],
+  const visibleTransactionsForSelectedMonth = useMemo(
+    () => transactionsForSelectedMonth.filter(matchesFilters),
+    [transactionsForSelectedMonth, matchesFilters],
+  );
+  const visibleTransactionsForCalculations = useMemo(
+    () => transactionsForCalculations.filter(matchesFilters),
+    [transactionsForCalculations, matchesFilters],
+  );
+
+  const visibleCalculationIds = useMemo(
+    () => new Set(visibleTransactionsForCalculations.map((transaction) => transaction.id)),
+    [visibleTransactionsForCalculations],
   );
   const visibleExcludedForecastCount = useMemo(
     () =>
       visibleTransactionsForSelectedMonth.filter(
-        (transaction) => transaction.isForecast && transaction.excludeFromSplit,
+        (transaction) => transaction.isForecast && !visibleCalculationIds.has(transaction.id),
       ).length,
-    [visibleTransactionsForSelectedMonth],
+    [visibleTransactionsForSelectedMonth, visibleCalculationIds],
   );
 
   useEffect(() => {
@@ -873,14 +873,16 @@ Retorne APENAS o JSON, sem markdown.
         {visibleTransactionsForSelectedMonth.length > 0 && (
           <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
             <span className="font-semibold text-slate-700">
-              Total ({visibleIncludedTransactions.length} lançamento(s)
+              Total ({visibleTransactionsForCalculations.length} lançamento(s)
               {visibleExcludedForecastCount > 0
                 ? ` + ${visibleExcludedForecastCount} previsão não considerada`
                 : ""}
               )
             </span>
             <span className="font-bold text-lg text-slate-800">
-              {formatCurrency(visibleIncludedTransactions.reduce((sum, t) => sum + t.amount, 0))}
+              {formatCurrency(
+                visibleTransactionsForCalculations.reduce((sum, t) => sum + t.amount, 0),
+              )}
             </span>
           </div>
         )}
