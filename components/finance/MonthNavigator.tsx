@@ -23,27 +23,30 @@ export function MonthNavigator() {
   };
 
   return (
-    <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+    <div
+      className="flex items-center justify-between bg-noir-bg-surface p-4 rounded-card shadow-sm mb-6"
+      style={{ borderColor: "rgba(255, 255, 255, 0.05)", borderWidth: "1px", borderStyle: "solid" }}
+    >
       <button
         type="button"
         onClick={handlePrevMonth}
-        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
+        className="p-2 hover:bg-noir-bg-active rounded-pill text-noir-text-body transition-colors"
       >
         <ChevronLeft size={24} />
       </button>
       <div className="text-center">
-        <h2 className="text-lg font-bold text-slate-800 capitalize flex items-center gap-2 justify-center">
-          <Calendar size={20} className="text-indigo-600" />
+        <h2 className="text-lg font-bold text-noir-text-heading capitalize flex items-center gap-2 justify-center">
+          <Calendar size={20} className="text-noir-text-accent" />
           {formatMonthYear(selectedMonthDate)}
         </h2>
-        <span className="text-xs text-slate-400 font-medium">
+        <span className="text-xs tabular-nums text-noir-text-muted font-medium">
           {transactionsForSelectedMonth.length} lançamentos neste mês
         </span>
       </div>
       <button
         type="button"
         onClick={handleNextMonth}
-        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
+        className="p-2 hover:bg-noir-bg-active rounded-pill text-noir-text-body transition-colors"
       >
         <ChevronRight size={24} />
       </button>

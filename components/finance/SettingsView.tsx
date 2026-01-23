@@ -265,9 +265,16 @@ export function SettingsView() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Participants Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div
+        className="bg-noir-bg-surface p-card rounded-card shadow-sm"
+        style={{
+          borderColor: "rgba(255, 255, 255, 0.05)",
+          borderWidth: "1px",
+          borderStyle: "solid",
+        }}
+      >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-noir-text-heading flex items-center gap-2">
             <Users size={20} />
             Participantes & Salários
           </h2>
@@ -276,7 +283,7 @@ export function SettingsView() {
               type="button"
               onClick={handleSaveAll}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-noir-accent-primary text-noir-text-on-accent rounded-interactive text-sm font-medium hover:bg-noir-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors glow-accent"
             >
               <Save size={16} />
               {isSaving ? "Salvando..." : "Salvar Alterações"}
@@ -320,10 +327,18 @@ export function SettingsView() {
           {showNewPersonForm ? (
             <form
               onSubmit={handleCreatePerson}
-              className="flex flex-col md:flex-row gap-3 items-end p-4 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300"
+              className="flex flex-col md:flex-row gap-3 items-end p-4 bg-noir-bg-primary rounded-interactive"
+              style={{
+                borderColor: "rgba(255, 255, 255, 0.05)",
+                borderWidth: "2px",
+                borderStyle: "dashed",
+              }}
             >
               <div className="flex-1 w-full">
-                <label htmlFor="new-person-name" className="text-xs text-slate-500 font-medium">
+                <label
+                  htmlFor="new-person-name"
+                  className="text-xs text-noir-text-muted font-medium"
+                >
                   Nome
                 </label>
                 <input
@@ -332,12 +347,20 @@ export function SettingsView() {
                   value={newPersonName}
                   onChange={(e) => setNewPersonName(e.target.value)}
                   required
-                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
+                  className="w-full bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-sm"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.05)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
                   placeholder="Nome do participante"
                 />
               </div>
               <div className="w-full md:w-48">
-                <label htmlFor="new-person-income" className="text-xs text-slate-500 font-medium">
+                <label
+                  htmlFor="new-person-income"
+                  className="text-xs text-noir-text-muted font-medium"
+                >
                   Renda Mensal
                 </label>
                 <CurrencyInput
@@ -345,7 +368,7 @@ export function SettingsView() {
                   value={newPersonIncome}
                   onValueChange={setNewPersonIncome}
                   required
-                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
+                  className="w-full tabular-nums bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-sm border"
                   placeholder="R$ 0,00"
                 />
               </div>
@@ -353,7 +376,7 @@ export function SettingsView() {
                 <button
                   type="submit"
                   disabled={isCreatingPerson}
-                  className="px-4 py-1 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-1 bg-noir-accent-primary text-noir-text-on-accent rounded-interactive text-sm font-medium hover:bg-noir-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed glow-accent"
                 >
                   {isCreatingPerson ? "Adicionando..." : "Adicionar"}
                 </button>
@@ -364,7 +387,7 @@ export function SettingsView() {
                     setNewPersonName("");
                     setNewPersonIncome(null);
                   }}
-                  className="px-4 py-1 bg-slate-300 text-slate-700 rounded text-sm font-medium hover:bg-slate-400"
+                  className="px-4 py-1 bg-noir-bg-active text-noir-text-body rounded-interactive text-sm font-medium hover:bg-noir-bg-surface"
                 >
                   Cancelar
                 </button>
@@ -374,7 +397,12 @@ export function SettingsView() {
             <button
               type="button"
               onClick={() => setShowNewPersonForm(true)}
-              className="w-full flex items-center justify-center gap-2 p-3 bg-slate-100 hover:bg-slate-200 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 p-3 bg-noir-bg-primary hover:bg-noir-bg-active rounded-interactive text-noir-text-body font-medium transition-colors"
+              style={{
+                borderColor: "rgba(255, 255, 255, 0.05)",
+                borderWidth: "2px",
+                borderStyle: "dashed",
+              }}
             >
               <Plus size={20} />
               Adicionar Novo Participante
@@ -383,22 +411,32 @@ export function SettingsView() {
         </div>
 
         {/* Default Payer Selection */}
-        <div className="mt-6 pt-4 border-t border-slate-100">
+        <div className="mt-6 pt-4" style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}>
           <div className="flex items-center gap-2 mb-2">
-            <p className="block text-sm font-medium text-slate-700">
+            <p className="block text-sm font-medium text-noir-text-body">
               Responsável Padrão (Pré-selecionado)
             </p>
-            {isUpdatingDefaultPayer && <span className="text-xs text-slate-500">Salvando...</span>}
+            {isUpdatingDefaultPayer && (
+              <span className="text-xs text-noir-text-muted">Salvando...</span>
+            )}
           </div>
           <div className="flex gap-4">
             {people.map((person) => (
               <label
                 key={person.id}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-interactive cursor-pointer transition-all ${
                   defaultPayerId === person.id
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 hover:bg-slate-50"
+                    ? "bg-noir-accent-primary/20 text-noir-text-accent"
+                    : "hover:bg-noir-bg-active text-noir-text-body"
                 } ${isUpdatingDefaultPayer ? "opacity-50 cursor-wait" : ""}`}
+                style={{
+                  borderColor:
+                    defaultPayerId === person.id
+                      ? "var(--color-noir-accent-primary)"
+                      : "rgba(255, 255, 255, 0.05)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                }}
               >
                 <input
                   type="radio"
@@ -406,7 +444,7 @@ export function SettingsView() {
                   checked={defaultPayerId === person.id}
                   onChange={() => !isUpdatingDefaultPayer && setDefaultPayerId(person.id)}
                   disabled={isUpdatingDefaultPayer}
-                  className="text-indigo-600 focus:ring-indigo-500 disabled:cursor-wait"
+                  className="text-noir-accent-primary focus:ring-noir-accent-primary disabled:cursor-wait"
                 />
                 {person.name}
               </label>
@@ -416,9 +454,16 @@ export function SettingsView() {
       </div>
 
       {/* Categories Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div
+        className="bg-noir-bg-surface p-card rounded-card shadow-sm"
+        style={{
+          borderColor: "rgba(255, 255, 255, 0.05)",
+          borderWidth: "1px",
+          borderStyle: "solid",
+        }}
+      >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-noir-text-heading flex items-center gap-2">
             <PieChart size={20} />
             Categorias & Metas (%)
           </h2>
@@ -427,7 +472,7 @@ export function SettingsView() {
               type="button"
               onClick={handleSaveCategories}
               disabled={isSavingCategories || totalCategoryPercent !== 100}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-noir-accent-primary text-noir-text-on-accent rounded-interactive text-sm font-medium hover:bg-noir-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors glow-accent"
             >
               <Save size={16} />
               {isSavingCategories ? "Salvando..." : "Salvar Alterações"}
@@ -442,7 +487,10 @@ export function SettingsView() {
 
             return (
               <div key={cat.id} className="flex items-center gap-4">
-                <span className="flex-1 font-medium py-1" style={getCategoryColorStyle(cat.name)}>
+                <span
+                  className="flex-1 font-medium py-1 text-noir-text-body"
+                  style={getCategoryColorStyle(cat.name)}
+                >
                   {cat.name}
                 </span>
                 <div className="flex items-center justify-end gap-2 w-32">
@@ -452,20 +500,28 @@ export function SettingsView() {
                     onChange={(e) =>
                       updateCategoryEdit(cat.id, Number.parseFloat(e.target.value) || 0)
                     }
-                    className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
+                    className="w-16 tabular-nums bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-right text-sm"
+                    style={{
+                      borderColor: "rgba(255, 255, 255, 0.05)",
+                      borderWidth: "1px",
+                      borderStyle: "solid",
+                    }}
                     min="0"
                     max="100"
                   />
-                  <span className="text-slate-500 text-sm">%</span>
+                  <span className="text-noir-text-muted text-sm">%</span>
                 </div>
               </div>
             );
           })}
 
-          <div className="flex justify-between items-center pt-4 border-t border-slate-100 mt-4">
-            <span className="font-semibold text-slate-600">Total Planejado</span>
+          <div
+            className="flex justify-between items-center pt-4 mt-4"
+            style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}
+          >
+            <span className="font-semibold text-noir-text-body">Total Planejado</span>
             <span
-              className={`font-bold ${totalCategoryPercent === 100 ? "text-green-600" : "text-red-500"}`}
+              className={`font-bold tabular-nums ${totalCategoryPercent === 100 ? "text-noir-accent-positive" : "text-noir-accent-negative"}`}
             >
               {totalCategoryPercent}%
             </span>

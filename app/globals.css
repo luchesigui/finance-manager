@@ -3,10 +3,70 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html,
 body {
   height: 100%;
+  background-color: #050a0f;
+}
+
+/* Financial Noir Theme Custom Styles */
+
+/* Subtle glow effects for high-importance elements */
+.glow-accent {
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+}
+
+.glow-spending {
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.15);
+}
+
+.glow-positive {
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+}
+
+.glow-negative {
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+}
+
+/* Glassmorphism for overlays */
+.glass-overlay {
+  background: rgba(13, 20, 28, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Smooth transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow,
+    transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Tabular numbers for financial data */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d141c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a2430;
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }

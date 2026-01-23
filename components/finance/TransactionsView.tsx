@@ -447,12 +447,26 @@ Retorne APENAS o JSON, sem markdown.
     <div className="space-y-6 animate-in fade-in duration-500">
       <MonthNavigator />
 
-      <div className="bg-white p-6 rounded-xl shadow-lg border border-indigo-100 relative overflow-hidden">
+      <div
+        className="bg-noir-bg-surface p-card rounded-card shadow-lg relative overflow-hidden"
+        style={{
+          borderColor: "rgba(255, 255, 255, 0.05)",
+          borderWidth: "1px",
+          borderStyle: "solid",
+        }}
+      >
         {isSmartFillEnabled && (
-          <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+          <div
+            className="mb-6 bg-noir-bg-primary p-4 rounded-interactive"
+            style={{
+              borderColor: "rgba(255, 255, 255, 0.05)",
+              borderWidth: "1px",
+              borderStyle: "solid",
+            }}
+          >
             <label
               htmlFor="smart-input"
-              className="text-xs font-bold text-indigo-600 flex items-center gap-1 mb-2"
+              className="text-xs font-bold text-noir-text-accent flex items-center gap-1 mb-2"
             >
               <Sparkles size={14} />
               PREENCHIMENTO INTELIGENTE (BETA)
@@ -464,14 +478,19 @@ Retorne APENAS o JSON, sem markdown.
                 value={smartInput}
                 onChange={(event) => setSmartInput(event.target.value)}
                 placeholder="Ex: Almoço com Amanda hoje custou 45 reais"
-                className="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="flex-1 text-sm bg-noir-bg-surface text-noir-text-body rounded-interactive px-3 py-2 focus:ring-2 focus:ring-noir-accent-primary focus:outline-none"
+                style={{
+                  borderColor: "rgba(255, 255, 255, 0.05)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                }}
                 onKeyDown={(event) => event.key === "Enter" && handleSmartFill()}
               />
               <button
                 type="button"
                 onClick={handleSmartFill}
                 disabled={aiLoading || !smartInput}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="bg-noir-accent-primary text-noir-text-on-accent px-4 py-2 rounded-interactive hover:bg-noir-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors glow-accent"
               >
                 {aiLoading ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -483,9 +502,9 @@ Retorne APENAS o JSON, sem markdown.
           </div>
         )}
 
-        <h3 className="font-semibold text-slate-700 mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-noir-text-body mb-4 flex items-center gap-2">
           <Plus
-            className={`${newTrans.type === "income" ? "bg-green-600" : "bg-indigo-600"} text-white rounded-full p-1`}
+            className={`${newTrans.type === "income" ? "bg-noir-accent-positive" : "bg-noir-accent-primary"} text-noir-text-on-accent rounded-pill p-1`}
             size={24}
           />
           {newTrans.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
@@ -506,7 +525,7 @@ Retorne APENAS o JSON, sem markdown.
           <div className="lg:col-span-4 mt-2">
             <button
               type="submit"
-              className={`w-full ${newTrans.type === "income" ? "bg-green-600 hover:bg-green-700" : "bg-indigo-600 hover:bg-indigo-700"} text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2`}
+              className={`w-full ${newTrans.type === "income" ? "bg-noir-accent-positive hover:bg-noir-accent-positive-hover" : "bg-noir-accent-primary hover:bg-noir-accent-primary-hover"} text-noir-text-on-accent font-medium py-3 px-4 rounded-interactive transition-colors flex items-center justify-center gap-2 glow-accent`}
             >
               <Plus size={18} />
               {newTrans.type === "income"
@@ -521,22 +540,32 @@ Retorne APENAS o JSON, sem markdown.
         </form>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-100 bg-slate-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-semibold text-slate-700">
+      <div
+        className="bg-noir-bg-surface rounded-card shadow-sm overflow-hidden"
+        style={{
+          borderColor: "rgba(255, 255, 255, 0.05)",
+          borderWidth: "1px",
+          borderStyle: "solid",
+        }}
+      >
+        <div
+          className="p-4 bg-noir-bg-primary flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}
+        >
+          <h2 className="font-semibold text-noir-text-body">
             Histórico de {formatMonthYear(selectedMonthDate)}
           </h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <span className="text-xs text-slate-500 bg-slate-200 px-2 py-1 rounded-full w-fit">
+            <span className="text-xs tabular-nums text-noir-text-muted bg-noir-bg-active px-2 py-1 rounded-pill w-fit">
               {visibleTransactionsForSelectedMonth.length} itens
             </span>
             <button
               type="button"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`p-1.5 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-interactive transition-colors ${
                 isFilterOpen
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                  ? "bg-noir-accent-primary text-noir-text-on-accent glow-accent"
+                  : "bg-noir-bg-active text-noir-text-body hover:bg-noir-bg-surface"
               }`}
               title="Filtrar lançamentos"
             >
@@ -545,10 +574,10 @@ Retorne APENAS o JSON, sem markdown.
             <button
               type="button"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className={`p-1.5 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-interactive transition-colors ${
                 isSearchOpen
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                  ? "bg-noir-accent-primary text-noir-text-on-accent glow-accent"
+                  : "bg-noir-bg-active text-noir-text-body hover:bg-noir-bg-surface"
               }`}
               title="Buscar lançamentos"
             >
@@ -557,10 +586,10 @@ Retorne APENAS o JSON, sem markdown.
             <button
               type="button"
               onClick={toggleSelectionMode}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+              className={`text-xs px-3 py-1.5 rounded-interactive font-medium transition-colors ${
                 isSelectionMode
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                  ? "bg-noir-accent-primary text-noir-text-on-accent glow-accent"
+                  : "bg-noir-bg-active text-noir-text-body hover:bg-noir-bg-surface"
               }`}
             >
               {isSelectionMode ? "Cancelar Seleção" : "Selecionar"}
@@ -570,7 +599,10 @@ Retorne APENAS o JSON, sem markdown.
 
         {/* Filter options */}
         {isFilterOpen && (
-          <div className="p-3 border-b border-slate-100 bg-slate-50 animate-in slide-in-from-top-2 duration-200">
+          <div
+            className="p-3 bg-noir-bg-primary animate-in slide-in-from-top-2 duration-200"
+            style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}
+          >
             <div className="flex flex-wrap items-center justify-end gap-3">
               {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all") && (
                 <button
@@ -580,19 +612,24 @@ Retorne APENAS o JSON, sem markdown.
                     setPaidByFilter("all");
                     setCategoryFilter("all");
                   }}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                  className="text-xs text-noir-text-accent hover:text-noir-text-body font-medium flex items-center gap-1"
                 >
                   <X size={12} />
                   Limpar filtros
                 </button>
               )}
               <div className="flex items-center gap-2">
-                <label htmlFor="type-filter" className="text-xs font-medium text-slate-600">
+                <label htmlFor="type-filter" className="text-xs font-medium text-noir-text-body">
                   Tipo
                 </label>
                 <select
                   id="type-filter"
-                  className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-sm focus:ring-2 focus:ring-noir-accent-primary focus:outline-none"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.05)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
                 >
@@ -602,12 +639,17 @@ Retorne APENAS o JSON, sem markdown.
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="paid-by-filter" className="text-xs font-medium text-slate-600">
+                <label htmlFor="paid-by-filter" className="text-xs font-medium text-noir-text-body">
                   Atribuído à
                 </label>
                 <select
                   id="paid-by-filter"
-                  className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-sm focus:ring-2 focus:ring-noir-accent-primary focus:outline-none"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.05)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
                   value={paidByFilter}
                   onChange={(e) => setPaidByFilter(e.target.value)}
                 >
@@ -620,12 +662,20 @@ Retorne APENAS o JSON, sem markdown.
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="category-filter" className="text-xs font-medium text-slate-600">
+                <label
+                  htmlFor="category-filter"
+                  className="text-xs font-medium text-noir-text-body"
+                >
                   Categoria
                 </label>
                 <select
                   id="category-filter"
-                  className="border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-sm focus:ring-2 focus:ring-noir-accent-primary focus:outline-none"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.05)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   disabled={typeFilter === "income"}
@@ -644,24 +694,32 @@ Retorne APENAS o JSON, sem markdown.
 
         {/* Search input */}
         {isSearchOpen && (
-          <div className="p-3 border-b border-slate-100 bg-slate-50 animate-in slide-in-from-top-2 duration-200">
+          <div
+            className="p-3 bg-noir-bg-primary animate-in slide-in-from-top-2 duration-200"
+            style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}
+          >
             <div className="relative">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-noir-text-muted"
               />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por descrição, categoria, pessoa..."
-                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                className="w-full pl-9 pr-8 py-2 text-sm bg-noir-bg-surface text-noir-text-body rounded-interactive focus:ring-2 focus:ring-noir-accent-primary focus:outline-none"
+                style={{
+                  borderColor: "rgba(255, 255, 255, 0.05)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                }}
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-noir-text-muted hover:text-noir-text-body"
                 >
                   <X size={14} />
                 </button>
@@ -672,24 +730,37 @@ Retorne APENAS o JSON, sem markdown.
 
         {/* Bulk action bar */}
         {isSelectionMode && (
-          <div className="p-3 border-b border-slate-100 bg-indigo-50 flex flex-wrap items-center gap-3 animate-in slide-in-from-top-2 duration-200">
+          <div
+            className="p-3 bg-noir-accent-primary/20 flex flex-wrap items-center gap-3 animate-in slide-in-from-top-2 duration-200"
+            style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}
+          >
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={selectAllVisibleTransactions}
-                className="text-xs px-2 py-1 bg-white border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+                className="text-xs px-2 py-1 bg-noir-bg-surface text-noir-text-body rounded-interactive hover:bg-noir-bg-active transition-colors"
+                style={{
+                  borderColor: "rgba(255, 255, 255, 0.05)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                }}
               >
                 Selecionar Todos
               </button>
               <button
                 type="button"
                 onClick={clearSelection}
-                className="text-xs px-2 py-1 bg-white border border-slate-300 rounded hover:bg-slate-50 transition-colors"
+                className="text-xs px-2 py-1 bg-noir-bg-surface text-noir-text-body rounded-interactive hover:bg-noir-bg-active transition-colors"
+                style={{
+                  borderColor: "rgba(255, 255, 255, 0.05)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                }}
               >
                 Limpar
               </button>
             </div>
-            <span className="text-xs text-indigo-700 font-medium">
+            <span className="text-xs tabular-nums text-noir-text-accent font-medium">
               {selectedIds.size} selecionado(s)
             </span>
             <div className="flex-1" />
@@ -698,7 +769,7 @@ Retorne APENAS o JSON, sem markdown.
                 type="button"
                 onClick={handleOpenBulkEditModal}
                 disabled={selectedIds.size === 0}
-                className="text-xs px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                className="text-xs px-3 py-1.5 bg-noir-accent-primary text-noir-text-on-accent rounded-interactive hover:bg-noir-accent-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 glow-accent"
               >
                 <Pencil size={12} />
                 Editar em Massa
@@ -707,7 +778,7 @@ Retorne APENAS o JSON, sem markdown.
                 type="button"
                 onClick={handleBulkDelete}
                 disabled={selectedIds.size === 0}
-                className="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                className="text-xs px-3 py-1.5 bg-noir-accent-negative text-noir-text-on-accent rounded-interactive hover:bg-noir-accent-negative-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
               >
                 <Trash2 size={12} />
                 Excluir
@@ -715,9 +786,9 @@ Retorne APENAS o JSON, sem markdown.
             </div>
           </div>
         )}
-        <div className="divide-y divide-slate-100">
+        <div style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}>
           {visibleTransactionsForSelectedMonth.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
+            <div className="p-8 text-center text-noir-text-muted">
               {searchQuery.trim() ? (
                 <>
                   Nenhum lançamento encontrado para &quot;{searchQuery}&quot;
@@ -751,9 +822,10 @@ Retorne APENAS o JSON, sem markdown.
               return (
                 <div
                   key={transaction.id}
-                  className={`p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group ${
-                    isSelected ? "bg-indigo-50" : ""
-                  } ${isIncome ? "border-l-4 border-l-green-500" : ""}`}
+                  className={`p-4 hover:bg-noir-bg-primary transition-colors flex items-center justify-between group ${
+                    isSelected ? "bg-noir-accent-primary/20" : ""
+                  } ${isIncome ? "border-l-4 border-l-noir-accent-positive" : ""}`}
+                  style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}
                 >
                   <div className="flex items-center gap-4">
                     {isSelectionMode && (
@@ -761,13 +833,18 @@ Retorne APENAS o JSON, sem markdown.
                         type="button"
                         onClick={() => canSelect && toggleTransactionSelection(transaction.id)}
                         disabled={!canSelect}
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                        className={`w-5 h-5 rounded-interactive flex items-center justify-center transition-colors ${
                           isSelected
-                            ? "bg-indigo-600 border-indigo-600 text-white"
+                            ? "bg-noir-accent-primary text-noir-text-on-accent"
                             : canSelect
-                              ? "border-slate-300 hover:border-indigo-400"
-                              : "border-slate-200 bg-slate-100 cursor-not-allowed"
+                              ? "hover:bg-noir-accent-primary/20"
+                              : "bg-noir-bg-active cursor-not-allowed"
                         }`}
+                        style={{
+                          borderColor: isSelected ? "transparent" : "rgba(255, 255, 255, 0.05)",
+                          borderWidth: "2px",
+                          borderStyle: "solid",
+                        }}
                         title={
                           !canSelect ? "Lançamentos recorrentes não podem ser selecionados" : ""
                         }
@@ -776,7 +853,7 @@ Retorne APENAS o JSON, sem markdown.
                       </button>
                     )}
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${isIncome ? (isIncrement ? "bg-green-500" : "bg-orange-500") : "bg-gray-400"}`}
+                      className={`w-10 h-10 rounded-pill flex items-center justify-center text-noir-text-on-accent font-bold text-xs ${isIncome ? (isIncrement ? "bg-noir-accent-positive" : "bg-noir-accent-warning") : "bg-noir-bg-active text-noir-text-body"}`}
                     >
                       {isIncome ? (
                         isIncrement ? (
@@ -789,38 +866,39 @@ Retorne APENAS o JSON, sem markdown.
                       )}
                     </div>
                     <div>
-                      <h4 className="font-medium text-slate-800 flex items-center gap-2">
+                      <h4 className="font-medium text-noir-text-heading flex items-center gap-2">
                         {transaction.description}
                         {isIncome && (
                           <span
-                            className={`${isIncrement ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"} text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1`}
+                            className={`${isIncrement ? "bg-noir-accent-positive/20 text-noir-accent-positive" : "bg-noir-accent-warning/20 text-noir-accent-warning"} text-[10px] px-1.5 py-0.5 rounded-interactive flex items-center gap-1`}
                           >
                             {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                             {isIncrement ? "Renda" : "Dedução"}
                           </span>
                         )}
                         {isForecast && (
-                          <span className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
-                            <CrystalBallLine size={10} className="text-amber-700" /> Previsão
+                          <span className="bg-noir-accent-warning/20 text-noir-accent-spending text-[10px] px-1.5 py-0.5 rounded-interactive flex items-center gap-1">
+                            <CrystalBallLine size={10} className="text-noir-accent-spending" />{" "}
+                            Previsão
                           </span>
                         )}
                         {transaction.isRecurring && (
-                          <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <span className="bg-noir-accent-primary/20 text-noir-text-accent text-[10px] px-1.5 py-0.5 rounded-interactive flex items-center gap-1">
                             <RefreshCw size={10} /> Recorrente
                           </span>
                         )}
                         {transaction.isCreditCard && (
-                          <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <span className="bg-noir-accent-primary/20 text-noir-text-accent text-[10px] px-1.5 py-0.5 rounded-interactive flex items-center gap-1">
                             Cartão
                           </span>
                         )}
                         {transaction.excludeFromSplit && (
-                          <span className="bg-slate-100 text-slate-700 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <span className="bg-noir-bg-active text-noir-text-body text-[10px] px-1.5 py-0.5 rounded-interactive flex items-center gap-1">
                             <UserX size={10} /> Fora da divisão
                           </span>
                         )}
                       </h4>
-                      <p className="text-xs text-slate-500 flex gap-2">
+                      <p className="text-xs text-noir-text-muted flex gap-2">
                         {selectedCategory?.name && (
                           <>
                             <span>{selectedCategory.name}</span>
@@ -833,7 +911,7 @@ Retorne APENAS o JSON, sem markdown.
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`font-bold ${isIncome ? (isIncrement ? "text-green-600" : "text-orange-600") : "text-slate-700"}`}
+                      className={`font-bold tabular-nums ${isIncome ? (isIncrement ? "text-noir-accent-positive" : "text-noir-accent-warning") : "text-noir-text-body"}`}
                     >
                       {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
                       {formatCurrency(transaction.amount)}
@@ -843,7 +921,7 @@ Retorne APENAS o JSON, sem markdown.
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(transaction)}
-                          className="text-slate-300 hover:text-indigo-500 p-2 transition-all"
+                          className="text-noir-text-muted hover:text-noir-text-accent p-2 transition-all"
                           title="Editar"
                         >
                           <Pencil size={16} />
@@ -852,7 +930,7 @@ Retorne APENAS o JSON, sem markdown.
                           <button
                             type="button"
                             onClick={() => deleteTransactionById(transaction.id)}
-                            className="text-slate-300 hover:text-red-500 p-2 transition-all"
+                            className="text-noir-text-muted hover:text-noir-accent-negative p-2 transition-all"
                             title="Excluir"
                           >
                             <Trash2 size={16} />
@@ -871,15 +949,18 @@ Retorne APENAS o JSON, sem markdown.
 
         {/* Total row */}
         {visibleTransactionsForSelectedMonth.length > 0 && (
-          <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-            <span className="font-semibold text-slate-700">
+          <div
+            className="p-4 bg-noir-bg-primary flex items-center justify-between"
+            style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}
+          >
+            <span className="font-semibold text-noir-text-body">
               Total ({visibleTransactionsForCalculations.length} lançamento(s)
               {visibleExcludedForecastCount > 0
                 ? ` + ${visibleExcludedForecastCount} previsão não considerada`
                 : ""}
               )
             </span>
-            <span className="font-bold text-lg text-slate-800">
+            <span className="font-bold text-lg tabular-nums text-noir-text-heading">
               {formatCurrency(
                 visibleTransactionsForCalculations.reduce((sum, t) => sum + t.amount, 0),
               )}
@@ -890,17 +971,27 @@ Retorne APENAS o JSON, sem markdown.
 
       {/* Edit Transaction Modal */}
       {editingTransaction && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                <Pencil className="text-indigo-600" size={20} />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-noir-bg-surface rounded-card shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+            style={{
+              borderColor: "rgba(255, 255, 255, 0.05)",
+              borderWidth: "1px",
+              borderStyle: "solid",
+            }}
+          >
+            <div
+              className="p-6 flex items-center justify-between"
+              style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}
+            >
+              <h3 className="font-semibold text-noir-text-body flex items-center gap-2">
+                <Pencil className="text-noir-text-accent" size={20} />
                 Editar Lançamento
               </h3>
               <button
                 type="button"
                 onClick={handleCloseEditModal}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+                className="text-noir-text-muted hover:text-noir-text-body p-1 rounded-pill hover:bg-noir-bg-active transition-colors"
               >
                 <X size={20} />
               </button>
@@ -909,7 +1000,7 @@ Retorne APENAS o JSON, sem markdown.
               <div className="mb-4">
                 <label
                   htmlFor="edit-description"
-                  className="block text-xs font-medium text-slate-500 mb-1"
+                  className="block text-xs font-medium text-noir-text-muted mb-1"
                 >
                   Descrição
                 </label>
@@ -917,7 +1008,12 @@ Retorne APENAS o JSON, sem markdown.
                   id="edit-description"
                   type="text"
                   placeholder="Ex: Luz, Mercado, iFood..."
-                  className="w-full border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="w-full bg-noir-bg-primary text-noir-text-body rounded-interactive p-2 focus:ring-2 focus:ring-noir-accent-primary focus:outline-none"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.05)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
                   value={editFormState.description}
                   onChange={(e) =>
                     setEditFormState({ ...editFormState, description: e.target.value })
@@ -925,7 +1021,7 @@ Retorne APENAS o JSON, sem markdown.
                   required
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-grid items-end">
                 <TransactionFormFields
                   formState={editFormState}
                   setFormState={setEditFormState}
@@ -934,18 +1030,21 @@ Retorne APENAS o JSON, sem markdown.
                   idPrefix="edit-transaction"
                 />
               </div>
-              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-100">
+              <div
+                className="flex gap-3 mt-6 pt-4"
+                style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}
+              >
                 <button
                   type="button"
                   onClick={handleCloseEditModal}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-noir-bg-active hover:bg-noir-bg-primary text-noir-text-body font-medium py-3 px-4 rounded-interactive transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveEdit}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 bg-noir-accent-primary hover:bg-noir-accent-primary-hover text-noir-text-on-accent font-medium py-3 px-4 rounded-interactive transition-colors flex items-center justify-center gap-2 glow-accent"
                 >
                   <Pencil size={18} />
                   Salvar Alterações
@@ -958,26 +1057,36 @@ Retorne APENAS o JSON, sem markdown.
 
       {/* Bulk Edit Modal */}
       {isBulkEditModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-700 flex items-center gap-2">
-                <Pencil className="text-indigo-600" size={20} />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-noir-bg-surface rounded-card shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
+            style={{
+              borderColor: "rgba(255, 255, 255, 0.05)",
+              borderWidth: "1px",
+              borderStyle: "solid",
+            }}
+          >
+            <div
+              className="p-6 flex items-center justify-between"
+              style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}
+            >
+              <h3 className="font-semibold text-noir-text-body flex items-center gap-2">
+                <Pencil className="text-noir-text-accent" size={20} />
                 Editar em Massa
-                <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                <span className="text-xs tabular-nums font-normal text-noir-text-muted bg-noir-bg-active px-2 py-0.5 rounded-pill">
                   {selectedIds.size} lançamento(s)
                 </span>
               </h3>
               <button
                 type="button"
                 onClick={handleCloseBulkEditModal}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-full hover:bg-slate-100 transition-colors"
+                className="text-noir-text-muted hover:text-noir-text-body p-1 rounded-pill hover:bg-noir-bg-active transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
             <div className="p-6">
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-noir-text-body mb-4">
                 Selecione os campos que deseja alterar. Apenas os campos selecionados serão
                 atualizados em todos os lançamentos.
               </p>
@@ -995,11 +1104,12 @@ Retorne APENAS o JSON, sem markdown.
                         categoryId: e.target.checked ? (categories[0]?.id ?? "") : null,
                       }))
                     }
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    className="w-4 h-4 text-noir-accent-primary rounded-interactive focus:ring-noir-accent-primary"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
                   />
                   <label
                     htmlFor="bulk-category-enable"
-                    className="text-sm font-medium text-slate-700 cursor-pointer"
+                    className="text-sm font-medium text-noir-text-body cursor-pointer"
                   >
                     Alterar Categoria
                   </label>
@@ -1007,7 +1117,12 @@ Retorne APENAS o JSON, sem markdown.
                 {bulkEditFormState.categoryId !== null && (
                   <select
                     id="bulk-category"
-                    className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none animate-in slide-in-from-top-1 duration-200"
+                    className="w-full bg-noir-bg-primary text-noir-text-body rounded-interactive p-2 focus:ring-2 focus:ring-noir-accent-primary focus:outline-none animate-in slide-in-from-top-1 duration-200"
+                    style={{
+                      borderColor: "rgba(255, 255, 255, 0.05)",
+                      borderWidth: "1px",
+                      borderStyle: "solid",
+                    }}
                     value={bulkEditFormState.categoryId}
                     onChange={(e) =>
                       setBulkEditFormState((prev) => ({ ...prev, categoryId: e.target.value }))
@@ -1035,11 +1150,12 @@ Retorne APENAS o JSON, sem markdown.
                         paidBy: e.target.checked ? (people[0]?.id ?? "") : null,
                       }))
                     }
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    className="w-4 h-4 text-noir-accent-primary rounded-interactive focus:ring-noir-accent-primary"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
                   />
                   <label
                     htmlFor="bulk-paidby-enable"
-                    className="text-sm font-medium text-slate-700 cursor-pointer"
+                    className="text-sm font-medium text-noir-text-body cursor-pointer"
                   >
                     Alterar Pago por
                   </label>
@@ -1047,7 +1163,12 @@ Retorne APENAS o JSON, sem markdown.
                 {bulkEditFormState.paidBy !== null && (
                   <select
                     id="bulk-paidby"
-                    className="w-full border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none animate-in slide-in-from-top-1 duration-200"
+                    className="w-full bg-noir-bg-primary text-noir-text-body rounded-interactive p-2 focus:ring-2 focus:ring-noir-accent-primary focus:outline-none animate-in slide-in-from-top-1 duration-200"
+                    style={{
+                      borderColor: "rgba(255, 255, 255, 0.05)",
+                      borderWidth: "1px",
+                      borderStyle: "solid",
+                    }}
                     value={bulkEditFormState.paidBy}
                     onChange={(e) =>
                       setBulkEditFormState((prev) => ({ ...prev, paidBy: e.target.value }))
@@ -1076,17 +1197,23 @@ Retorne APENAS o JSON, sem markdown.
                         isRecurring: e.target.checked ? false : null,
                       }))
                     }
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    className="w-4 h-4 text-noir-accent-primary rounded-interactive focus:ring-noir-accent-primary"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
                   />
                   <label
                     htmlFor="bulk-recurring-enable"
-                    className="text-sm font-medium text-slate-700 cursor-pointer flex items-center gap-1"
+                    className="text-sm font-medium text-noir-text-body cursor-pointer flex items-center gap-1"
                   >
                     <RefreshCw size={14} /> Alterar Recorrente
                   </label>
                   {bulkEditFormState.isRecurring !== null && (
                     <select
-                      className="ml-auto border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none animate-in slide-in-from-left-1 duration-200"
+                      className="ml-auto bg-noir-bg-primary text-noir-text-body rounded-interactive px-2 py-1 text-sm focus:ring-2 focus:ring-noir-accent-primary focus:outline-none animate-in slide-in-from-left-1 duration-200"
+                      style={{
+                        borderColor: "rgba(255, 255, 255, 0.05)",
+                        borderWidth: "1px",
+                        borderStyle: "solid",
+                      }}
                       value={bulkEditFormState.isRecurring ? "true" : "false"}
                       onChange={(e) =>
                         setBulkEditFormState((prev) => ({
@@ -1113,17 +1240,23 @@ Retorne APENAS o JSON, sem markdown.
                         isCreditCard: e.target.checked ? false : null,
                       }))
                     }
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    className="w-4 h-4 text-noir-accent-primary rounded-interactive focus:ring-noir-accent-primary"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
                   />
                   <label
                     htmlFor="bulk-creditcard-enable"
-                    className="text-sm font-medium text-slate-700 cursor-pointer flex items-center gap-1"
+                    className="text-sm font-medium text-noir-text-body cursor-pointer flex items-center gap-1"
                   >
                     <CreditCard size={14} /> Alterar Cartão de Crédito
                   </label>
                   {bulkEditFormState.isCreditCard !== null && (
                     <select
-                      className="ml-auto border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none animate-in slide-in-from-left-1 duration-200"
+                      className="ml-auto bg-noir-bg-primary text-noir-text-body rounded-interactive px-2 py-1 text-sm focus:ring-2 focus:ring-noir-accent-primary focus:outline-none animate-in slide-in-from-left-1 duration-200"
+                      style={{
+                        borderColor: "rgba(255, 255, 255, 0.05)",
+                        borderWidth: "1px",
+                        borderStyle: "solid",
+                      }}
                       value={bulkEditFormState.isCreditCard ? "true" : "false"}
                       onChange={(e) =>
                         setBulkEditFormState((prev) => ({
@@ -1150,17 +1283,23 @@ Retorne APENAS o JSON, sem markdown.
                         excludeFromSplit: e.target.checked ? false : null,
                       }))
                     }
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    className="w-4 h-4 text-noir-accent-primary rounded-interactive focus:ring-noir-accent-primary"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
                   />
                   <label
                     htmlFor="bulk-exclude-enable"
-                    className="text-sm font-medium text-slate-700 cursor-pointer flex items-center gap-1"
+                    className="text-sm font-medium text-noir-text-body cursor-pointer flex items-center gap-1"
                   >
                     <UserX size={14} /> Alterar Fora da Divisão
                   </label>
                   {bulkEditFormState.excludeFromSplit !== null && (
                     <select
-                      className="ml-auto border border-slate-300 rounded-lg px-2 py-1 bg-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none animate-in slide-in-from-left-1 duration-200"
+                      className="ml-auto bg-noir-bg-primary text-noir-text-body rounded-interactive px-2 py-1 text-sm focus:ring-2 focus:ring-noir-accent-primary focus:outline-none animate-in slide-in-from-left-1 duration-200"
+                      style={{
+                        borderColor: "rgba(255, 255, 255, 0.05)",
+                        borderWidth: "1px",
+                        borderStyle: "solid",
+                      }}
                       value={bulkEditFormState.excludeFromSplit ? "true" : "false"}
                       onChange={(e) =>
                         setBulkEditFormState((prev) => ({
@@ -1176,11 +1315,14 @@ Retorne APENAS o JSON, sem markdown.
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6 pt-4 border-t border-slate-100">
+              <div
+                className="flex gap-3 mt-6 pt-4"
+                style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}
+              >
                 <button
                   type="button"
                   onClick={handleCloseBulkEditModal}
-                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-3 px-4 rounded-lg transition-colors"
+                  className="flex-1 bg-noir-bg-active hover:bg-noir-bg-primary text-noir-text-body font-medium py-3 px-4 rounded-interactive transition-colors"
                 >
                   Cancelar
                 </button>
@@ -1194,7 +1336,7 @@ Retorne APENAS o JSON, sem markdown.
                     bulkEditFormState.isCreditCard === null &&
                     bulkEditFormState.excludeFromSplit === null
                   }
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-noir-accent-primary hover:bg-noir-accent-primary-hover text-noir-text-on-accent font-medium py-3 px-4 rounded-interactive transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed glow-accent"
                 >
                   <Pencil size={18} />
                   Aplicar Alterações

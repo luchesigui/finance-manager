@@ -63,16 +63,22 @@ export function FairDistributionSection({
   const isSettled = settlementData.every((person) => Math.abs(person.balance) < 1);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-        <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+    <div
+      className="bg-noir-bg-surface rounded-card shadow-sm overflow-hidden"
+      style={{ borderColor: "rgba(255, 255, 255, 0.05)", borderWidth: "1px", borderStyle: "solid" }}
+    >
+      <div
+        className="p-4 bg-noir-bg-primary flex items-center justify-between"
+        style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}
+      >
+        <h2 className="font-semibold text-noir-text-body flex items-center gap-2">
           <ArrowRightLeft size={18} />
           Distribuição Justa ({formatMonthYear(selectedMonthDate)})
         </h2>
       </div>
-      <div className="p-6">
+      <div className="p-card">
         {!hasTransactions ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-noir-text-muted">
             Nenhum gasto registrado neste mês para calcular.
           </div>
         ) : (
@@ -82,14 +88,23 @@ export function FairDistributionSection({
             ))}
 
             {/* Settlement Summary */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100 text-sm text-blue-800">
+            <div
+              className="mt-6 p-4 bg-noir-accent-primary/20 rounded-interactive text-sm text-noir-text-body"
+              style={{
+                borderColor: "var(--color-noir-accent-primary)",
+                borderWidth: "1px",
+                borderStyle: "solid",
+              }}
+            >
               <p className="font-semibold mb-1">Resumo do Acerto:</p>
               {debtors.flatMap((debtor) =>
                 creditors.map((creditor) => (
                   <p key={`${debtor.id}-${creditor.id}`}>
                     👉 <strong>{debtor.name}</strong> precisa transferir{" "}
-                    <strong>{formatCurrency(Math.abs(debtor.balance))}</strong> para{" "}
-                    <strong>{creditor.name}</strong>.
+                    <strong className="tabular-nums">
+                      {formatCurrency(Math.abs(debtor.balance))}
+                    </strong>{" "}
+                    para <strong>{creditor.name}</strong>.
                   </p>
                 )),
               )}

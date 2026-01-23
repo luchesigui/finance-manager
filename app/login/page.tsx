@@ -68,18 +68,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8 bg-slate-100">
+    <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8 bg-noir-bg-primary">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
+        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-noir-text-heading">
           {view === "sign-in" ? "Entrar na sua conta" : "Criar nova conta"}
         </h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div
+          className="bg-noir-bg-surface py-8 px-4 shadow sm:rounded-card sm:px-10"
+          style={{
+            borderColor: "rgba(255, 255, 255, 0.05)",
+            borderWidth: "1px",
+            borderStyle: "solid",
+          }}
+        >
           <form className="space-y-6" onSubmit={view === "sign-in" ? handleSignIn : handleSignUp}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="email" className="block text-sm font-medium text-noir-text-body">
                 Email
               </label>
               <div className="mt-1">
@@ -91,13 +98,18 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-slate-300 px-3 py-2 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full appearance-none rounded-interactive bg-noir-bg-primary text-noir-text-body px-3 py-2 placeholder-noir-text-muted shadow-sm focus:outline-none focus:ring-2 focus:ring-noir-accent-primary sm:text-sm"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.05)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="password" className="block text-sm font-medium text-noir-text-body">
                 Senha
               </label>
               <div className="mt-1">
@@ -109,18 +121,28 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-slate-300 px-3 py-2 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                  className="block w-full appearance-none rounded-interactive bg-noir-bg-primary text-noir-text-body px-3 py-2 placeholder-noir-text-muted shadow-sm focus:outline-none focus:ring-2 focus:ring-noir-accent-primary sm:text-sm"
+                  style={{
+                    borderColor: "rgba(255, 255, 255, 0.05)",
+                    borderWidth: "1px",
+                    borderStyle: "solid",
+                  }}
                 />
               </div>
             </div>
 
-            {error && <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>}
+            {error && (
+              <div className="text-noir-accent-negative text-sm bg-noir-accent-negative/20 p-2 rounded-interactive">
+                {error}
+              </div>
+            )}
 
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                className="flex w-full justify-center rounded-interactive bg-noir-accent-primary py-2 px-4 text-sm font-medium text-noir-text-on-accent shadow-sm hover:bg-noir-accent-primary-hover focus:outline-none focus:ring-2 focus:ring-noir-accent-primary focus:ring-offset-2 disabled:opacity-50 glow-accent"
+                style={{ borderColor: "transparent" }}
               >
                 {loading ? "Carregando..." : view === "sign-in" ? "Entrar" : "Cadastrar"}
               </button>
@@ -130,10 +152,13 @@ export default function LoginPage() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-300" />
+                <div
+                  className="w-full"
+                  style={{ borderTop: "1px solid rgba(255, 255, 255, 0.05)" }}
+                />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-slate-500">Ou</span>
+                <span className="bg-noir-bg-surface px-2 text-noir-text-muted">Ou</span>
               </div>
             </div>
 
@@ -144,7 +169,12 @@ export default function LoginPage() {
                   setView(view === "sign-in" ? "sign-up" : "sign-in");
                   setError(null);
                 }}
-                className="flex w-full justify-center rounded-md border border-slate-300 bg-white py-2 px-4 text-sm font-medium text-slate-500 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                className="flex w-full justify-center rounded-interactive bg-noir-bg-primary py-2 px-4 text-sm font-medium text-noir-text-body shadow-sm hover:bg-noir-bg-active focus:outline-none focus:ring-2 focus:ring-noir-accent-primary focus:ring-offset-2"
+                style={{
+                  borderColor: "rgba(255, 255, 255, 0.05)",
+                  borderWidth: "1px",
+                  borderStyle: "solid",
+                }}
               >
                 {view === "sign-in" ? "Criar uma conta" : "Já tenho uma conta"}
               </button>

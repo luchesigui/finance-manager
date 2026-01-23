@@ -31,14 +31,35 @@ export function PersonEditRow({
   const safeTotal = totalIncome > 0 ? totalIncome : 1;
   const sharePercent = totalIncome > 0 ? editedIncome / safeTotal : 0;
 
-  const bgClass = isCurrentUser ? "bg-indigo-50" : "bg-slate-50";
-  const borderClass = isCurrentUser ? "border-2 border-indigo-200" : "";
-  const labelColorClass = isCurrentUser ? "text-indigo-700" : "text-slate-500";
-  const inputBorderClass = isCurrentUser ? "border-indigo-300" : "border-slate-300";
+  const bgClass = isCurrentUser ? "bg-noir-accent-primary/20" : "bg-noir-bg-primary";
+  const borderStyle = isCurrentUser
+    ? {
+        borderColor: "var(--color-noir-accent-primary)",
+        borderWidth: "2px",
+        borderStyle: "solid" as const,
+      }
+    : {
+        borderColor: "rgba(255, 255, 255, 0.05)",
+        borderWidth: "1px",
+        borderStyle: "solid" as const,
+      };
+  const labelColorClass = isCurrentUser ? "text-noir-text-accent" : "text-noir-text-muted";
+  const inputBorderStyle = isCurrentUser
+    ? {
+        borderColor: "var(--color-noir-accent-primary)",
+        borderWidth: "1px",
+        borderStyle: "solid" as const,
+      }
+    : {
+        borderColor: "rgba(255, 255, 255, 0.05)",
+        borderWidth: "1px",
+        borderStyle: "solid" as const,
+      };
 
   return (
     <div
-      className={`flex flex-col md:flex-row gap-3 items-end p-3 rounded-lg ${bgClass} ${borderClass}`}
+      className={`flex flex-col md:flex-row gap-3 items-end p-3 rounded-interactive ${bgClass}`}
+      style={borderStyle}
     >
       <div className="flex-1 w-full">
         <label
@@ -52,7 +73,8 @@ export function PersonEditRow({
           type="text"
           value={edits.name}
           onChange={(e) => onEditChange(person.id, "name", e.target.value)}
-          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
+          className="w-full bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-sm"
+          style={inputBorderStyle}
         />
       </div>
 
@@ -67,15 +89,18 @@ export function PersonEditRow({
           id={`person-income-${person.id}`}
           value={edits.income}
           onValueChange={(value) => onEditChange(person.id, "income", value ?? 0)}
-          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
+          className={`w-full tabular-nums bg-noir-bg-surface text-noir-text-body rounded-interactive px-2 py-1 text-sm border ${
+            isCurrentUser ? "border-noir-text-accent" : ""
+          }`}
           placeholder="R$ 0,00"
         />
       </div>
 
       <div
-        className={`w-full md:w-auto text-xs px-2 py-[6px] bg-white border rounded font-medium ${
-          isCurrentUser ? "text-indigo-700 border-indigo-200" : "text-slate-500 border-slate-200"
+        className={`w-full md:w-auto text-xs tabular-nums px-2 py-[6px] bg-noir-bg-surface rounded-interactive font-medium ${
+          isCurrentUser ? "text-noir-text-accent" : "text-noir-text-muted"
         }`}
+        style={inputBorderStyle}
       >
         Porcentagem: {formatPercent(sharePercent * 100)}
       </div>
@@ -85,7 +110,7 @@ export function PersonEditRow({
           type="button"
           onClick={() => onDelete(person.id)}
           disabled={isDeleting}
-          className="px-3 py-1 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+          className="px-3 py-1 bg-noir-accent-negative/20 text-noir-accent-negative rounded-interactive text-sm font-medium hover:bg-noir-accent-negative/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
           title="Remover participante"
         >
           <Trash2 size={16} />

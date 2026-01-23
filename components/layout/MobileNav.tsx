@@ -18,7 +18,10 @@ export function MobileNav() {
   }
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-around z-20">
+    <div
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-noir-bg-surface border-t px-6 py-3 flex justify-around z-20"
+      style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+    >
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
         return (
@@ -26,7 +29,7 @@ export function MobileNav() {
             key={tab.href}
             href={tab.href}
             className={`flex flex-col items-center gap-1 ${
-              isActive ? "text-indigo-600" : "text-slate-400"
+              isActive ? "text-noir-text-accent" : "text-noir-text-muted"
             }`}
             aria-current={isActive ? "page" : undefined}
           >

@@ -1,14 +1,15 @@
 /**
- * Category color mappings based on the design pattern.
+ * Category color mappings based on the Financial Noir theme.
  * Colors are defined in code, not stored in the database.
+ * Using high-contrast, vibrant colors optimized for dark backgrounds.
  */
 export const CATEGORY_COLORS: Record<string, string> = {
-  "Liberdade Financeira": "#664FDB", // vibrant medium purple/violet
-  "Custos Fixos": "#007AFF", // bright electric blue
-  Conforto: "#FF3C96", // vivid hot pink/magenta
-  Metas: "#990099", // deep, rich purple
-  Prazeres: "#FF8000", // bright, saturated orange
-  Conhecimento: "#FFE600", // bright, clear yellow
+  "Liberdade Financeira": "#8B5CF6", // vibrant purple (enhanced for dark mode)
+  "Custos Fixos": "#3B82F6", // accent primary blue
+  Conforto: "#EC4899", // vibrant pink (enhanced for dark mode)
+  Metas: "#A855F7", // bright purple
+  Prazeres: "#F97316", // warning orange
+  Conhecimento: "#FACC15", // spending yellow
 };
 
 /**
@@ -16,7 +17,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
  * Returns a default gray color if the category name is not found.
  */
 export function getCategoryColor(categoryName: string): string {
-  return CATEGORY_COLORS[categoryName] || "#9CA3AF"; // default gray
+  return CATEGORY_COLORS[categoryName] || "#94A3B8"; // default body text color
 }
 
 /**

@@ -36,16 +36,22 @@ export function CategorySummaryTable({
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-      <div className="p-4 border-b border-slate-100 bg-slate-50">
-        <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+    <div
+      className="bg-noir-bg-surface rounded-card border"
+      style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+    >
+      <div
+        className="p-4 border-b bg-noir-bg-primary"
+        style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
+      >
+        <h2 className="font-semibold text-noir-text-heading flex items-center gap-2">
           <PieChart size={18} />
           Metas vs Realizado
         </h2>
       </div>
       <div className="p-4 overflow-x-auto">
-        <table className="w-full text-sm text-left text-slate-600">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+        <table className="w-full text-sm text-left text-noir-text-body">
+          <thead className="text-xs text-noir-text-muted uppercase bg-noir-bg-primary">
             <tr>
               <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3 text-right">Gasto</th>
@@ -68,30 +74,33 @@ export function CategorySummaryTable({
               return (
                 <tr
                   key={cat.id}
-                  className="border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                  className="border-b last:border-0 hover:bg-noir-bg-active"
+                  style={{ borderColor: "rgba(255, 255, 255, 0.05)" }}
                 >
                   <td className="px-4 py-3 font-medium" style={getCategoryColorStyle(cat.name)}>
                     {cat.name}
                   </td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(cat.totalSpent)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {formatCurrency(cat.totalSpent)}
+                  </td>
                   <td
-                    className="px-4 py-3 text-center"
+                    className="px-4 py-3 text-center tabular-nums"
                     title={formatCurrency(
                       Math.ceil((cat.targetPercent / 100) * totalIncome * 100) / 100,
                     )}
                   >
                     {cat.targetPercent}%
                   </td>
-                  <td className="px-4 py-3 text-center font-bold">
+                  <td className="px-4 py-3 text-center font-bold tabular-nums">
                     {cat.realPercentOfIncome.toFixed(1)}%
                   </td>
                   <td className="px-4 py-3">
                     {showBadStatus ? (
-                      <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">
+                      <span className="bg-noir-accent-negative/20 text-noir-accent-negative px-2 py-1 rounded-interactive text-xs font-bold">
                         {badStatusLabel}
                       </span>
                     ) : (
-                      <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">
+                      <span className="bg-noir-accent-positive/20 text-noir-accent-positive px-2 py-1 rounded-interactive text-xs font-bold">
                         Dentro
                       </span>
                     )}
@@ -99,13 +108,18 @@ export function CategorySummaryTable({
                 </tr>
               );
             })}
-            <tr className="bg-slate-50 font-bold">
-              <td className="px-4 py-3">TOTAL</td>
-              <td className="px-4 py-3 text-right">{formatCurrency(totalExpensesAll)}</td>
-              <td className="px-4 py-3 text-center" title={formatCurrency(totalIncome)}>
+            <tr className="bg-noir-bg-primary font-bold">
+              <td className="px-4 py-3 text-noir-text-heading">TOTAL</td>
+              <td className="px-4 py-3 text-right text-noir-text-heading tabular-nums">
+                {formatCurrency(totalExpensesAll)}
+              </td>
+              <td
+                className="px-4 py-3 text-center text-noir-text-heading tabular-nums"
+                title={formatCurrency(totalIncome)}
+              >
                 100%
               </td>
-              <td className="px-4 py-3 text-center">
+              <td className="px-4 py-3 text-center text-noir-text-heading tabular-nums">
                 {totalIncome > 0 ? ((totalExpensesAll / totalIncome) * 100).toFixed(1) : 0}%
               </td>
               <td />

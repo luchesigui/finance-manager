@@ -18,7 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="pt-BR">
       <body>
         <Providers>
-          <div className="min-h-screen bg-slate-100 text-slate-800 font-sans pb-20 md:pb-0">
+          <div className="min-h-screen bg-noir-bg-primary text-noir-text-body font-sans pb-20 md:pb-0">
             <AppHeader />
             <main className="flex-1 p-4 md:p-6">
               <div className="max-w-5xl mx-auto">{children}</div>
