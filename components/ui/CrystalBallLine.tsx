@@ -10,6 +10,8 @@ export const CrystalBallLine = ({ size = "1em", ...props }: CrystalBallLineProps
     width={size}
     height={size}
     viewBox="0 0 24 24"
+    role="img"
+    aria-label="Crystal ball icon"
     {...props}
   >
     <g fill="none">

@@ -23,27 +23,27 @@ export function MonthNavigator() {
   };
 
   return (
-    <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
+    <div className="flex items-center justify-between noir-card p-4 mb-6">
       <button
         type="button"
         onClick={handlePrevMonth}
-        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
+        className="p-2 hover:bg-noir-active rounded-interactive text-body hover:text-heading transition-all duration-200"
       >
         <ChevronLeft size={24} />
       </button>
       <div className="text-center">
-        <h2 className="text-lg font-bold text-slate-800 capitalize flex items-center gap-2 justify-center">
-          <Calendar size={20} className="text-indigo-600" />
+        <h2 className="text-lg font-bold text-heading capitalize flex items-center gap-2 justify-center">
+          <Calendar size={20} className="text-accent-primary" />
           {formatMonthYear(selectedMonthDate)}
         </h2>
-        <span className="text-xs text-slate-400 font-medium">
+        <span className="text-xs text-muted font-medium">
           {transactionsForSelectedMonth.length} lançamentos neste mês
         </span>
       </div>
       <button
         type="button"
         onClick={handleNextMonth}
-        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
+        className="p-2 hover:bg-noir-active rounded-interactive text-body hover:text-heading transition-all duration-200"
       >
         <ChevronRight size={24} />
       </button>

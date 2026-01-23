@@ -280,7 +280,9 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   const transactionsForCalculations = useMemo(() => {
     const base = transactionsQuery.data ?? [];
     return base
-      .filter((transaction) => !transaction.isForecast || forecastInclusionOverrides[transaction.id])
+      .filter(
+        (transaction) => !transaction.isForecast || forecastInclusionOverrides[transaction.id],
+      )
       .map((transaction) => {
         if (!transaction.isForecast) return transaction;
         if (!forecastInclusionOverrides[transaction.id]) return transaction;

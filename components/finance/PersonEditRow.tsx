@@ -31,19 +31,18 @@ export function PersonEditRow({
   const safeTotal = totalIncome > 0 ? totalIncome : 1;
   const sharePercent = totalIncome > 0 ? editedIncome / safeTotal : 0;
 
-  const bgClass = isCurrentUser ? "bg-indigo-50" : "bg-slate-50";
-  const borderClass = isCurrentUser ? "border-2 border-indigo-200" : "";
-  const labelColorClass = isCurrentUser ? "text-indigo-700" : "text-slate-500";
-  const inputBorderClass = isCurrentUser ? "border-indigo-300" : "border-slate-300";
-
   return (
     <div
-      className={`flex flex-col md:flex-row gap-3 items-end p-3 rounded-lg ${bgClass} ${borderClass}`}
+      className={`flex flex-col md:flex-row gap-3 items-end p-3 rounded-card transition-all duration-200 ${
+        isCurrentUser
+          ? "bg-accent-primary/10 border-2 border-accent-primary/30"
+          : "bg-noir-active border border-noir-border"
+      }`}
     >
       <div className="flex-1 w-full">
         <label
           htmlFor={`person-name-${person.id}`}
-          className={`text-xs font-medium ${labelColorClass}`}
+          className={`text-xs font-medium ${isCurrentUser ? "text-accent-primary" : "text-body"}`}
         >
           Nome {isCurrentUser && "(Você)"}
         </label>
@@ -52,14 +51,16 @@ export function PersonEditRow({
           type="text"
           value={edits.name}
           onChange={(e) => onEditChange(person.id, "name", e.target.value)}
-          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
+          className={`noir-input w-full text-sm ${
+            isCurrentUser ? "border-accent-primary/30 focus:border-accent-primary" : ""
+          }`}
         />
       </div>
 
       <div className="w-full md:w-48">
         <label
           htmlFor={`person-income-${person.id}`}
-          className={`text-xs font-medium ${labelColorClass}`}
+          className={`text-xs font-medium ${isCurrentUser ? "text-accent-primary" : "text-body"}`}
         >
           Renda Mensal
         </label>
@@ -67,14 +68,18 @@ export function PersonEditRow({
           id={`person-income-${person.id}`}
           value={edits.income}
           onValueChange={(value) => onEditChange(person.id, "income", value ?? 0)}
-          className={`w-full bg-white border rounded px-2 py-1 text-sm ${inputBorderClass}`}
+          className={`noir-input w-full text-sm ${
+            isCurrentUser ? "border-accent-primary/30 focus:border-accent-primary" : ""
+          }`}
           placeholder="R$ 0,00"
         />
       </div>
 
       <div
-        className={`w-full md:w-auto text-xs px-2 py-[6px] bg-white border rounded font-medium ${
-          isCurrentUser ? "text-indigo-700 border-indigo-200" : "text-slate-500 border-slate-200"
+        className={`w-full md:w-auto text-xs px-3 py-2 rounded-interactive font-medium tabular-nums ${
+          isCurrentUser
+            ? "text-accent-primary bg-accent-primary/10 border border-accent-primary/30"
+            : "text-body bg-noir-surface border border-noir-border"
         }`}
       >
         Porcentagem: {formatPercent(sharePercent * 100)}
@@ -85,7 +90,7 @@ export function PersonEditRow({
           type="button"
           onClick={() => onDelete(person.id)}
           disabled={isDeleting}
-          className="px-3 py-1 bg-red-50 text-red-600 rounded text-sm font-medium hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+          className="noir-btn-danger px-3 py-1.5 text-sm flex items-center gap-1"
           title="Remover participante"
         >
           <Trash2 size={16} />
