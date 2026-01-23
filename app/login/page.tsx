@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -68,18 +69,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8 bg-slate-100">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
-          {view === "sign-in" ? "Entrar na sua conta" : "Criar nova conta"}
-        </h2>
+    <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8 bg-noir-primary">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-accent-primary/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent-positive/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div className="relative sm:mx-auto sm:w-full sm:max-w-md">
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-accent-primary p-3 rounded-card shadow-glow-accent">
+            <Wallet size={32} className="text-white" />
+          </div>
+        </div>
+
+        <h2 className="text-center text-3xl font-bold tracking-tight text-heading">
+          {view === "sign-in" ? "Entrar na sua conta" : "Criar nova conta"}
+        </h2>
+        <p className="mt-2 text-center text-sm text-body">
+          Finanças<span className="text-accent-primary font-semibold">Pro</span> - Controle
+          financeiro familiar
+        </p>
+      </div>
+
+      <div className="relative mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="noir-card py-8 px-6 sm:px-10">
           <form className="space-y-6" onSubmit={view === "sign-in" ? handleSignIn : handleSignUp}>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="email" className="block text-sm font-medium text-heading">
                 Email
               </label>
               <div className="mt-1">
@@ -91,13 +109,14 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-slate-300 px-3 py-2 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                  className="noir-input w-full"
+                  placeholder="seu@email.com"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="password" className="block text-sm font-medium text-heading">
                 Senha
               </label>
               <div className="mt-1">
@@ -109,18 +128,23 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-slate-300 px-3 py-2 placeholder-slate-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
+                  className="noir-input w-full"
+                  placeholder="••••••••"
                 />
               </div>
             </div>
 
-            {error && <div className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</div>}
+            {error && (
+              <div className="text-accent-negative text-sm bg-accent-negative/10 border border-accent-negative/30 p-3 rounded-interactive">
+                {error}
+              </div>
+            )}
 
             <div>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
+                className="noir-btn-primary w-full py-3 text-base"
               >
                 {loading ? "Carregando..." : view === "sign-in" ? "Entrar" : "Cadastrar"}
               </button>
@@ -130,21 +154,21 @@ export default function LoginPage() {
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-300" />
+                <div className="w-full border-t border-noir-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-slate-500">Ou</span>
+                <span className="bg-noir-surface px-2 text-muted">Ou</span>
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-3">
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={() => {
                   setView(view === "sign-in" ? "sign-up" : "sign-in");
                   setError(null);
                 }}
-                className="flex w-full justify-center rounded-md border border-slate-300 bg-white py-2 px-4 text-sm font-medium text-slate-500 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                className="noir-btn-secondary w-full py-2.5"
               >
                 {view === "sign-in" ? "Criar uma conta" : "Já tenho uma conta"}
               </button>

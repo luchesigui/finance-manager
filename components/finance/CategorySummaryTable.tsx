@@ -36,16 +36,16 @@ export function CategorySummaryTable({
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-      <div className="p-4 border-b border-slate-100 bg-slate-50">
-        <h2 className="font-semibold text-slate-700 flex items-center gap-2">
-          <PieChart size={18} />
+    <div className="noir-card overflow-hidden">
+      <div className="p-4 border-b border-noir-border bg-noir-active/50">
+        <h2 className="font-semibold text-heading flex items-center gap-2">
+          <PieChart size={18} className="text-accent-primary" />
           Metas vs Realizado
         </h2>
       </div>
       <div className="p-4 overflow-x-auto">
-        <table className="w-full text-sm text-left text-slate-600">
-          <thead className="text-xs text-slate-500 uppercase bg-slate-50">
+        <table className="noir-table">
+          <thead>
             <tr>
               <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3 text-right">Gasto</th>
@@ -68,44 +68,44 @@ export function CategorySummaryTable({
               return (
                 <tr
                   key={cat.id}
-                  className="border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                  className="border-b border-noir-border last:border-0 hover:bg-noir-active/30 transition-colors"
                 >
                   <td className="px-4 py-3 font-medium" style={getCategoryColorStyle(cat.name)}>
                     {cat.name}
                   </td>
-                  <td className="px-4 py-3 text-right">{formatCurrency(cat.totalSpent)}</td>
+                  <td className="px-4 py-3 text-right text-heading tabular-nums">
+                    {formatCurrency(cat.totalSpent)}
+                  </td>
                   <td
-                    className="px-4 py-3 text-center"
+                    className="px-4 py-3 text-center text-body"
                     title={formatCurrency(
                       Math.ceil((cat.targetPercent / 100) * totalIncome * 100) / 100,
                     )}
                   >
                     {cat.targetPercent}%
                   </td>
-                  <td className="px-4 py-3 text-center font-bold">
+                  <td className="px-4 py-3 text-center font-bold text-heading tabular-nums">
                     {cat.realPercentOfIncome.toFixed(1)}%
                   </td>
                   <td className="px-4 py-3">
                     {showBadStatus ? (
-                      <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">
-                        {badStatusLabel}
-                      </span>
+                      <span className="noir-badge-negative font-semibold">{badStatusLabel}</span>
                     ) : (
-                      <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">
-                        Dentro
-                      </span>
+                      <span className="noir-badge-positive font-semibold">Dentro</span>
                     )}
                   </td>
                 </tr>
               );
             })}
-            <tr className="bg-slate-50 font-bold">
-              <td className="px-4 py-3">TOTAL</td>
-              <td className="px-4 py-3 text-right">{formatCurrency(totalExpensesAll)}</td>
-              <td className="px-4 py-3 text-center" title={formatCurrency(totalIncome)}>
+            <tr className="bg-noir-active/50 font-bold">
+              <td className="px-4 py-3 text-heading">TOTAL</td>
+              <td className="px-4 py-3 text-right text-heading tabular-nums">
+                {formatCurrency(totalExpensesAll)}
+              </td>
+              <td className="px-4 py-3 text-center text-body" title={formatCurrency(totalIncome)}>
                 100%
               </td>
-              <td className="px-4 py-3 text-center">
+              <td className="px-4 py-3 text-center text-heading tabular-nums">
                 {totalIncome > 0 ? ((totalExpensesAll / totalIncome) * 100).toFixed(1) : 0}%
               </td>
               <td />

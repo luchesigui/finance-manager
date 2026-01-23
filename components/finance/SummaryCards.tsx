@@ -3,13 +3,13 @@
 import { Eye, EyeOff, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 
+import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import {
   calculateIncomeBreakdown,
   calculateTotalExpenses,
   calculateTotalIncome,
   getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
-import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
@@ -79,23 +79,28 @@ export function SummaryCards({
   const hasIncomeTransactions =
     incomeBreakdown.totalIncomeIncrement > 0 || incomeBreakdown.totalIncomeDecrement > 0;
 
+  const freeBalance = effectiveIncome - totalExpenses;
+  const isPositiveBalance = freeBalance >= 0;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-grid-gap">
       {/* Total Income Card */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-        <h3 className="text-slate-500 text-sm font-medium mb-1">Renda Total Familiar</h3>
-        <p className="text-2xl font-bold text-slate-800">{formatCurrency(effectiveIncome)}</p>
+      <div className="noir-card p-card-padding group">
+        <h3 className="text-body text-sm font-medium mb-1">Renda Total Familiar</h3>
+        <p className="text-2xl font-bold text-heading tabular-nums">
+          {formatCurrency(effectiveIncome)}
+        </p>
         {hasIncomeTransactions && (
-          <div className="mt-2 pt-2 border-t border-slate-100">
-            <div className="text-xs text-slate-500 space-y-1">
+          <div className="mt-3 pt-3 border-t border-noir-border">
+            <div className="text-xs space-y-1.5">
               {incomeBreakdown.totalIncomeIncrement > 0 && (
-                <div className="flex items-center gap-1 text-green-600">
+                <div className="flex items-center gap-1.5 text-accent-positive">
                   <TrendingUp size={12} />
                   <span>+ {formatCurrency(incomeBreakdown.totalIncomeIncrement)} adicionado</span>
                 </div>
               )}
               {incomeBreakdown.totalIncomeDecrement > 0 && (
-                <div className="flex items-center gap-1 text-orange-600">
+                <div className="flex items-center gap-1.5 text-accent-warning">
                   <TrendingDown size={12} />
                   <span>- {formatCurrency(incomeBreakdown.totalIncomeDecrement)} deduzido</span>
                 </div>
@@ -106,91 +111,99 @@ export function SummaryCards({
       </div>
 
       {/* Total Expenses Card */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-        <h3 className="text-slate-500 text-sm font-medium mb-1">
+      <div className="noir-card p-card-padding group">
+        <h3 className="text-body text-sm font-medium mb-1">
           Total Gasto ({formatMonthYear(selectedMonthDate)})
         </h3>
-        <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
-      </div>
-
-      {/* Free Balance Card */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-        <h3 className="text-slate-500 text-sm font-medium mb-1">Saldo Livre</h3>
-        <p className="text-2xl font-bold text-green-600">
-          {formatCurrency(effectiveIncome - totalExpenses)}
+        <p className="text-2xl font-bold text-accent-negative tabular-nums">
+          {formatCurrency(totalExpenses)}
         </p>
       </div>
 
-      {hasForecastExpenses && (
-        <div className="md:col-span-3 bg-white p-6 rounded-xl shadow-sm border border-amber-100">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-1">
-                <CrystalBallLine size={14} className="text-amber-500" />
-                Previsões de gastos
-              </h3>
-              <p className="text-2xl font-bold text-amber-600">
-                {formatCurrency(forecastTotal)}
-              </p>
-            </div>
-            <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full w-fit">
-              {forecastCountLabel}
-            </span>
-          </div>
+      {/* Free Balance Card */}
+      <div
+        className={`noir-card p-card-padding group relative overflow-hidden ${isPositiveBalance ? "border-accent-positive/30" : "border-accent-negative/30"}`}
+      >
+        <div
+          className={`absolute inset-0 opacity-5 ${isPositiveBalance ? "bg-accent-positive" : "bg-accent-negative"}`}
+        />
+        <div className="relative">
+          <h3 className="text-body text-sm font-medium mb-1">Saldo Livre</h3>
+          <p
+            className={`text-2xl font-bold tabular-nums ${isPositiveBalance ? "text-accent-positive text-glow-positive" : "text-accent-negative text-glow-negative"}`}
+          >
+            {formatCurrency(freeBalance)}
+          </p>
+        </div>
+      </div>
 
-          <div className="mt-4">
-            <ul className="divide-y divide-slate-100">
-              {forecastExpenses.map((transaction) => {
-                const isIncluded = isForecastIncluded(transaction.id);
-                return (
-                  <li
-                    key={transaction.id}
-                    className="py-2 flex items-center justify-between gap-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">
-                        {transaction.description}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {formatDateString(transaction.date)}
-                      </p>
-                    </div>
-                    <div className="flex items-center">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateTransactionById(transaction.id, {
-                            isForecast: false,
-                            excludeFromSplit: false,
-                          })
-                        }
-                        className="p-1.5 rounded-full text-emerald-600 hover:text-emerald-700 transition-colors"
-                        title="Marcar como oficial"
-                      >
-                        <ThumbsUp size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForecastInclusionOverride(transaction.id, !isIncluded)
-                        }
-                        className={`p-1.5 rounded-full transition-colors ${
-                          isIncluded
-                            ? "text-slate-500 hover:text-slate-600"
-                            : "text-slate-300 hover:text-slate-500"
-                        }`}
-                        title={isIncluded ? "Não considerar na conta" : "Considerar na conta"}
-                      >
-                        {isIncluded ? <Eye size={14} /> : <EyeOff size={14} />}
-                      </button>
-                      <span className="text-sm font-semibold text-slate-700 ml-2">
-                        {formatCurrency(transaction.amount)}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+      {hasForecastExpenses && (
+        <div className="md:col-span-3 noir-card p-card-padding border-accent-spending/30 relative overflow-hidden">
+          <div className="absolute inset-0 bg-accent-spending/5" />
+          <div className="relative">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-body text-sm font-medium mb-1 flex items-center gap-1.5">
+                  <CrystalBallLine size={14} className="text-accent-spending" />
+                  Previsões de gastos
+                </h3>
+                <p className="text-2xl font-bold text-accent-spending tabular-nums">
+                  {formatCurrency(forecastTotal)}
+                </p>
+              </div>
+              <span className="noir-badge-muted w-fit">{forecastCountLabel}</span>
+            </div>
+
+            <div className="mt-4">
+              <ul className="divide-y divide-noir-border">
+                {forecastExpenses.map((transaction) => {
+                  const isIncluded = isForecastIncluded(transaction.id);
+                  return (
+                    <li
+                      key={transaction.id}
+                      className="py-3 flex items-center justify-between gap-3 group/item"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-heading">
+                          {transaction.description}
+                        </p>
+                        <p className="text-xs text-muted">{formatDateString(transaction.date)}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateTransactionById(transaction.id, {
+                              isForecast: false,
+                              excludeFromSplit: false,
+                            })
+                          }
+                          className="p-1.5 rounded-interactive text-accent-positive hover:bg-accent-positive/20 transition-all"
+                          title="Marcar como oficial"
+                        >
+                          <ThumbsUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForecastInclusionOverride(transaction.id, !isIncluded)}
+                          className={`p-1.5 rounded-interactive transition-all ${
+                            isIncluded
+                              ? "text-body hover:bg-noir-active"
+                              : "text-muted hover:text-body hover:bg-noir-active"
+                          }`}
+                          title={isIncluded ? "Não considerar na conta" : "Considerar na conta"}
+                        >
+                          {isIncluded ? <Eye size={14} /> : <EyeOff size={14} />}
+                        </button>
+                        <span className="text-sm font-semibold text-heading tabular-nums ml-2">
+                          {formatCurrency(transaction.amount)}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           </div>
         </div>
       )}

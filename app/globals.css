@@ -1,12 +1,210 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+
+  /* Financial Noir CSS Variables */
+  --noir-primary: #050a0f;
+  --noir-surface: #0d141c;
+  --noir-sidebar: #090e14;
+  --noir-active: #1a2430;
+  --noir-border: rgba(255, 255, 255, 0.05);
+  --noir-border-light: rgba(255, 255, 255, 0.1);
+
+  --text-heading: #ffffff;
+  --text-body: #94a3b8;
+  --text-muted: #475569;
+
+  --accent-primary: #3b82f6;
+  --accent-spending: #facc15;
+  --accent-positive: #22c55e;
+  --accent-negative: #ef4444;
+  --accent-warning: #f97316;
 }
 
 html,
 body {
   height: 100%;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Base layer styles */
+@layer base {
+  body {
+    @apply bg-noir-primary text-body font-sans;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-noir-primary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-noir-active rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted;
+  }
+
+  /* Focus styles for accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent-primary ring-offset-2 ring-offset-noir-primary;
+  }
+}
+
+/* Component layer styles */
+@layer components {
+  /* Card component with glassmorphism */
+  .noir-card {
+    @apply bg-noir-surface rounded-card border border-noir-border shadow-card;
+    @apply transition-all duration-200;
+  }
+
+  .noir-card:hover {
+    @apply shadow-card-hover;
+  }
+
+  /* Interactive card variant */
+  .noir-card-interactive {
+    @apply noir-card hover:border-noir-border-light cursor-pointer;
+  }
+
+  /* Glass effect for overlays */
+  .noir-glass {
+    @apply bg-glass backdrop-blur-md border border-noir-border;
+  }
+
+  /* Primary button */
+  .noir-btn-primary {
+    @apply bg-accent-primary text-white font-semibold px-4 py-2;
+    @apply rounded-interactive transition-all duration-200;
+    @apply hover:bg-blue-600 hover:shadow-glow-accent;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+
+  /* Secondary button */
+  .noir-btn-secondary {
+    @apply bg-noir-active text-body font-medium px-4 py-2;
+    @apply rounded-interactive border border-noir-border transition-all duration-200;
+    @apply hover:bg-noir-surface hover:text-heading hover:border-noir-border-light;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Danger button */
+  .noir-btn-danger {
+    @apply bg-accent-negative/20 text-accent-negative font-semibold px-4 py-2;
+    @apply rounded-interactive transition-all duration-200;
+    @apply hover:bg-accent-negative hover:text-white hover:shadow-glow-negative;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+
+  /* Input field */
+  .noir-input {
+    @apply bg-noir-active border border-noir-border rounded-interactive;
+    @apply px-3 py-2 text-heading placeholder-muted;
+    @apply focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 focus:outline-none;
+    @apply transition-all duration-200;
+  }
+
+  /* Select field */
+  .noir-select {
+    @apply noir-input bg-noir-active appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394A3B8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    padding-right: 2.5rem;
+  }
+
+  /* Pill/tag component */
+  .noir-pill {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-pill;
+    @apply text-xs font-medium;
+  }
+
+  /* Progress bar track */
+  .noir-progress-track {
+    @apply bg-noir-active rounded-full overflow-hidden;
+  }
+
+  /* Table styles */
+  .noir-table {
+    @apply w-full text-sm text-left;
+  }
+
+  .noir-table thead {
+    @apply text-xs text-muted uppercase bg-noir-active/50;
+  }
+
+  .noir-table th {
+    @apply px-4 py-3 font-semibold;
+  }
+
+  .noir-table td {
+    @apply px-4 py-3;
+  }
+
+  .noir-table tbody tr {
+    @apply border-b border-noir-border last:border-0;
+    @apply hover:bg-noir-active/30 transition-colors;
+  }
+
+  /* Divider */
+  .noir-divider {
+    @apply border-t border-noir-border;
+  }
+
+  /* Status badges */
+  .noir-badge-positive {
+    @apply noir-pill bg-accent-positive/20 text-accent-positive;
+  }
+
+  .noir-badge-negative {
+    @apply noir-pill bg-accent-negative/20 text-accent-negative;
+  }
+
+  .noir-badge-warning {
+    @apply noir-pill bg-accent-warning/20 text-accent-warning;
+  }
+
+  .noir-badge-accent {
+    @apply noir-pill bg-accent-primary/20 text-accent-primary;
+  }
+
+  .noir-badge-muted {
+    @apply noir-pill bg-noir-active text-body;
+  }
+}
+
+/* Utility layer */
+@layer utilities {
+  /* Tabular numbers for financial data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Glow text effect */
+  .text-glow-accent {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+
+  .text-glow-positive {
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+  }
+
+  .text-glow-negative {
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+  }
 }

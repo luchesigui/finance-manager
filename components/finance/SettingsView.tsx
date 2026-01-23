@@ -265,10 +265,10 @@ export function SettingsView() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Participants Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div className="noir-card p-card-padding">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <Users size={20} />
+          <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+            <Users size={20} className="text-accent-primary" />
             Participantes & Salários
           </h2>
           {hasUnsavedChanges && (
@@ -276,7 +276,7 @@ export function SettingsView() {
               type="button"
               onClick={handleSaveAll}
               disabled={isSaving}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="noir-btn-primary flex items-center gap-2 text-sm"
             >
               <Save size={16} />
               {isSaving ? "Salvando..." : "Salvar Alterações"}
@@ -320,10 +320,10 @@ export function SettingsView() {
           {showNewPersonForm ? (
             <form
               onSubmit={handleCreatePerson}
-              className="flex flex-col md:flex-row gap-3 items-end p-4 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300"
+              className="flex flex-col md:flex-row gap-3 items-end p-4 bg-noir-active rounded-card border-2 border-dashed border-noir-border-light"
             >
               <div className="flex-1 w-full">
-                <label htmlFor="new-person-name" className="text-xs text-slate-500 font-medium">
+                <label htmlFor="new-person-name" className="text-xs text-body font-medium">
                   Nome
                 </label>
                 <input
@@ -332,12 +332,12 @@ export function SettingsView() {
                   value={newPersonName}
                   onChange={(e) => setNewPersonName(e.target.value)}
                   required
-                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
+                  className="noir-input w-full text-sm"
                   placeholder="Nome do participante"
                 />
               </div>
               <div className="w-full md:w-48">
-                <label htmlFor="new-person-income" className="text-xs text-slate-500 font-medium">
+                <label htmlFor="new-person-income" className="text-xs text-body font-medium">
                   Renda Mensal
                 </label>
                 <CurrencyInput
@@ -345,7 +345,7 @@ export function SettingsView() {
                   value={newPersonIncome}
                   onValueChange={setNewPersonIncome}
                   required
-                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-sm"
+                  className="noir-input w-full text-sm"
                   placeholder="R$ 0,00"
                 />
               </div>
@@ -353,7 +353,7 @@ export function SettingsView() {
                 <button
                   type="submit"
                   disabled={isCreatingPerson}
-                  className="px-4 py-1 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="noir-btn-primary text-sm py-1.5"
                 >
                   {isCreatingPerson ? "Adicionando..." : "Adicionar"}
                 </button>
@@ -364,7 +364,7 @@ export function SettingsView() {
                     setNewPersonName("");
                     setNewPersonIncome(null);
                   }}
-                  className="px-4 py-1 bg-slate-300 text-slate-700 rounded text-sm font-medium hover:bg-slate-400"
+                  className="noir-btn-secondary text-sm py-1.5"
                 >
                   Cancelar
                 </button>
@@ -374,7 +374,7 @@ export function SettingsView() {
             <button
               type="button"
               onClick={() => setShowNewPersonForm(true)}
-              className="w-full flex items-center justify-center gap-2 p-3 bg-slate-100 hover:bg-slate-200 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 p-3 bg-noir-active hover:bg-noir-surface rounded-card border-2 border-dashed border-noir-border-light text-body hover:text-heading font-medium transition-all duration-200"
             >
               <Plus size={20} />
               Adicionar Novo Participante
@@ -383,21 +383,21 @@ export function SettingsView() {
         </div>
 
         {/* Default Payer Selection */}
-        <div className="mt-6 pt-4 border-t border-slate-100">
-          <div className="flex items-center gap-2 mb-2">
-            <p className="block text-sm font-medium text-slate-700">
+        <div className="mt-6 pt-4 border-t border-noir-border">
+          <div className="flex items-center gap-2 mb-3">
+            <p className="block text-sm font-medium text-heading">
               Responsável Padrão (Pré-selecionado)
             </p>
-            {isUpdatingDefaultPayer && <span className="text-xs text-slate-500">Salvando...</span>}
+            {isUpdatingDefaultPayer && <span className="text-xs text-muted">Salvando...</span>}
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3">
             {people.map((person) => (
               <label
                 key={person.id}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-interactive border cursor-pointer transition-all duration-200 ${
                   defaultPayerId === person.id
-                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                    : "border-slate-200 hover:bg-slate-50"
+                    ? "border-accent-primary bg-accent-primary/10 text-accent-primary"
+                    : "border-noir-border hover:bg-noir-active hover:border-noir-border-light text-body"
                 } ${isUpdatingDefaultPayer ? "opacity-50 cursor-wait" : ""}`}
               >
                 <input
@@ -406,7 +406,7 @@ export function SettingsView() {
                   checked={defaultPayerId === person.id}
                   onChange={() => !isUpdatingDefaultPayer && setDefaultPayerId(person.id)}
                   disabled={isUpdatingDefaultPayer}
-                  className="text-indigo-600 focus:ring-indigo-500 disabled:cursor-wait"
+                  className="text-accent-primary focus:ring-accent-primary bg-noir-active border-noir-border disabled:cursor-wait"
                 />
                 {person.name}
               </label>
@@ -416,10 +416,10 @@ export function SettingsView() {
       </div>
 
       {/* Categories Section */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+      <div className="noir-card p-card-padding">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <PieChart size={20} />
+          <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+            <PieChart size={20} className="text-accent-primary" />
             Categorias & Metas (%)
           </h2>
           {hasUnsavedCategoryChanges && (
@@ -427,7 +427,7 @@ export function SettingsView() {
               type="button"
               onClick={handleSaveCategories}
               disabled={isSavingCategories || totalCategoryPercent !== 100}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="noir-btn-primary flex items-center gap-2 text-sm"
             >
               <Save size={16} />
               {isSavingCategories ? "Salvando..." : "Salvar Alterações"}
@@ -441,7 +441,10 @@ export function SettingsView() {
             if (!edits) return null;
 
             return (
-              <div key={cat.id} className="flex items-center gap-4">
+              <div
+                key={cat.id}
+                className="flex items-center gap-4 p-2 rounded-interactive hover:bg-noir-active/30 transition-colors"
+              >
                 <span className="flex-1 font-medium py-1" style={getCategoryColorStyle(cat.name)}>
                   {cat.name}
                 </span>
@@ -452,20 +455,20 @@ export function SettingsView() {
                     onChange={(e) =>
                       updateCategoryEdit(cat.id, Number.parseFloat(e.target.value) || 0)
                     }
-                    className="w-16 border border-slate-300 rounded px-2 py-1 text-right text-sm"
+                    className="noir-input w-16 text-right text-sm py-1"
                     min="0"
                     max="100"
                   />
-                  <span className="text-slate-500 text-sm">%</span>
+                  <span className="text-body text-sm">%</span>
                 </div>
               </div>
             );
           })}
 
-          <div className="flex justify-between items-center pt-4 border-t border-slate-100 mt-4">
-            <span className="font-semibold text-slate-600">Total Planejado</span>
+          <div className="flex justify-between items-center pt-4 border-t border-noir-border mt-4">
+            <span className="font-semibold text-body">Total Planejado</span>
             <span
-              className={`font-bold ${totalCategoryPercent === 100 ? "text-green-600" : "text-red-500"}`}
+              className={`font-bold tabular-nums ${totalCategoryPercent === 100 ? "text-accent-positive" : "text-accent-negative"}`}
             >
               {totalCategoryPercent}%
             </span>
