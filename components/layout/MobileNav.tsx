@@ -13,7 +13,8 @@ const tabs = [
 export function MobileNav() {
   const pathname = usePathname();
 
-  if (pathname === "/login" || pathname === "/signup") {
+  // Hide nav on authentication pages and landing page
+  if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
     return null;
   }
 
