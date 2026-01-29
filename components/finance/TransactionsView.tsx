@@ -1,5 +1,6 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import {
   BrainCircuit,
   Check,
@@ -46,6 +47,38 @@ const fuzzyMatch = (text: string, query: string): boolean => {
   }
   return queryIndex === lowerQuery.length;
 };
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function createDefaultFormState(
+  categoryId: string,
+  paidBy: string,
+  yearMonth: string,
+): NewTransactionFormState {
+  return {
+    description: "",
+    amount: null,
+    categoryId,
+    paidBy,
+    isRecurring: false,
+    isCreditCard: false,
+    dateSelectionMode: "month",
+    selectedMonth: yearMonth,
+    date: "",
+    isInstallment: false,
+    installments: 2,
+    excludeFromSplit: false,
+    isForecast: false,
+    type: "expense",
+    isIncrement: true,
+  };
+}
+
+// ============================================================================
+// Component
+// ============================================================================
 
 export function TransactionsView() {
   const { selectedMonthDate } = useCurrentMonth();
@@ -100,45 +133,64 @@ export function TransactionsView() {
 
   // Edit modal state
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [editFormState, setEditFormState] = useState<NewTransactionFormState>({
-    description: "",
-    amount: null,
-    categoryId: "",
-    paidBy: "",
-    isRecurring: false,
-    isCreditCard: false,
-    dateSelectionMode: "month",
-    selectedMonth: getCurrentYearMonth(),
-    date: "",
-    isInstallment: false,
-    installments: 2,
-    excludeFromSplit: false,
-    isForecast: false,
-    type: "expense",
-    isIncrement: true,
+
+  // TanStack Form for new transaction
+  const newTransactionForm = useForm({
+    defaultValues: createDefaultFormState(
+      categories[0]?.id ?? "c1",
+      defaultPayerId,
+      getCurrentYearMonth(),
+    ),
+    onSubmit: async ({ value }) => {
+      addTransactionsFromFormState(value);
+      newTransactionForm.reset();
+      newTransactionForm.setFieldValue("categoryId", categories[0]?.id ?? "c1");
+      newTransactionForm.setFieldValue("paidBy", defaultPayerId);
+      newTransactionForm.setFieldValue("selectedMonth", getCurrentYearMonth());
+      setSmartInput("");
+    },
   });
 
-  const [newTrans, setNewTrans] = useState<NewTransactionFormState>({
-    description: "",
-    amount: null,
-    categoryId: categories[0]?.id ?? "c1",
-    paidBy: defaultPayerId,
-    isRecurring: false,
-    isCreditCard: false,
-    dateSelectionMode: "month",
-    selectedMonth: getCurrentYearMonth(),
-    date: "",
-    isInstallment: false,
-    installments: 2,
-    excludeFromSplit: false,
-    isForecast: false,
-    type: "expense",
-    isIncrement: true,
+  // TanStack Form for edit transaction
+  const editTransactionForm = useForm({
+    defaultValues: createDefaultFormState(
+      categories[0]?.id ?? "",
+      defaultPayerId,
+      getCurrentYearMonth(),
+    ),
+    onSubmit: async ({ value }) => {
+      if (!editingTransaction) return;
+      if (!value.description || value.amount == null) return;
+
+      updateTransactionById(editingTransaction.id, {
+        description: value.description,
+        amount: value.amount,
+        categoryId: value.categoryId,
+        paidBy: value.paidBy,
+        isRecurring: value.isRecurring,
+        isCreditCard: value.isCreditCard,
+        excludeFromSplit: value.excludeFromSplit,
+        isForecast: value.isForecast,
+        date: value.date,
+        type: value.type,
+        isIncrement: value.isIncrement,
+      });
+
+      setEditingTransaction(null);
+    },
   });
 
+  // Update default payer when it changes
   useEffect(() => {
-    setNewTrans((prev) => ({ ...prev, paidBy: defaultPayerId }));
-  }, [defaultPayerId]);
+    newTransactionForm.setFieldValue("paidBy", defaultPayerId);
+  }, [defaultPayerId, newTransactionForm]);
+
+  // Update category when categories change
+  useEffect(() => {
+    if (categories[0]) {
+      newTransactionForm.setFieldValue("categoryId", categories[0].id);
+    }
+  }, [categories, newTransactionForm]);
 
   useEffect(() => {
     if (paidByFilter === "all") return;
@@ -201,38 +253,6 @@ export function TransactionsView() {
     [visibleTransactionsForSelectedMonth, visibleCalculationIds],
   );
 
-  useEffect(() => {
-    setNewTrans((prev) => ({
-      ...prev,
-      categoryId: categories[0]?.id ?? prev.categoryId,
-    }));
-  }, [categories]);
-
-  const handleAddTransaction = (e?: React.FormEvent<HTMLFormElement>) => {
-    e?.preventDefault();
-    addTransactionsFromFormState(newTrans);
-
-    setNewTrans({
-      description: "",
-      amount: null,
-      categoryId: categories[0]?.id ?? "c1",
-      paidBy: defaultPayerId,
-      isRecurring: false,
-      isCreditCard: false,
-      dateSelectionMode: "month",
-      selectedMonth: getCurrentYearMonth(),
-      date: "",
-      isInstallment: false,
-      installments: 2,
-      excludeFromSplit: false,
-      isForecast: false,
-      type: "expense",
-      isIncrement: true,
-    });
-
-    setSmartInput("");
-  };
-
   const handleOpenEditModal = (transaction: Transaction) => {
     setEditingTransaction(transaction);
 
@@ -243,47 +263,27 @@ export function TransactionsView() {
     const selectedMonth =
       dateParts[0] && dateParts[1] ? `${dateParts[0]}-${dateParts[1]}` : getCurrentYearMonth();
 
-    setEditFormState({
-      description: transaction.description,
-      amount: transaction.amount,
-      categoryId: transaction.categoryId ?? categories[0]?.id ?? "",
-      paidBy: transaction.paidBy,
-      isRecurring: transaction.isRecurring,
-      isCreditCard: transaction.isCreditCard,
-      dateSelectionMode: isFirstOfMonth ? "month" : "specific",
-      selectedMonth: selectedMonth,
-      date: transaction.date,
-      isInstallment: false,
-      installments: 2,
-      excludeFromSplit: transaction.excludeFromSplit,
-      isForecast: transaction.isForecast,
-      type: transaction.type ?? "expense",
-      isIncrement: transaction.isIncrement ?? true,
-    });
+    // Reset and populate the edit form
+    editTransactionForm.reset();
+    editTransactionForm.setFieldValue("description", transaction.description);
+    editTransactionForm.setFieldValue("amount", transaction.amount);
+    editTransactionForm.setFieldValue(
+      "categoryId",
+      transaction.categoryId ?? categories[0]?.id ?? "",
+    );
+    editTransactionForm.setFieldValue("paidBy", transaction.paidBy);
+    editTransactionForm.setFieldValue("isRecurring", transaction.isRecurring);
+    editTransactionForm.setFieldValue("isCreditCard", transaction.isCreditCard);
+    editTransactionForm.setFieldValue("dateSelectionMode", isFirstOfMonth ? "month" : "specific");
+    editTransactionForm.setFieldValue("selectedMonth", selectedMonth);
+    editTransactionForm.setFieldValue("date", transaction.date);
+    editTransactionForm.setFieldValue("excludeFromSplit", transaction.excludeFromSplit);
+    editTransactionForm.setFieldValue("isForecast", transaction.isForecast);
+    editTransactionForm.setFieldValue("type", transaction.type ?? "expense");
+    editTransactionForm.setFieldValue("isIncrement", transaction.isIncrement ?? true);
   };
 
   const handleCloseEditModal = () => {
-    setEditingTransaction(null);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingTransaction) return;
-    if (!editFormState.description || editFormState.amount == null) return;
-
-    updateTransactionById(editingTransaction.id, {
-      description: editFormState.description,
-      amount: editFormState.amount,
-      categoryId: editFormState.categoryId,
-      paidBy: editFormState.paidBy,
-      isRecurring: editFormState.isRecurring,
-      isCreditCard: editFormState.isCreditCard,
-      excludeFromSplit: editFormState.excludeFromSplit,
-      isForecast: editFormState.isForecast,
-      date: editFormState.date,
-      type: editFormState.type,
-      isIncrement: editFormState.isIncrement,
-    });
-
     setEditingTransaction(null);
   };
 
@@ -327,32 +327,37 @@ Retorne APENAS o JSON, sem markdown.
           date?: string;
         };
 
-        setNewTrans((prev) => {
-          // If AI returned a date, determine if it's a specific date or first of month
-          let dateSelectionMode: "month" | "specific" = prev.dateSelectionMode;
-          let selectedMonth = prev.selectedMonth;
-          let dateValue = prev.date;
-
-          if (data.date) {
-            const dateParts = data.date.split("-");
-            const day = dateParts[2] ? Number.parseInt(dateParts[2], 10) : 1;
-            dateSelectionMode = day === 1 ? "month" : "specific";
-            selectedMonth =
-              dateParts[0] && dateParts[1] ? `${dateParts[0]}-${dateParts[1]}` : prev.selectedMonth;
-            dateValue = data.date;
+        // Update form with AI-parsed values
+        if (data.description) {
+          newTransactionForm.setFieldValue("description", data.description);
+        }
+        if (data.amount) {
+          newTransactionForm.setFieldValue("amount", data.amount);
+        }
+        if (data.categoryId) {
+          newTransactionForm.setFieldValue("categoryId", data.categoryId);
+        }
+        if (data.paidBy) {
+          newTransactionForm.setFieldValue("paidBy", data.paidBy);
+        } else {
+          newTransactionForm.setFieldValue("paidBy", defaultPayerId);
+        }
+        if (data.date) {
+          const dateParts = data.date.split("-");
+          const day = dateParts[2] ? Number.parseInt(dateParts[2], 10) : 1;
+          if (day === 1) {
+            newTransactionForm.setFieldValue("dateSelectionMode", "month");
+            newTransactionForm.setFieldValue(
+              "selectedMonth",
+              dateParts[0] && dateParts[1]
+                ? `${dateParts[0]}-${dateParts[1]}`
+                : getCurrentYearMonth(),
+            );
+          } else {
+            newTransactionForm.setFieldValue("dateSelectionMode", "specific");
           }
-
-          return {
-            ...prev,
-            description: data.description ?? prev.description,
-            amount: data.amount ?? prev.amount,
-            categoryId: data.categoryId ?? prev.categoryId,
-            paidBy: data.paidBy ?? defaultPayerId,
-            dateSelectionMode,
-            selectedMonth,
-            date: dateValue,
-          };
-        });
+          newTransactionForm.setFieldValue("date", data.date);
+        }
       }
     } catch (error) {
       console.error("Erro parsing AI JSON", error);
@@ -485,44 +490,55 @@ Retorne APENAS o JSON, sem markdown.
             </div>
           )}
 
-          <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
-            <Plus
-              className={`${newTrans.type === "income" ? "bg-accent-positive" : "bg-accent-primary"} text-white rounded-interactive p-1`}
-              size={24}
-            />
-            {newTrans.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
-          </h3>
+          <newTransactionForm.Subscribe selector={(state) => state.values}>
+            {(values) => (
+              <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
+                <Plus
+                  className={`${values.type === "income" ? "bg-accent-positive" : "bg-accent-primary"} text-white rounded-interactive p-1`}
+                  size={24}
+                />
+                {values.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
+              </h3>
+            )}
+          </newTransactionForm.Subscribe>
 
           <form
-            onSubmit={handleAddTransaction}
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              newTransactionForm.handleSubmit();
+            }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
           >
             <TransactionFormFields
-              formState={newTrans}
-              setFormState={setNewTrans}
+              form={newTransactionForm}
               showInstallmentFields={true}
               showDescription={true}
               idPrefix="new-transaction"
             />
 
             <div className="lg:col-span-4 mt-2">
-              <button
-                type="submit"
-                className={`w-full font-semibold py-3 px-4 rounded-interactive transition-all duration-200 flex items-center justify-center gap-2 ${
-                  newTrans.type === "income"
-                    ? "bg-accent-positive text-white hover:shadow-glow-positive"
-                    : "bg-accent-primary text-white hover:shadow-glow-accent"
-                }`}
-              >
-                <Plus size={18} />
-                {newTrans.type === "income"
-                  ? newTrans.isIncrement
-                    ? "Adicionar Renda"
-                    : "Adicionar Dedução de Renda"
-                  : newTrans.isInstallment
-                    ? `Lançar ${newTrans.installments}x Parcelas`
-                    : "Adicionar Lançamento"}
-              </button>
+              <newTransactionForm.Subscribe selector={(state) => state.values}>
+                {(values) => (
+                  <button
+                    type="submit"
+                    className={`w-full font-semibold py-3 px-4 rounded-interactive transition-all duration-200 flex items-center justify-center gap-2 ${
+                      values.type === "income"
+                        ? "bg-accent-positive text-white hover:shadow-glow-positive"
+                        : "bg-accent-primary text-white hover:shadow-glow-accent"
+                    }`}
+                  >
+                    <Plus size={18} />
+                    {values.type === "income"
+                      ? values.isIncrement
+                        ? "Adicionar Renda"
+                        : "Adicionar Dedução de Renda"
+                      : values.isInstallment
+                        ? `Lançar ${values.installments}x Parcelas`
+                        : "Adicionar Lançamento"}
+                  </button>
+                )}
+              </newTransactionForm.Subscribe>
             </div>
           </form>
         </div>
@@ -924,51 +940,61 @@ Retorne APENAS o JSON, sem markdown.
               </button>
             </div>
             <div className="p-6">
-              <div className="mb-4">
-                <label
-                  htmlFor="edit-description"
-                  className="block text-xs font-medium text-body mb-1"
-                >
-                  Descrição
-                </label>
-                <input
-                  id="edit-description"
-                  type="text"
-                  placeholder="Ex: Luz, Mercado, iFood..."
-                  className="noir-input w-full"
-                  value={editFormState.description}
-                  onChange={(e) =>
-                    setEditFormState({ ...editFormState, description: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                <TransactionFormFields
-                  formState={editFormState}
-                  setFormState={setEditFormState}
-                  showInstallmentFields={false}
-                  showDescription={false}
-                  idPrefix="edit-transaction"
-                />
-              </div>
-              <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
-                <button
-                  type="button"
-                  onClick={handleCloseEditModal}
-                  className="noir-btn-secondary flex-1 py-3"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveEdit}
-                  className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"
-                >
-                  <Pencil size={18} />
-                  Salvar Alterações
-                </button>
-              </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  editTransactionForm.handleSubmit();
+                }}
+              >
+                <div className="mb-4">
+                  <editTransactionForm.Field name="description">
+                    {(field) => (
+                      <>
+                        <label
+                          htmlFor="edit-description"
+                          className="block text-xs font-medium text-body mb-1"
+                        >
+                          Descrição
+                        </label>
+                        <input
+                          id="edit-description"
+                          type="text"
+                          placeholder="Ex: Luz, Mercado, iFood..."
+                          className="noir-input w-full"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          required
+                        />
+                      </>
+                    )}
+                  </editTransactionForm.Field>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                  <TransactionFormFields
+                    form={editTransactionForm}
+                    showInstallmentFields={false}
+                    showDescription={false}
+                    idPrefix="edit-transaction"
+                  />
+                </div>
+                <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
+                  <button
+                    type="button"
+                    onClick={handleCloseEditModal}
+                    className="noir-btn-secondary flex-1 py-3"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"
+                  >
+                    <Pencil size={18} />
+                    Salvar Alterações
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
