@@ -13,7 +13,7 @@ const tabs = [
 export function MobileNav() {
   const pathname = usePathname();
 
-  if (pathname === "/login" || pathname === "/signup") {
+  if (pathname === "/login" || pathname === "/signup" || pathname === "/") {
     return null;
   }
 

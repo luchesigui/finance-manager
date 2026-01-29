@@ -3,6 +3,7 @@ import "./globals.css";
 
 import { Providers } from "@/app/providers";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { MainWrapper } from "@/components/layout/MainWrapper";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -18,11 +19,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="pt-BR" className="dark">
       <body className="bg-noir-primary text-body font-sans antialiased">
         <Providers>
-          <div className="min-h-screen pb-20 md:pb-0">
+          <div className="min-h-screen flex flex-col">
             <AppHeader />
-            <main className="flex-1 p-4 md:p-6">
-              <div className="max-w-5xl mx-auto">{children}</div>
-            </main>
+            <MainWrapper>{children}</MainWrapper>
             <MobileNav />
           </div>
         </Providers>

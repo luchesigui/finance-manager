@@ -10,7 +10,8 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/api")
+    pathname.startsWith("/api") ||
+    pathname === "/"
   ) {
     return NextResponse.next({ request });
   }

@@ -22,7 +22,7 @@ export function AppHeader() {
     router.refresh();
   };
 
-  if (pathname === "/login" || pathname === "/signup") {
+  if (pathname === "/login" || pathname === "/signup" || pathname === "/") {
     return null;
   }
 
