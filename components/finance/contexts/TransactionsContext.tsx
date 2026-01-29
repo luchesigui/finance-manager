@@ -49,11 +49,8 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   );
 
   // Forecast inclusion state
-  const {
-    forecastInclusionOverrides,
-    isForecastIncluded,
-    setForecastInclusionOverride,
-  } = useForecastInclusion();
+  const { forecastInclusionOverrides, isForecastIncluded, setForecastInclusionOverride } =
+    useForecastInclusion();
 
   // Mutations
   const {
@@ -65,8 +62,10 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   } = useTransactionMutations(queryKey, selectedYear, selectedMonthNumber);
 
   // Derived transaction arrays
-  const { transactionsForSelectedMonth, transactionsForCalculations } =
-    useTransactionDerivations(transactions, forecastInclusionOverrides);
+  const { transactionsForSelectedMonth, transactionsForCalculations } = useTransactionDerivations(
+    transactions,
+    forecastInclusionOverrides,
+  );
 
   // Action: Add transactions from form state
   const addTransactionsFromFormState = useCallback(

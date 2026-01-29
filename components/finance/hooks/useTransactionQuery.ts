@@ -18,10 +18,7 @@ function buildTransactionsUrl(year: number, month: number): string {
  * Returns raw transaction data and loading state.
  */
 export function useTransactionQuery(year: number, month: number) {
-  const queryKey = useMemo(
-    () => ["transactions", year, month] as const,
-    [year, month],
-  );
+  const queryKey = useMemo(() => ["transactions", year, month] as const, [year, month]);
 
   const query = useQuery({
     queryKey,
