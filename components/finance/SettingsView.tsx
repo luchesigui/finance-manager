@@ -14,6 +14,8 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { FieldError } from "@/components/ui/FieldError";
 import { fetchJson } from "@/lib/apiClient";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
+import { zodValidator } from "@/lib/form";
+import { incomeSchema, personNameSchema } from "@/lib/formSchemas";
 import { formatPercent } from "@/lib/format";
 import type { Category, CurrentUserResponse, Person, PersonPatch } from "@/lib/types";
 
@@ -345,10 +347,7 @@ export function SettingsView() {
                 <createPersonForm.Field
                   name="name"
                   validators={{
-                    onBlur: ({ value }) => {
-                      if (!value || value.trim() === "") return "Nome é obrigatório";
-                      return undefined;
-                    },
+                    onBlur: zodValidator(personNameSchema),
                   }}
                 >
                   {(field) => (
@@ -375,11 +374,7 @@ export function SettingsView() {
                 <createPersonForm.Field
                   name="income"
                   validators={{
-                    onBlur: ({ value }) => {
-                      if (value === null || value === undefined || value < 0)
-                        return "Renda não pode ser negativa";
-                      return undefined;
-                    },
+                    onBlur: zodValidator(incomeSchema),
                   }}
                 >
                   {(field) => (

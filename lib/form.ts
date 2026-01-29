@@ -1,3 +1,5 @@
+import type { z } from "zod";
+
 // ============================================================================
 // TanStack Form Utilities
 // ============================================================================
@@ -20,4 +22,42 @@ export function getFieldError(errors: unknown[]): string | undefined {
  */
 export function hasFieldError(errors: unknown[]): boolean {
   return errors && errors.length > 0;
+}
+
+// ============================================================================
+// Zod Validation Helpers
+// ============================================================================
+
+/**
+ * Creates a TanStack Form validator function from a Zod schema.
+ * Use this for field-level validation with onBlur/onChange validators.
+ *
+ * @example
+ * ```tsx
+ * <form.Field
+ *   name="email"
+ *   validators={{
+ *     onBlur: zodValidator(emailSchema),
+ *   }}
+ * >
+ * ```
+ */
+export function zodValidator<T>(schema: z.ZodSchema<T>) {
+  return ({ value }: { value: T }): string | undefined => {
+    const result = schema.safeParse(value);
+    if (result.success) return undefined;
+    return result.error.issues[0]?.message;
+  };
+}
+
+/**
+ * Creates an async TanStack Form validator function from a Zod schema.
+ * Use this for async field-level validation.
+ */
+export function zodValidatorAsync<T>(schema: z.ZodSchema<T>) {
+  return async ({ value }: { value: T }): Promise<string | undefined> => {
+    const result = await schema.safeParseAsync(value);
+    if (result.success) return undefined;
+    return result.error.issues[0]?.message;
+  };
 }

@@ -21,6 +21,8 @@ import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { FieldError } from "@/components/ui/FieldError";
 import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { toYearMonthString } from "@/lib/dateUtils";
+import { zodValidator } from "@/lib/form";
+import { amountSchema, descriptionSchema } from "@/lib/formSchemas";
 import type { NewTransactionFormState } from "@/lib/types";
 
 // ============================================================================
@@ -209,10 +211,7 @@ export function TransactionFormFields({
                 <form.Field
                   name="description"
                   validators={{
-                    onBlur: ({ value }: { value: string }) => {
-                      if (!value || value.trim() === "") return "Descrição é obrigatória";
-                      return undefined;
-                    },
+                    onBlur: zodValidator(descriptionSchema),
                   }}
                 >
                   {(field: FieldState<string>) => (
@@ -249,11 +248,7 @@ export function TransactionFormFields({
               <form.Field
                 name="amount"
                 validators={{
-                  onBlur: ({ value }: { value: number | null }) => {
-                    if (value === null || value === undefined || value <= 0)
-                      return "Valor deve ser maior que zero";
-                    return undefined;
-                  },
+                  onBlur: zodValidator(amountSchema),
                 }}
               >
                 {(field: FieldState<number | null>) => (

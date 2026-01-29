@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { FieldError } from "@/components/ui/FieldError";
+import { zodValidator } from "@/lib/form";
+import { emailSchema, passwordSchema } from "@/lib/formSchemas";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -120,11 +122,7 @@ export default function LoginPage() {
               <form.Field
                 name="email"
                 validators={{
-                  onBlur: ({ value }) => {
-                    if (!value) return "Email é obrigatório";
-                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Email inválido";
-                    return undefined;
-                  },
+                  onBlur: zodValidator(emailSchema),
                 }}
               >
                 {(field) => (
@@ -156,10 +154,7 @@ export default function LoginPage() {
               <form.Field
                 name="password"
                 validators={{
-                  onBlur: ({ value }) => {
-                    if (!value) return "Senha é obrigatória";
-                    return undefined;
-                  },
+                  onBlur: zodValidator(passwordSchema),
                 }}
               >
                 {(field) => (
