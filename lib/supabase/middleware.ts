@@ -4,9 +4,11 @@ import { type NextRequest, NextResponse } from "next/server";
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Skip auth checks for login, signup, and auth routes to avoid loops
+  // Skip auth checks for login, signup, auth routes, and landing page to avoid loops
   // Also skip API routes as they handle their own auth
+  // The home page "/" shows the landing page for unauthenticated users
   if (
+    pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth") ||

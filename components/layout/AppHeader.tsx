@@ -22,7 +22,8 @@ export function AppHeader() {
     router.refresh();
   };
 
-  if (pathname === "/login" || pathname === "/signup") {
+  // Hide header on authentication pages and landing page
+  if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
     return null;
   }
 

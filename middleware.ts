@@ -21,3 +21,6 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|login|signup|auth|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+
+// Note: The home page "/" is included in the matcher but handles auth check internally
+// to show either the landing page (unauthenticated) or redirect to dashboard (authenticated)
