@@ -1,21 +1,37 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { useForm } from "@tanstack/react-form";
 import { Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { FieldError } from "@/components/ui/FieldError";
+import { zodValidator } from "@/lib/form";
+import { emailSchema, passwordSchema } from "@/lib/formSchemas";
+import { createClient } from "@/lib/supabase/client";
+
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"sign-in" | "sign-up">("sign-in");
   const router = useRouter();
   const supabase = createClient();
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    onSubmit: async ({ value }) => {
+      if (view === "sign-in") {
+        await handleSignIn(value.email, value.password);
+      } else {
+        await handleSignUp(value.email, value.password);
+      }
+    },
+  });
+
+  const handleSignIn = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
 
@@ -33,8 +49,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSignUp = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
 
@@ -95,43 +110,76 @@ export default function LoginPage() {
 
       <div className="relative mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="noir-card py-8 px-6 sm:px-10">
-          <form className="space-y-6" onSubmit={view === "sign-in" ? handleSignIn : handleSignUp}>
+          <form
+            className="space-y-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-heading">
-                Email
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="noir-input w-full"
-                  placeholder="seu@email.com"
-                />
-              </div>
+              <form.Field
+                name="email"
+                validators={{
+                  onBlur: zodValidator(emailSchema),
+                }}
+              >
+                {(field) => (
+                  <>
+                    <label htmlFor={field.name} className="block text-sm font-medium text-heading">
+                      Email
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id={field.name}
+                        name={field.name}
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        className={`noir-input w-full ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        placeholder="seu@email.com"
+                      />
+                    </div>
+                    <FieldError errors={field.state.meta.errors} />
+                  </>
+                )}
+              </form.Field>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-heading">
-                Senha
-              </label>
-              <div className="mt-1">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="noir-input w-full"
-                  placeholder="••••••••"
-                />
-              </div>
+              <form.Field
+                name="password"
+                validators={{
+                  onBlur: zodValidator(passwordSchema),
+                }}
+              >
+                {(field) => (
+                  <>
+                    <label htmlFor={field.name} className="block text-sm font-medium text-heading">
+                      Senha
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        id={field.name}
+                        name={field.name}
+                        type="password"
+                        autoComplete="current-password"
+                        required
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        className={`noir-input w-full ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <FieldError errors={field.state.meta.errors} />
+                  </>
+                )}
+              </form.Field>
             </div>
 
             {error && (
@@ -167,6 +215,7 @@ export default function LoginPage() {
                 onClick={() => {
                   setView(view === "sign-in" ? "sign-up" : "sign-in");
                   setError(null);
+                  form.reset();
                 }}
                 className="noir-btn-secondary w-full py-2.5"
               >

@@ -1,5 +1,6 @@
 "use client";
 
+import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
 import { PieChart, Plus, Save, Trash2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -10,8 +11,11 @@ import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerConte
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { calculateTotalIncome } from "@/components/finance/hooks/useFinanceCalculations";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { FieldError } from "@/components/ui/FieldError";
 import { fetchJson } from "@/lib/apiClient";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
+import { zodValidator } from "@/lib/form";
+import { incomeSchema, personNameSchema } from "@/lib/formSchemas";
 import { formatPercent } from "@/lib/format";
 import type { Category, CurrentUserResponse, Person, PersonPatch } from "@/lib/types";
 
@@ -21,6 +25,11 @@ import type { Category, CurrentUserResponse, Person, PersonPatch } from "@/lib/t
 
 type PersonEdits = Record<string, { name: string; income: number }>;
 type CategoryEdits = Record<string, { targetPercent: number }>;
+
+type CreatePersonFormValues = {
+  name: string;
+  income: number | null;
+};
 
 // ============================================================================
 // Helper Functions
@@ -56,8 +65,6 @@ export function SettingsView() {
   } = useDefaultPayer();
 
   // Form state
-  const [newPersonName, setNewPersonName] = useState("");
-  const [newPersonIncome, setNewPersonIncome] = useState<number | null>(null);
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);
 
   // Loading states
@@ -77,6 +84,29 @@ export function SettingsView() {
   });
 
   const currentUserId = userData?.userId;
+
+  // TanStack Form for creating new person
+  const createPersonForm = useForm({
+    defaultValues: {
+      name: "",
+      income: null as number | null,
+    },
+    onSubmit: async ({ value }) => {
+      if (!value.name || value.income === null) return;
+
+      setIsCreatingPerson(true);
+      try {
+        await createPerson({ name: value.name, income: value.income });
+        createPersonForm.reset();
+        setShowNewPersonForm(false);
+      } catch (error) {
+        console.error("Failed to create person:", error);
+        alert("Falha ao criar participante. Por favor, tente novamente.");
+      } finally {
+        setIsCreatingPerson(false);
+      }
+    },
+  });
 
   // Initialize edits when data loads
   useEffect(() => {
@@ -222,24 +252,6 @@ export function SettingsView() {
     }
   };
 
-  const handleCreatePerson = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPersonName || newPersonIncome === null) return;
-
-    setIsCreatingPerson(true);
-    try {
-      await createPerson({ name: newPersonName, income: newPersonIncome });
-      setNewPersonName("");
-      setNewPersonIncome(null);
-      setShowNewPersonForm(false);
-    } catch (error) {
-      console.error("Failed to create person:", error);
-      alert("Falha ao criar participante. Por favor, tente novamente.");
-    } finally {
-      setIsCreatingPerson(false);
-    }
-  };
-
   const handleDeletePerson = async (personId: string) => {
     if (!confirm("Tem certeza que deseja remover este participante?")) return;
 
@@ -256,6 +268,11 @@ export function SettingsView() {
     } finally {
       setDeletingPersonId(null);
     }
+  };
+
+  const handleCancelNewPerson = () => {
+    setShowNewPersonForm(false);
+    createPersonForm.reset();
   };
 
   // ============================================================================
@@ -319,35 +336,64 @@ export function SettingsView() {
           {/* Add New Person Form */}
           {showNewPersonForm ? (
             <form
-              onSubmit={handleCreatePerson}
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                createPersonForm.handleSubmit();
+              }}
               className="flex flex-col md:flex-row gap-3 items-end p-4 bg-noir-active rounded-card border-2 border-dashed border-noir-border-light"
             >
               <div className="flex-1 w-full">
-                <label htmlFor="new-person-name" className="text-xs text-body font-medium">
-                  Nome
-                </label>
-                <input
-                  id="new-person-name"
-                  type="text"
-                  value={newPersonName}
-                  onChange={(e) => setNewPersonName(e.target.value)}
-                  required
-                  className="noir-input w-full text-sm"
-                  placeholder="Nome do participante"
-                />
+                <createPersonForm.Field
+                  name="name"
+                  validators={{
+                    onBlur: zodValidator(personNameSchema),
+                  }}
+                >
+                  {(field) => (
+                    <>
+                      <label htmlFor="new-person-name" className="text-xs text-body font-medium">
+                        Nome
+                      </label>
+                      <input
+                        id="new-person-name"
+                        type="text"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                        required
+                        className={`noir-input w-full text-sm ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        placeholder="Nome do participante"
+                      />
+                      <FieldError errors={field.state.meta.errors} />
+                    </>
+                  )}
+                </createPersonForm.Field>
               </div>
               <div className="w-full md:w-48">
-                <label htmlFor="new-person-income" className="text-xs text-body font-medium">
-                  Renda Mensal
-                </label>
-                <CurrencyInput
-                  id="new-person-income"
-                  value={newPersonIncome}
-                  onValueChange={setNewPersonIncome}
-                  required
-                  className="noir-input w-full text-sm"
-                  placeholder="R$ 0,00"
-                />
+                <createPersonForm.Field
+                  name="income"
+                  validators={{
+                    onBlur: zodValidator(incomeSchema),
+                  }}
+                >
+                  {(field) => (
+                    <>
+                      <label htmlFor="new-person-income" className="text-xs text-body font-medium">
+                        Renda Mensal
+                      </label>
+                      <CurrencyInput
+                        id="new-person-income"
+                        value={field.state.value}
+                        onValueChange={(value) => field.handleChange(value)}
+                        required
+                        className={`noir-input w-full text-sm ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        placeholder="R$ 0,00"
+                      />
+                      <FieldError errors={field.state.meta.errors} />
+                    </>
+                  )}
+                </createPersonForm.Field>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
                 <button
@@ -359,11 +405,7 @@ export function SettingsView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowNewPersonForm(false);
-                    setNewPersonName("");
-                    setNewPersonIncome(null);
-                  }}
+                  onClick={handleCancelNewPerson}
                   className="noir-btn-secondary text-sm py-1.5"
                 >
                   Cancelar
