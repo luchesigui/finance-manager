@@ -773,13 +773,23 @@ Retorne APENAS o JSON, sem markdown.
                   key={transaction.id}
                   className={`p-4 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
                     isSelected ? "bg-accent-primary/10" : ""
-                  } ${isIncome ? "border-l-2 border-l-accent-positive" : ""}`}
+                  } ${isIncome ? "border-l-2 border-l-accent-positive" : ""} ${
+                    isSelectionMode && canSelect ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() => {
+                    if (isSelectionMode && canSelect) {
+                      toggleTransactionSelection(transaction.id);
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-4">
                     {isSelectionMode && (
                       <button
                         type="button"
-                        onClick={() => canSelect && toggleTransactionSelection(transaction.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (canSelect) toggleTransactionSelection(transaction.id);
+                        }}
                         disabled={!canSelect}
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
                           isSelected
