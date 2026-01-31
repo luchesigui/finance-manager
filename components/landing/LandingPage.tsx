@@ -5,7 +5,6 @@ import {
   BarChart3,
   Calculator,
   ChevronDown,
-  CreditCard,
   Heart,
   PieChart,
   Target,
@@ -32,14 +31,6 @@ const features = [
     description:
       "Gastos divididos por porcentagem de renda, garantindo que todos contribuam de forma justa e se sintam parte das conquistas.",
     color: "accent-positive",
-  },
-  {
-    id: "credit-card",
-    icon: CreditCard,
-    title: "Gastos em Cartão",
-    description:
-      "Controle de compras no cartão de crédito com lançamento automático para o mês seguinte. Nunca mais se perca nas faturas.",
-    color: "accent-spending",
   },
   {
     id: "financial-goals",
@@ -226,8 +217,7 @@ export function LandingPage() {
 
           <p className="text-lg md:text-xl text-body max-w-3xl mx-auto mb-10 leading-relaxed">
             Mais do que dividir contas, o FinançasPro ajuda casais a construírem riqueza juntos.
-            Divisão justa por proporção de renda, controle de gastos no cartão, previsão de despesas
-            e metas compartilhadas.
+            Divisão justa por proporção de renda, previsão de despesas e metas compartilhadas.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -460,9 +450,7 @@ export function LandingPage() {
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
-          <p className="text-muted text-sm mt-6">
-            Sem necessidade de cartão de crédito • 100% gratuito
-          </p>
+          <p className="text-muted text-sm mt-6">100% gratuito</p>
         </div>
       </section>
 
