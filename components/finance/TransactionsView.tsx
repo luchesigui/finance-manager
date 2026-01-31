@@ -4,6 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import {
   BrainCircuit,
   Check,
+  CreditCard,
   Filter,
   Loader2,
   Pencil,
@@ -62,6 +63,7 @@ function createDefaultFormState(
     categoryId,
     paidBy,
     isRecurring: false,
+    isCreditCard: false,
     dateSelectionMode: "month",
     selectedMonth: yearMonth,
     date: "",
@@ -98,6 +100,7 @@ export function TransactionsView() {
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -112,11 +115,13 @@ export function TransactionsView() {
     categoryId: string | null;
     paidBy: string | null;
     isRecurring: boolean | null;
+    isCreditCard: boolean | null;
     excludeFromSplit: boolean | null;
   }>({
     categoryId: null,
     paidBy: null,
     isRecurring: null,
+    isCreditCard: null,
     excludeFromSplit: null,
   });
 
@@ -164,6 +169,7 @@ export function TransactionsView() {
         categoryId: value.categoryId,
         paidBy: value.paidBy,
         isRecurring: value.isRecurring,
+        isCreditCard: value.isCreditCard,
         excludeFromSplit: value.excludeFromSplit,
         isForecast: value.isForecast,
         date: value.date,
@@ -209,6 +215,12 @@ export function TransactionsView() {
         if (transaction.categoryId !== categoryFilter) return false;
       }
 
+      // Credit card filter
+      if (creditCardFilter !== "all") {
+        const isCreditCard = creditCardFilter === "yes";
+        if (transaction.isCreditCard !== isCreditCard) return false;
+      }
+
       // Fuzzy search filter
       if (searchQuery.trim()) {
         const category = categories.find((cat) => cat.id === transaction.categoryId);
@@ -224,7 +236,7 @@ export function TransactionsView() {
 
       return true;
     },
-    [paidByFilter, typeFilter, categoryFilter, searchQuery, categories, people],
+    [paidByFilter, typeFilter, categoryFilter, creditCardFilter, searchQuery, categories, people],
   );
 
   const visibleTransactionsForSelectedMonth = useMemo(
@@ -268,6 +280,7 @@ export function TransactionsView() {
     );
     editTransactionForm.setFieldValue("paidBy", transaction.paidBy);
     editTransactionForm.setFieldValue("isRecurring", transaction.isRecurring);
+    editTransactionForm.setFieldValue("isCreditCard", transaction.isCreditCard);
     editTransactionForm.setFieldValue("dateSelectionMode", isFirstOfMonth ? "month" : "specific");
     editTransactionForm.setFieldValue("selectedMonth", selectedMonth);
     editTransactionForm.setFieldValue("date", transaction.date);
@@ -397,6 +410,7 @@ Retorne APENAS o JSON, sem markdown.
       categoryId: null,
       paidBy: null,
       isRecurring: null,
+      isCreditCard: null,
       excludeFromSplit: null,
     });
     setIsBulkEditModalOpen(true);
@@ -413,6 +427,8 @@ Retorne APENAS o JSON, sem markdown.
     if (bulkEditFormState.categoryId !== null) patch.categoryId = bulkEditFormState.categoryId;
     if (bulkEditFormState.paidBy !== null) patch.paidBy = bulkEditFormState.paidBy;
     if (bulkEditFormState.isRecurring !== null) patch.isRecurring = bulkEditFormState.isRecurring;
+    if (bulkEditFormState.isCreditCard !== null)
+      patch.isCreditCard = bulkEditFormState.isCreditCard;
     if (bulkEditFormState.excludeFromSplit !== null)
       patch.excludeFromSplit = bulkEditFormState.excludeFromSplit;
 
@@ -586,13 +602,14 @@ Retorne APENAS o JSON, sem markdown.
         {isFilterOpen && (
           <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
             <div className="flex flex-wrap items-center justify-end gap-3">
-              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all") && (
+              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all" || creditCardFilter !== "all") && (
                 <button
                   type="button"
                   onClick={() => {
                     setTypeFilter("all");
                     setPaidByFilter("all");
                     setCategoryFilter("all");
+                    setCreditCardFilter("all");
                   }}
                   className="text-xs text-accent-primary hover:text-blue-400 font-medium flex items-center gap-1"
                 >
@@ -650,6 +667,22 @@ Retorne APENAS o JSON, sem markdown.
                       {category.name}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="credit-card-filter" className="text-xs font-medium text-body flex items-center gap-1">
+                  <CreditCard size={12} />
+                  Cartão
+                </label>
+                <select
+                  id="credit-card-filter"
+                  className="noir-select text-sm py-1"
+                  value={creditCardFilter}
+                  onChange={(e) => setCreditCardFilter(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="yes">Cartão</option>
+                  <option value="no">Não cartão</option>
                 </select>
               </div>
             </div>
@@ -732,7 +765,7 @@ Retorne APENAS o JSON, sem markdown.
               {searchQuery.trim() ? (
                 <>
                   Nenhum lançamento encontrado para &quot;{searchQuery}&quot;
-                  {typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all"
+                  {typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all" || creditCardFilter !== "all"
                     ? " com os filtros selecionados"
                     : ""}
                   .
@@ -743,7 +776,8 @@ Retorne APENAS o JSON, sem markdown.
                   {typeFilter !== "all" &&
                     ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
                   {paidByFilter !== "all" && " para este pagador"}
-                  {categoryFilter !== "all" && " nesta categoria"}.
+                  {categoryFilter !== "all" && " nesta categoria"}
+                  {creditCardFilter !== "all" && ` ${creditCardFilter === "yes" ? "no cartão" : "fora do cartão"}`}.
                 </>
               )}
             </div>
@@ -762,8 +796,6 @@ Retorne APENAS o JSON, sem markdown.
               return (
                 <div
                   key={transaction.id}
-                  role={isSelectionMode && canSelect ? "button" : undefined}
-                  tabIndex={isSelectionMode && canSelect ? 0 : undefined}
                   className={`p-4 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
                     isSelected ? "bg-accent-primary/10" : ""
                   } ${isIncome ? "border-l-2 border-l-accent-positive" : ""} ${
@@ -771,12 +803,6 @@ Retorne APENAS o JSON, sem markdown.
                   }`}
                   onClick={() => {
                     if (isSelectionMode && canSelect) {
-                      toggleTransactionSelection(transaction.id);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (isSelectionMode && canSelect && (e.key === "Enter" || e.key === " ")) {
-                      e.preventDefault();
                       toggleTransactionSelection(transaction.id);
                     }
                   }}
@@ -844,6 +870,11 @@ Retorne APENAS o JSON, sem markdown.
                         {transaction.isRecurring && (
                           <span className="noir-badge-accent flex items-center gap-1">
                             <RefreshCw size={10} /> Recorrente
+                          </span>
+                        )}
+                        {transaction.isCreditCard && (
+                          <span className="noir-badge-accent flex items-center gap-1">
+                            <CreditCard size={10} /> Cartão
                           </span>
                         )}
                         {transaction.excludeFromSplit && (
@@ -1147,6 +1178,43 @@ Retorne APENAS o JSON, sem markdown.
                   )}
                 </div>
 
+                {/* Is Credit Card */}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="bulk-creditcard-enable"
+                    checked={bulkEditFormState.isCreditCard !== null}
+                    onChange={(e) =>
+                      setBulkEditFormState((prev) => ({
+                        ...prev,
+                        isCreditCard: e.target.checked ? false : null,
+                      }))
+                    }
+                    className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
+                  />
+                  <label
+                    htmlFor="bulk-creditcard-enable"
+                    className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
+                  >
+                    <CreditCard size={14} /> Alterar Cartão de Crédito
+                  </label>
+                  {bulkEditFormState.isCreditCard !== null && (
+                    <select
+                      className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
+                      value={bulkEditFormState.isCreditCard ? "true" : "false"}
+                      onChange={(e) =>
+                        setBulkEditFormState((prev) => ({
+                          ...prev,
+                          isCreditCard: e.target.value === "true",
+                        }))
+                      }
+                    >
+                      <option value="true">Sim</option>
+                      <option value="false">Não</option>
+                    </select>
+                  )}
+                </div>
+
                 {/* Exclude from Split */}
                 <div className="flex items-center gap-3">
                   <input
@@ -1200,6 +1268,7 @@ Retorne APENAS o JSON, sem markdown.
                     bulkEditFormState.categoryId === null &&
                     bulkEditFormState.paidBy === null &&
                     bulkEditFormState.isRecurring === null &&
+                    bulkEditFormState.isCreditCard === null &&
                     bulkEditFormState.excludeFromSplit === null
                   }
                   className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"

@@ -41,7 +41,7 @@ export function useTransactionMutations(
     onSuccess: (created) => {
       // Filter to only transactions in the current month
       const inCurrentMonth = created.filter((transaction) => {
-        const accounting = getAccountingYearMonth(transaction.date);
+        const accounting = getAccountingYearMonth(transaction.date, transaction.isCreditCard);
         return accounting.year === selectedYear && accounting.month === selectedMonthNumber;
       });
 
