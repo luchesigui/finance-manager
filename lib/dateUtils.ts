@@ -90,23 +90,33 @@ export function addMonthsClampedUtc(date: Date, monthsToAdd: number): Date {
 
 /**
  * Calculates the accounting year and month for a transaction.
+ * Credit card transactions are accounted for in the following month.
  * @param dateString - Transaction date in YYYY-MM-DD format
+ * @param isCreditCard - Whether the transaction is a credit card expense
  */
-export function getAccountingYearMonth(dateString: string): { year: number; month: number } {
+export function getAccountingYearMonth(
+  dateString: string,
+  isCreditCard: boolean,
+): { year: number; month: number } {
   const base = parseDateString(dateString);
+  const accountingDate = isCreditCard ? addMonthsClamped(base, 1) : base;
   return {
-    year: base.getFullYear(),
-    month: base.getMonth() + 1,
+    year: accountingDate.getFullYear(),
+    month: accountingDate.getMonth() + 1,
   };
 }
 
 /**
  * Server-side version using UTC dates.
  */
-export function getAccountingYearMonthUtc(dateString: string): { year: number; month: number } {
+export function getAccountingYearMonthUtc(
+  dateString: string,
+  isCreditCard: boolean,
+): { year: number; month: number } {
   const base = parseDateStringUtc(dateString);
+  const accountingDate = isCreditCard ? addMonthsClampedUtc(base, 1) : base;
   return {
-    year: base.getUTCFullYear(),
-    month: base.getUTCMonth() + 1,
+    year: accountingDate.getUTCFullYear(),
+    month: accountingDate.getUTCMonth() + 1,
   };
 }

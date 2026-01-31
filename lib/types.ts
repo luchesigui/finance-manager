@@ -27,6 +27,8 @@ export type Transaction = {
   categoryId: string | null;
   paidBy: string;
   isRecurring: boolean;
+  /** If true, expense is accounted for in the next month (credit card billing cycle). */
+  isCreditCard: boolean;
   /** If true, transaction should not be considered in fair split calculation. */
   excludeFromSplit: boolean;
   /** If true, transaction is a forecast entry. */
@@ -55,6 +57,7 @@ export type TransactionPatch = Partial<
     | "categoryId"
     | "paidBy"
     | "isRecurring"
+    | "isCreditCard"
     | "excludeFromSplit"
     | "isForecast"
     | "date"
@@ -70,6 +73,7 @@ export type BulkTransactionPatch = Partial<
     | "categoryId"
     | "paidBy"
     | "isRecurring"
+    | "isCreditCard"
     | "excludeFromSplit"
     | "isForecast"
     | "type"
@@ -95,6 +99,8 @@ export type NewTransactionFormState = {
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;
+  /** If true, expense is accounted for in the next month (credit card billing). */
+  isCreditCard: boolean;
   /** 'month': date set to 1st of selected month, 'specific': user picks exact date */
   dateSelectionMode: DateSelectionMode;
   /** Selected month in YYYY-MM format (used when dateSelectionMode is 'month') */
@@ -138,6 +144,7 @@ export type TransactionRow = {
   category_id: string | null;
   paid_by: string;
   is_recurring: boolean;
+  is_credit_card?: boolean;
   exclude_from_split?: boolean;
   is_forecast?: boolean;
   date: string;
