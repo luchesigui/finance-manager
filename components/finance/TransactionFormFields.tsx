@@ -2,7 +2,6 @@
 
 import { useForm } from "@tanstack/react-form";
 import {
-  CreditCard,
   Layers,
   MinusCircle,
   PlusCircle,
@@ -373,32 +372,6 @@ export function TransactionFormFields({
                           className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                         >
                           <UserX size={14} /> Não entra na divisão?
-                        </label>
-                      </>
-                    )}
-                  </form.Field>
-                </div>
-              )}
-
-              {/* Credit Card (expenses only) */}
-              {!isIncome && (
-                <div className="flex items-center gap-2">
-                  <form.Field name="isCreditCard">
-                    {(field: FieldState<boolean>) => (
-                      <>
-                        <input
-                          type="checkbox"
-                          id={inputId("credit-card")}
-                          checked={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.checked)}
-                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
-                        />
-                        <label
-                          htmlFor={inputId("credit-card")}
-                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
-                          title="Se marcado, o lançamento entra no mês seguinte"
-                        >
-                          <CreditCard size={14} /> Cartão de Crédito
                         </label>
                       </>
                     )}

@@ -1,10 +1,6 @@
 import "server-only";
 
-import {
-  addMonthsClampedUtc,
-  getAccountingYearMonthUtc,
-  parseDateStringUtc,
-} from "@/lib/dateUtils";
+import { getAccountingYearMonthUtc, parseDateStringUtc } from "@/lib/dateUtils";
 import { createClient } from "@/lib/supabase/server";
 import type {
   BulkTransactionPatch,
@@ -61,7 +57,6 @@ function mapTransactionRow(row: TransactionRow): Transaction {
     categoryId: row.category_id,
     paidBy: row.paid_by,
     isRecurring: row.is_recurring,
-    isCreditCard: row.is_credit_card ?? false,
     excludeFromSplit: row.exclude_from_split ?? false,
     isForecast: row.is_forecast ?? false,
     date: row.date,
@@ -106,7 +101,6 @@ function toTransactionDbPatch(patch: TransactionPatch): Record<string, unknown> 
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
   if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
-  if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.date !== undefined) dbPatch.date = patch.date;
@@ -123,7 +117,6 @@ function toBulkTransactionDbPatch(patch: BulkTransactionPatch): Record<string, u
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
   if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
-  if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.type !== undefined) dbPatch.type = patch.type;
@@ -365,12 +358,12 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
     return (data as TransactionRow[]).map(mapTransactionRow);
   }
 
-  // Filtered by month with credit card offset handling
+  // Filtered by month
   return getTransactionsForMonth(supabase, year, month);
 }
 
 /**
- * Gets transactions for a specific month, handling credit card date offsets and recurring transactions.
+ * Gets transactions for a specific month, handling recurring transactions.
  */
 async function getTransactionsForMonth(
   // biome-ignore lint/suspicious/noExplicitAny: Supabase client type
@@ -380,21 +373,18 @@ async function getTransactionsForMonth(
 ): Promise<Transaction[]> {
   const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
   const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
-  const prevMonthStartDate = new Date(Date.UTC(year, month - 2, 1)).toISOString().split("T")[0];
 
-  // Fetch transactions from previous month through current month
-  // (needed because credit-card expenses from previous month appear in current month)
+  // Fetch transactions for the current month
   const { data: rawData, error: currentError } = await supabase
     .from("transactions")
     .select("*")
-    .gte("date", prevMonthStartDate)
+    .gte("date", startDate)
     .lte("date", endDate)
     .order("created_at", { ascending: false });
 
   if (currentError) throw currentError;
 
-  // Filter to transactions whose accounting month matches the requested month
-  const currentMonthData = filterByAccountingMonth(rawData ?? [], year, month);
+  const currentMonthData = rawData ?? [];
 
   // Fetch and materialize recurring transactions
   const virtualTransactions = await materializeRecurringTransactions(
@@ -430,7 +420,7 @@ function filterByAccountingMonth(
   month: number,
 ): TransactionRow[] {
   return rows.filter((row) => {
-    const accounting = getAccountingYearMonthUtc(row.date, row.is_credit_card ?? false);
+    const accounting = getAccountingYearMonthUtc(row.date);
     return accounting.year === year && accounting.month === month;
   });
 }
@@ -507,7 +497,6 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     category_id: isIncome ? null : t.categoryId,
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
-    is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
     exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
     is_forecast: isForecast,
     date: t.date,
