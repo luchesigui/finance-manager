@@ -100,6 +100,7 @@ export function TransactionsView() {
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -214,6 +215,12 @@ export function TransactionsView() {
         if (transaction.categoryId !== categoryFilter) return false;
       }
 
+      // Credit card filter
+      if (creditCardFilter !== "all") {
+        const isCreditCard = creditCardFilter === "yes";
+        if (transaction.isCreditCard !== isCreditCard) return false;
+      }
+
       // Fuzzy search filter
       if (searchQuery.trim()) {
         const category = categories.find((cat) => cat.id === transaction.categoryId);
@@ -229,7 +236,7 @@ export function TransactionsView() {
 
       return true;
     },
-    [paidByFilter, typeFilter, categoryFilter, searchQuery, categories, people],
+    [paidByFilter, typeFilter, categoryFilter, creditCardFilter, searchQuery, categories, people],
   );
 
   const visibleTransactionsForSelectedMonth = useMemo(
@@ -595,13 +602,14 @@ Retorne APENAS o JSON, sem markdown.
         {isFilterOpen && (
           <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
             <div className="flex flex-wrap items-center justify-end gap-3">
-              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all") && (
+              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all" || creditCardFilter !== "all") && (
                 <button
                   type="button"
                   onClick={() => {
                     setTypeFilter("all");
                     setPaidByFilter("all");
                     setCategoryFilter("all");
+                    setCreditCardFilter("all");
                   }}
                   className="text-xs text-accent-primary hover:text-blue-400 font-medium flex items-center gap-1"
                 >
@@ -659,6 +667,22 @@ Retorne APENAS o JSON, sem markdown.
                       {category.name}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="credit-card-filter" className="text-xs font-medium text-body flex items-center gap-1">
+                  <CreditCard size={12} />
+                  Cartão
+                </label>
+                <select
+                  id="credit-card-filter"
+                  className="noir-select text-sm py-1"
+                  value={creditCardFilter}
+                  onChange={(e) => setCreditCardFilter(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="yes">Cartão</option>
+                  <option value="no">Não cartão</option>
                 </select>
               </div>
             </div>
@@ -741,7 +765,7 @@ Retorne APENAS o JSON, sem markdown.
               {searchQuery.trim() ? (
                 <>
                   Nenhum lançamento encontrado para &quot;{searchQuery}&quot;
-                  {typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all"
+                  {typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all" || creditCardFilter !== "all"
                     ? " com os filtros selecionados"
                     : ""}
                   .
@@ -752,7 +776,8 @@ Retorne APENAS o JSON, sem markdown.
                   {typeFilter !== "all" &&
                     ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
                   {paidByFilter !== "all" && " para este pagador"}
-                  {categoryFilter !== "all" && " nesta categoria"}.
+                  {categoryFilter !== "all" && " nesta categoria"}
+                  {creditCardFilter !== "all" && ` ${creditCardFilter === "yes" ? "no cartão" : "fora do cartão"}`}.
                 </>
               )}
             </div>
