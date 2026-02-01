@@ -32,7 +32,7 @@ export function normalizeCategoryName(name: string): string {
  * Normalized for comparison.
  */
 export const AUTO_EXCLUDE_FROM_SPLIT_CATEGORIES = new Set(
-  ["Liberdade Financeira", "Metas"].map(normalizeCategoryName),
+  ["Liberdade Financeira"].map(normalizeCategoryName),
 );
 
 /**
