@@ -32,7 +32,7 @@ export function CategorySummaryTable({
     totalIncome,
   );
   const goalsAndSavingsNames = new Set(
-    ["liberdade financeira", "metas"].map((n) => normalizeCategoryName(n)),
+    ["liberdade financeira"].map((n) => normalizeCategoryName(n)),
   );
 
   return (
