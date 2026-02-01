@@ -18,7 +18,7 @@ import {
   UserX,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { TransactionFormFields } from "@/components/finance/TransactionFormFields";
@@ -98,12 +98,14 @@ export function TransactionsView() {
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
+  const [isCategoryFilterInverted, setIsCategoryFilterInverted] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -124,6 +126,26 @@ export function TransactionsView() {
     isCreditCard: null,
     excludeFromSplit: null,
   });
+
+  // Ref for category dropdown click outside handling
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close category dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+
+    if (isCategoryDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isCategoryDropdownOpen]);
 
   // Helper to get current month string (YYYY-MM)
   const getCurrentYearMonth = () => {
@@ -200,19 +222,36 @@ export function TransactionsView() {
   }, [paidByFilter, people]);
 
   useEffect(() => {
-    if (categoryFilter === "all") return;
-    const stillExists = categories.some((category) => category.id === categoryFilter);
-    if (!stillExists) setCategoryFilter("all");
+    if (categoryFilter.size === 0) return;
+    const categoryIds = new Set(categories.map((cat) => cat.id));
+    const validIds = new Set(Array.from(categoryFilter).filter((id) => categoryIds.has(id)));
+    if (validIds.size !== categoryFilter.size) {
+      setCategoryFilter(validIds);
+    }
   }, [categoryFilter, categories]);
 
   const matchesFilters = useCallback(
     (transaction: Transaction) => {
       if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
       if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
-      // Income transactions have no category, so they pass category filter if "all" or if specifically showing income
-      if (categoryFilter !== "all") {
-        if (transaction.categoryId === null) return false; // Income transactions don't match specific category filter
-        if (transaction.categoryId !== categoryFilter) return false;
+
+      // Multi-category filter with inverse selection support
+      if (categoryFilter.size > 0) {
+        // Income transactions have no category
+        if (transaction.categoryId === null) {
+          // In normal mode, income doesn't match any category filter
+          // In inverted mode, income passes (it's not in the excluded set)
+          if (!isCategoryFilterInverted) return false;
+        } else {
+          const categoryInSet = categoryFilter.has(transaction.categoryId);
+          // Normal mode: only show selected categories
+          // Inverted mode: show all EXCEPT selected categories
+          if (isCategoryFilterInverted) {
+            if (categoryInSet) return false;
+          } else {
+            if (!categoryInSet) return false;
+          }
+        }
       }
 
       // Credit card filter
@@ -236,7 +275,16 @@ export function TransactionsView() {
 
       return true;
     },
-    [paidByFilter, typeFilter, categoryFilter, creditCardFilter, searchQuery, categories, people],
+    [
+      paidByFilter,
+      typeFilter,
+      categoryFilter,
+      isCategoryFilterInverted,
+      creditCardFilter,
+      searchQuery,
+      categories,
+      people,
+    ],
   );
 
   const visibleTransactionsForSelectedMonth = useMemo(
@@ -602,13 +650,17 @@ Retorne APENAS o JSON, sem markdown.
         {isFilterOpen && (
           <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
             <div className="flex flex-wrap items-center justify-end gap-3">
-              {(typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all" || creditCardFilter !== "all") && (
+              {(typeFilter !== "all" ||
+                paidByFilter !== "all" ||
+                categoryFilter.size > 0 ||
+                creditCardFilter !== "all") && (
                 <button
                   type="button"
                   onClick={() => {
                     setTypeFilter("all");
                     setPaidByFilter("all");
-                    setCategoryFilter("all");
+                    setCategoryFilter(new Set());
+                    setIsCategoryFilterInverted(false);
                     setCreditCardFilter("all");
                   }}
                   className="text-xs text-accent-primary hover:text-blue-400 font-medium flex items-center gap-1"
@@ -650,27 +702,112 @@ Retorne APENAS o JSON, sem markdown.
                   ))}
                 </select>
               </div>
-              <div className="flex items-center gap-2">
+              <div ref={categoryDropdownRef} className="flex items-center gap-2 relative">
                 <label htmlFor="category-filter" className="text-xs font-medium text-body">
                   Categoria
                 </label>
-                <select
+                <button
+                  type="button"
                   id="category-filter"
-                  className="noir-select text-sm py-1"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
                   disabled={typeFilter === "income"}
+                  className={`noir-select text-sm py-1 min-w-[140px] text-left flex items-center justify-between gap-2 ${
+                    typeFilter === "income" ? "opacity-50 cursor-not-allowed" : ""
+                  } ${categoryFilter.size > 0 ? "ring-1 ring-accent-primary" : ""}`}
                 >
-                  <option value="all">Todas</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <span className="truncate">
+                    {categoryFilter.size === 0
+                      ? "Todas"
+                      : isCategoryFilterInverted
+                        ? `Exceto ${categoryFilter.size}`
+                        : `${categoryFilter.size} selecionada${categoryFilter.size > 1 ? "s" : ""}`}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${isCategoryDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {isCategoryDropdownOpen && typeFilter !== "income" && (
+                  <div className="absolute top-full left-0 mt-1 z-50 bg-noir-surface border border-noir-border rounded-interactive shadow-lg min-w-[220px] animate-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 border-b border-noir-border">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategoryFilter(new Set(categories.map((c) => c.id)));
+                          }}
+                          className="text-xs text-accent-primary hover:text-blue-400 font-medium"
+                        >
+                          Selecionar Todas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategoryFilter(new Set());
+                            setIsCategoryFilterInverted(false);
+                          }}
+                          className="text-xs text-muted hover:text-body font-medium"
+                        >
+                          Limpar
+                        </button>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-noir-active/50 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isCategoryFilterInverted}
+                          onChange={(e) => setIsCategoryFilterInverted(e.target.checked)}
+                          disabled={categoryFilter.size === 0}
+                          className="w-4 h-4 text-accent-warning rounded border-noir-border bg-noir-active focus:ring-accent-warning disabled:opacity-50"
+                        />
+                        <span
+                          className={`text-xs font-medium ${isCategoryFilterInverted ? "text-accent-warning" : "text-body"}`}
+                        >
+                          Seleção inversa (excluir)
+                        </span>
+                      </label>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto p-1">
+                      {categories.map((category) => (
+                        <label
+                          key={category.id}
+                          className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-noir-active/50 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={categoryFilter.has(category.id)}
+                            onChange={(e) => {
+                              const newSet = new Set(categoryFilter);
+                              if (e.target.checked) {
+                                newSet.add(category.id);
+                              } else {
+                                newSet.delete(category.id);
+                              }
+                              setCategoryFilter(newSet);
+                            }}
+                            className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
+                          />
+                          <span className="text-sm text-heading">{category.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="credit-card-filter" className="text-xs font-medium text-body flex items-center gap-1">
+                <label
+                  htmlFor="credit-card-filter"
+                  className="text-xs font-medium text-body flex items-center gap-1"
+                >
                   <CreditCard size={12} />
                   Cartão
                 </label>
@@ -765,7 +902,10 @@ Retorne APENAS o JSON, sem markdown.
               {searchQuery.trim() ? (
                 <>
                   Nenhum lançamento encontrado para &quot;{searchQuery}&quot;
-                  {typeFilter !== "all" || paidByFilter !== "all" || categoryFilter !== "all" || creditCardFilter !== "all"
+                  {typeFilter !== "all" ||
+                  paidByFilter !== "all" ||
+                  categoryFilter.size > 0 ||
+                  creditCardFilter !== "all"
                     ? " com os filtros selecionados"
                     : ""}
                   .
@@ -776,8 +916,13 @@ Retorne APENAS o JSON, sem markdown.
                   {typeFilter !== "all" &&
                     ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
                   {paidByFilter !== "all" && " para este pagador"}
-                  {categoryFilter !== "all" && " nesta categoria"}
-                  {creditCardFilter !== "all" && ` ${creditCardFilter === "yes" ? "no cartão" : "fora do cartão"}`}.
+                  {categoryFilter.size > 0 &&
+                    (isCategoryFilterInverted
+                      ? " excluindo categorias selecionadas"
+                      : " nas categorias selecionadas")}
+                  {creditCardFilter !== "all" &&
+                    ` ${creditCardFilter === "yes" ? "no cartão" : "fora do cartão"}`}
+                  .
                 </>
               )}
             </div>
@@ -796,6 +941,8 @@ Retorne APENAS o JSON, sem markdown.
               return (
                 <div
                   key={transaction.id}
+                  role={isSelectionMode && canSelect ? "button" : undefined}
+                  tabIndex={isSelectionMode && canSelect ? 0 : undefined}
                   className={`p-4 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
                     isSelected ? "bg-accent-primary/10" : ""
                   } ${isIncome ? "border-l-2 border-l-accent-positive" : ""} ${
@@ -803,6 +950,12 @@ Retorne APENAS o JSON, sem markdown.
                   }`}
                   onClick={() => {
                     if (isSelectionMode && canSelect) {
+                      toggleTransactionSelection(transaction.id);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (isSelectionMode && canSelect && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
                       toggleTransactionSelection(transaction.id);
                     }
                   }}
