@@ -2,6 +2,7 @@
 
 import { useForm } from "@tanstack/react-form";
 import {
+  AlertTriangle,
   BrainCircuit,
   Check,
   CreditCard,
@@ -27,9 +28,14 @@ import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthConte
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { useOutlierDetection } from "@/components/finance/hooks/useOutlierDetection";
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
-import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDateString,
+  formatMonthYear,
+} from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
 
@@ -54,7 +60,7 @@ const fuzzyMatch = (text: string, query: string): boolean => {
 function createDefaultFormState(
   categoryId: string,
   paidBy: string,
-  yearMonth: string,
+  yearMonth: string
 ): NewTransactionFormState {
   return {
     description: "",
@@ -93,6 +99,11 @@ export function TransactionsView() {
     bulkUpdateTransactions,
     bulkDeleteTransactions,
   } = useTransactions();
+
+  const { isOutlier } = useOutlierDetection(
+    selectedMonthDate.getFullYear(),
+    selectedMonthDate.getMonth() + 1
+  );
 
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
@@ -141,7 +152,8 @@ export function TransactionsView() {
 
     if (isCategoryDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isCategoryDropdownOpen]);
 
@@ -153,14 +165,15 @@ export function TransactionsView() {
   };
 
   // Edit modal state
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] =
+    useState<Transaction | null>(null);
 
   // TanStack Form for new transaction
   const newTransactionForm = useForm({
     defaultValues: createDefaultFormState(
       categories[0]?.id ?? "c1",
       defaultPayerId,
-      getCurrentYearMonth(),
+      getCurrentYearMonth()
     ),
     onSubmit: async ({ value }) => {
       addTransactionsFromFormState(value);
@@ -177,7 +190,7 @@ export function TransactionsView() {
     defaultValues: createDefaultFormState(
       categories[0]?.id ?? "",
       defaultPayerId,
-      getCurrentYearMonth(),
+      getCurrentYearMonth()
     ),
     onSubmit: async ({ value }) => {
       if (!editingTransaction) return;
@@ -222,14 +235,17 @@ export function TransactionsView() {
   useEffect(() => {
     if (categoryFilter.size === 0) return;
     const categoryIds = new Set(categories.map((cat) => cat.id));
-    const validIds = new Set(Array.from(categoryFilter).filter((id) => categoryIds.has(id)));
+    const validIds = new Set(
+      Array.from(categoryFilter).filter((id) => categoryIds.has(id))
+    );
     if (validIds.size !== categoryFilter.size) {
       setCategoryFilter(validIds);
     }
   }, [categoryFilter, categories]);
 
   const matchesFilters = (transaction: Transaction) => {
-    if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
+    if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter)
+      return false;
     if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
 
     // Multi-category filter
@@ -247,7 +263,9 @@ export function TransactionsView() {
 
     // Fuzzy search filter
     if (searchQuery.trim()) {
-      const category = categories.find((cat) => cat.id === transaction.categoryId);
+      const category = categories.find(
+        (cat) => cat.id === transaction.categoryId
+      );
       const person = people.find((pers) => pers.id === transaction.paidBy);
       const searchableText = [
         transaction.description,
@@ -261,14 +279,18 @@ export function TransactionsView() {
     return true;
   };
 
-  const visibleTransactionsForSelectedMonth = transactionsForSelectedMonth.filter(matchesFilters);
-  const visibleTransactionsForCalculations = transactionsForCalculations.filter(matchesFilters);
+  const visibleTransactionsForSelectedMonth =
+    transactionsForSelectedMonth.filter(matchesFilters);
+  const visibleTransactionsForCalculations =
+    transactionsForCalculations.filter(matchesFilters);
   const visibleCalculationIds = new Set(
-    visibleTransactionsForCalculations.map((transaction) => transaction.id),
+    visibleTransactionsForCalculations.map((transaction) => transaction.id)
   );
-  const visibleExcludedForecastCount = visibleTransactionsForSelectedMonth.filter(
-    (transaction) => transaction.isForecast && !visibleCalculationIds.has(transaction.id),
-  ).length;
+  const visibleExcludedForecastCount =
+    visibleTransactionsForSelectedMonth.filter(
+      (transaction) =>
+        transaction.isForecast && !visibleCalculationIds.has(transaction.id)
+    ).length;
 
   const handleOpenEditModal = (transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -278,7 +300,9 @@ export function TransactionsView() {
     const day = dateParts[2] ? Number.parseInt(dateParts[2], 10) : 1;
     const isFirstOfMonth = day === 1;
     const selectedMonth =
-      dateParts[0] && dateParts[1] ? `${dateParts[0]}-${dateParts[1]}` : getCurrentYearMonth();
+      dateParts[0] && dateParts[1]
+        ? `${dateParts[0]}-${dateParts[1]}`
+        : getCurrentYearMonth();
 
     // Reset and populate the edit form
     editTransactionForm.reset();
@@ -286,18 +310,27 @@ export function TransactionsView() {
     editTransactionForm.setFieldValue("amount", transaction.amount);
     editTransactionForm.setFieldValue(
       "categoryId",
-      transaction.categoryId ?? categories[0]?.id ?? "",
+      transaction.categoryId ?? categories[0]?.id ?? ""
     );
     editTransactionForm.setFieldValue("paidBy", transaction.paidBy);
     editTransactionForm.setFieldValue("isRecurring", transaction.isRecurring);
     editTransactionForm.setFieldValue("isCreditCard", transaction.isCreditCard);
-    editTransactionForm.setFieldValue("dateSelectionMode", isFirstOfMonth ? "month" : "specific");
+    editTransactionForm.setFieldValue(
+      "dateSelectionMode",
+      isFirstOfMonth ? "month" : "specific"
+    );
     editTransactionForm.setFieldValue("selectedMonth", selectedMonth);
     editTransactionForm.setFieldValue("date", transaction.date);
-    editTransactionForm.setFieldValue("excludeFromSplit", transaction.excludeFromSplit);
+    editTransactionForm.setFieldValue(
+      "excludeFromSplit",
+      transaction.excludeFromSplit
+    );
     editTransactionForm.setFieldValue("isForecast", transaction.isForecast);
     editTransactionForm.setFieldValue("type", transaction.type ?? "expense");
-    editTransactionForm.setFieldValue("isIncrement", transaction.isIncrement ?? true);
+    editTransactionForm.setFieldValue(
+      "isIncrement",
+      transaction.isIncrement ?? true
+    );
   };
 
   const handleCloseEditModal = () => {
@@ -311,7 +344,9 @@ export function TransactionsView() {
     const categoriesPrompt = categories
       .map((category) => `${category.id}:${category.name}`)
       .join(", ");
-    const peoplePrompt = people.map((person) => `${person.id}:${person.name}`).join(", ");
+    const peoplePrompt = people
+      .map((person) => `${person.id}:${person.name}`)
+      .join(", ");
     const todayStr = new Date().toISOString().split("T")[0];
 
     const prompt = `
@@ -368,7 +403,7 @@ Retorne APENAS o JSON, sem markdown.
               "selectedMonth",
               dateParts[0] && dateParts[1]
                 ? `${dateParts[0]}-${dateParts[1]}`
-                : getCurrentYearMonth(),
+                : getCurrentYearMonth()
             );
           } else {
             newTransactionForm.setFieldValue("dateSelectionMode", "specific");
@@ -434,9 +469,12 @@ Retorne APENAS o JSON, sem markdown.
     if (selectedIds.size === 0) return;
 
     const patch: Record<string, unknown> = {};
-    if (bulkEditFormState.categoryId !== null) patch.categoryId = bulkEditFormState.categoryId;
-    if (bulkEditFormState.paidBy !== null) patch.paidBy = bulkEditFormState.paidBy;
-    if (bulkEditFormState.isRecurring !== null) patch.isRecurring = bulkEditFormState.isRecurring;
+    if (bulkEditFormState.categoryId !== null)
+      patch.categoryId = bulkEditFormState.categoryId;
+    if (bulkEditFormState.paidBy !== null)
+      patch.paidBy = bulkEditFormState.paidBy;
+    if (bulkEditFormState.isRecurring !== null)
+      patch.isRecurring = bulkEditFormState.isRecurring;
     if (bulkEditFormState.isCreditCard !== null)
       patch.isCreditCard = bulkEditFormState.isCreditCard;
     if (bulkEditFormState.excludeFromSplit !== null)
@@ -449,7 +487,7 @@ Retorne APENAS o JSON, sem markdown.
 
     bulkUpdateTransactions(
       Array.from(selectedIds),
-      patch as Parameters<typeof bulkUpdateTransactions>[1],
+      patch as Parameters<typeof bulkUpdateTransactions>[1]
     );
     setIsBulkEditModalOpen(false);
     setSelectedIds(new Set());
@@ -458,7 +496,8 @@ Retorne APENAS o JSON, sem markdown.
 
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Excluir ${selectedIds.size} lançamento(s) selecionado(s)?`)) return;
+    if (!confirm(`Excluir ${selectedIds.size} lançamento(s) selecionado(s)?`))
+      return;
 
     bulkDeleteTransactions(Array.from(selectedIds));
     setSelectedIds(new Set());
@@ -489,7 +528,9 @@ Retorne APENAS o JSON, sem markdown.
                   onChange={(event) => setSmartInput(event.target.value)}
                   placeholder="Ex: Almoço com Amanda hoje custou 45 reais"
                   className="noir-input flex-1 text-sm"
-                  onKeyDown={(event) => event.key === "Enter" && handleSmartFill()}
+                  onKeyDown={(event) =>
+                    event.key === "Enter" && handleSmartFill()
+                  }
                 />
                 <button
                   type="button"
@@ -512,11 +553,15 @@ Retorne APENAS o JSON, sem markdown.
               <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
                 <Plus
                   className={`${
-                    values.type === "income" ? "bg-accent-positive" : "bg-accent-primary"
+                    values.type === "income"
+                      ? "bg-accent-positive"
+                      : "bg-accent-primary"
                   } text-white rounded-interactive p-1`}
                   size={24}
                 />
-                {values.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
+                {values.type === "income"
+                  ? "Novo Lançamento de Renda"
+                  : "Nova Despesa Manual"}
               </h3>
             )}
           </newTransactionForm.Subscribe>
@@ -553,8 +598,8 @@ Retorne APENAS o JSON, sem markdown.
                         ? "Adicionar Renda"
                         : "Adicionar Dedução de Renda"
                       : values.isInstallment
-                        ? `Lançar ${values.installments}x Parcelas`
-                        : "Adicionar Lançamento"}
+                      ? `Lançar ${values.installments}x Parcelas`
+                      : "Adicionar Lançamento"}
                   </button>
                 )}
               </newTransactionForm.Subscribe>
@@ -633,7 +678,10 @@ Retorne APENAS o JSON, sem markdown.
                 </button>
               )}
               <div className="flex items-center gap-2">
-                <label htmlFor="type-filter" className="text-xs font-medium text-body">
+                <label
+                  htmlFor="type-filter"
+                  className="text-xs font-medium text-body"
+                >
                   Tipo
                 </label>
                 <select
@@ -648,7 +696,10 @@ Retorne APENAS o JSON, sem markdown.
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="paid-by-filter" className="text-xs font-medium text-body">
+                <label
+                  htmlFor="paid-by-filter"
+                  className="text-xs font-medium text-body"
+                >
                   Atribuído à
                 </label>
                 <select
@@ -665,23 +716,37 @@ Retorne APENAS o JSON, sem markdown.
                   ))}
                 </select>
               </div>
-              <div ref={categoryDropdownRef} className="flex items-center gap-2 relative">
-                <label htmlFor="category-filter" className="text-xs font-medium text-body">
+              <div
+                ref={categoryDropdownRef}
+                className="flex items-center gap-2 relative"
+              >
+                <label
+                  htmlFor="category-filter"
+                  className="text-xs font-medium text-body"
+                >
                   Categoria
                 </label>
                 <button
                   type="button"
                   id="category-filter"
-                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  onClick={() =>
+                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen)
+                  }
                   disabled={typeFilter === "income"}
                   className={`noir-select text-sm py-1 min-w-[140px] text-left flex items-center justify-between gap-2 ${
-                    typeFilter === "income" ? "opacity-50 cursor-not-allowed" : ""
-                  } ${categoryFilter.size > 0 ? "ring-1 ring-accent-primary" : ""}`}
+                    typeFilter === "income"
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  } ${
+                    categoryFilter.size > 0 ? "ring-1 ring-accent-primary" : ""
+                  }`}
                 >
                   <span className="truncate">
                     {categoryFilter.size === 0
                       ? "Todas"
-                      : `${categoryFilter.size} selecionada${categoryFilter.size > 1 ? "s" : ""}`}
+                      : `${categoryFilter.size} selecionada${
+                          categoryFilter.size > 1 ? "s" : ""
+                        }`}
                   </span>
                   <svg
                     className={`w-4 h-4 transition-transform ${
@@ -706,7 +771,9 @@ Retorne APENAS o JSON, sem markdown.
                       <button
                         type="button"
                         onClick={() => {
-                          setCategoryFilter(new Set(categories.map((c) => c.id)));
+                          setCategoryFilter(
+                            new Set(categories.map((c) => c.id))
+                          );
                         }}
                         className="text-xs text-accent-primary hover:text-blue-400 font-medium"
                       >
@@ -742,7 +809,9 @@ Retorne APENAS o JSON, sem markdown.
                             }}
                             className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
                           />
-                          <span className="text-sm text-heading">{category.name}</span>
+                          <span className="text-sm text-heading">
+                            {category.name}
+                          </span>
                         </label>
                       ))}
                     </div>
@@ -776,7 +845,10 @@ Retorne APENAS o JSON, sem markdown.
         {isSearchOpen && (
           <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+              />
               <input
                 type="text"
                 value={searchQuery}
@@ -864,7 +936,11 @@ Retorne APENAS o JSON, sem markdown.
                   {paidByFilter !== "all" && " para este pagador"}
                   {categoryFilter.size > 0 && " nas categorias selecionadas"}
                   {creditCardFilter !== "all" &&
-                    ` ${creditCardFilter === "yes" ? "no cartão" : "fora do cartão"}`}
+                    ` ${
+                      creditCardFilter === "yes"
+                        ? "no cartão"
+                        : "fora do cartão"
+                    }`}
                   .
                 </>
               )}
@@ -872,9 +948,11 @@ Retorne APENAS o JSON, sem markdown.
           ) : (
             visibleTransactionsForSelectedMonth.map((transaction) => {
               const selectedCategory = categories.find(
-                (category) => category.id === transaction.categoryId,
+                (category) => category.id === transaction.categoryId
               );
-              const selectedPerson = people.find((person) => person.id === transaction.paidBy);
+              const selectedPerson = people.find(
+                (person) => person.id === transaction.paidBy
+              );
               const isSelected = selectedIds.has(transaction.id);
               const canSelect = !transaction.isRecurring;
               const isIncome = transaction.type === "income";
@@ -897,7 +975,11 @@ Retorne APENAS o JSON, sem markdown.
                     }
                   }}
                   onKeyDown={(e) => {
-                    if (isSelectionMode && canSelect && (e.key === "Enter" || e.key === " ")) {
+                    if (
+                      isSelectionMode &&
+                      canSelect &&
+                      (e.key === "Enter" || e.key === " ")
+                    ) {
                       e.preventDefault();
                       toggleTransactionSelection(transaction.id);
                     }
@@ -909,18 +991,21 @@ Retorne APENAS o JSON, sem markdown.
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (canSelect) toggleTransactionSelection(transaction.id);
+                          if (canSelect)
+                            toggleTransactionSelection(transaction.id);
                         }}
                         disabled={!canSelect}
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
                           isSelected
                             ? "bg-accent-primary border-accent-primary text-white"
                             : canSelect
-                              ? "border-noir-border-light hover:border-accent-primary"
-                              : "border-noir-border bg-noir-active cursor-not-allowed"
+                            ? "border-noir-border-light hover:border-accent-primary"
+                            : "border-noir-border bg-noir-active cursor-not-allowed"
                         }`}
                         title={
-                          !canSelect ? "Lançamentos recorrentes não podem ser selecionados" : ""
+                          !canSelect
+                            ? "Lançamentos recorrentes não podem ser selecionados"
+                            : ""
                         }
                       >
                         {isSelected && <Check size={12} strokeWidth={3} />}
@@ -943,7 +1028,9 @@ Retorne APENAS o JSON, sem markdown.
                         )
                       ) : (
                         <span className="text-body">
-                          {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}
+                          {(
+                            selectedPerson?.name.substring(0, 2) ?? "?"
+                          ).toUpperCase()}
                         </span>
                       )}
                     </div>
@@ -953,10 +1040,16 @@ Retorne APENAS o JSON, sem markdown.
                         {isIncome && (
                           <span
                             className={`${
-                              isIncrement ? "noir-badge-positive" : "noir-badge-warning"
+                              isIncrement
+                                ? "noir-badge-positive"
+                                : "noir-badge-warning"
                             } flex items-center gap-1`}
                           >
-                            {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            {isIncrement ? (
+                              <TrendingUp size={10} />
+                            ) : (
+                              <TrendingDown size={10} />
+                            )}
                             {isIncrement ? "Renda" : "Dedução"}
                           </span>
                         )}
@@ -978,6 +1071,11 @@ Retorne APENAS o JSON, sem markdown.
                         {transaction.excludeFromSplit && (
                           <span className="noir-badge-muted flex items-center gap-1">
                             <UserX size={10} /> Fora da divisão
+                          </span>
+                        )}
+                        {isOutlier(transaction) && (
+                          <span className="noir-badge-negative flex items-center gap-1">
+                            <AlertTriangle size={10} /> Fora do padrão
                           </span>
                         )}
                       </h4>
@@ -1002,7 +1100,11 @@ Retorne APENAS o JSON, sem markdown.
                           : "text-heading"
                       }`}
                     >
-                      {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
+                      {isIncome && isIncrement
+                        ? "+"
+                        : isIncome && !isIncrement
+                        ? "-"
+                        : ""}
                       {formatCurrency(transaction.amount)}
                     </span>
                     {!isSelectionMode && (
@@ -1018,7 +1120,9 @@ Retorne APENAS o JSON, sem markdown.
                         {!transaction.isRecurring ? (
                           <button
                             type="button"
-                            onClick={() => deleteTransactionById(transaction.id)}
+                            onClick={() =>
+                              deleteTransactionById(transaction.id)
+                            }
                             className="text-muted hover:text-accent-negative p-2 transition-all rounded-interactive hover:bg-accent-negative/10"
                             title="Excluir"
                           >
@@ -1048,7 +1152,10 @@ Retorne APENAS o JSON, sem markdown.
             </span>
             <span className="font-bold text-lg text-heading tabular-nums">
               {formatCurrency(
-                visibleTransactionsForCalculations.reduce((sum, t) => sum + t.amount, 0),
+                visibleTransactionsForCalculations.reduce(
+                  (sum, t) => sum + t.amount,
+                  0
+                )
               )}
             </span>
           </div>
@@ -1141,7 +1248,9 @@ Retorne APENAS o JSON, sem markdown.
               <h3 className="font-semibold text-heading flex items-center gap-2">
                 <Pencil className="text-accent-primary" size={20} />
                 Editar em Massa
-                <span className="noir-badge-muted">{selectedIds.size} lançamento(s)</span>
+                <span className="noir-badge-muted">
+                  {selectedIds.size} lançamento(s)
+                </span>
               </h3>
               <button
                 type="button"
@@ -1153,8 +1262,8 @@ Retorne APENAS o JSON, sem markdown.
             </div>
             <div className="p-6">
               <p className="text-sm text-body mb-4">
-                Selecione os campos que deseja alterar. Apenas os campos selecionados serão
-                atualizados em todos os lançamentos.
+                Selecione os campos que deseja alterar. Apenas os campos
+                selecionados serão atualizados em todos os lançamentos.
               </p>
 
               {/* Category */}
@@ -1167,7 +1276,9 @@ Retorne APENAS o JSON, sem markdown.
                     onChange={(e) =>
                       setBulkEditFormState((prev) => ({
                         ...prev,
-                        categoryId: e.target.checked ? (categories[0]?.id ?? "") : null,
+                        categoryId: e.target.checked
+                          ? categories[0]?.id ?? ""
+                          : null,
                       }))
                     }
                     className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
@@ -1210,7 +1321,7 @@ Retorne APENAS o JSON, sem markdown.
                     onChange={(e) =>
                       setBulkEditFormState((prev) => ({
                         ...prev,
-                        paidBy: e.target.checked ? (people[0]?.id ?? "") : null,
+                        paidBy: e.target.checked ? people[0]?.id ?? "" : null,
                       }))
                     }
                     className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
@@ -1342,7 +1453,9 @@ Retorne APENAS o JSON, sem markdown.
                   {bulkEditFormState.excludeFromSplit !== null && (
                     <select
                       className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
-                      value={bulkEditFormState.excludeFromSplit ? "true" : "false"}
+                      value={
+                        bulkEditFormState.excludeFromSplit ? "true" : "false"
+                      }
                       onChange={(e) =>
                         setBulkEditFormState((prev) => ({
                           ...prev,

@@ -1,16 +1,16 @@
 import "server-only";
 
-import {
-  addMonthsClampedUtc,
-  getAccountingYearMonthUtc,
-  parseDateStringUtc,
-} from "@/lib/dateUtils";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+import { getAccountingYearMonthUtc, parseDateStringUtc } from "@/lib/dateUtils";
 import { createClient } from "@/lib/supabase/server";
 import type {
   BulkTransactionPatch,
   Category,
   CategoryPatch,
   CategoryRow,
+  CategoryStatistics,
   Person,
   PersonPatch,
   PersonRow,
@@ -18,6 +18,8 @@ import type {
   TransactionPatch,
   TransactionRow,
 } from "@/lib/types";
+
+dayjs.extend(utc);
 
 // ============================================================================
 // Database Row Mappers (snake_case -> camelCase)
@@ -41,9 +43,11 @@ function mapPersonRow(row: PersonRow): Person {
  * Handles both single object and array return from Supabase join.
  */
 function mapCategoryRow(row: CategoryRow): Category {
-  const categories = Array.isArray(row.categories) ? row.categories[0] : row.categories;
+  const categories = Array.isArray(row.categories)
+    ? row.categories[0]
+    : row.categories;
   return {
-    id: row.category_id,
+    id: row.id, // Use PK, not FK
     name: categories?.name ?? "",
     targetPercent: Number(row.target_percent),
     householdId: row.household_id ?? undefined,
@@ -92,22 +96,27 @@ function toPersonDbPatch(patch: PersonPatch): Record<string, unknown> {
  */
 function toCategoryDbPatch(patch: CategoryPatch): Record<string, unknown> {
   const dbPatch: Record<string, unknown> = {};
-  if (patch.targetPercent !== undefined) dbPatch.target_percent = patch.targetPercent;
+  if (patch.targetPercent !== undefined)
+    dbPatch.target_percent = patch.targetPercent;
   return dbPatch;
 }
 
 /**
  * Converts a TransactionPatch to database column format.
  */
-function toTransactionDbPatch(patch: TransactionPatch): Record<string, unknown> {
+function toTransactionDbPatch(
+  patch: TransactionPatch
+): Record<string, unknown> {
   const dbPatch: Record<string, unknown> = {};
   if (patch.description !== undefined) dbPatch.description = patch.description;
   if (patch.amount !== undefined) dbPatch.amount = patch.amount;
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
   if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
-  if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
-  if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.isCreditCard !== undefined)
+    dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.excludeFromSplit !== undefined)
+    dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.date !== undefined) dbPatch.date = patch.date;
   if (patch.type !== undefined) dbPatch.type = patch.type;
@@ -118,13 +127,17 @@ function toTransactionDbPatch(patch: TransactionPatch): Record<string, unknown> 
 /**
  * Converts a BulkTransactionPatch to database column format.
  */
-function toBulkTransactionDbPatch(patch: BulkTransactionPatch): Record<string, unknown> {
+function toBulkTransactionDbPatch(
+  patch: BulkTransactionPatch
+): Record<string, unknown> {
   const dbPatch: Record<string, unknown> = {};
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
   if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
-  if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
-  if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.isCreditCard !== undefined)
+    dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.excludeFromSplit !== undefined)
+    dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.type !== undefined) dbPatch.type = patch.type;
   if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
@@ -186,13 +199,19 @@ export async function getCurrentUserId(): Promise<string> {
 
 export async function getPeople(): Promise<Person[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("people").select("*").order("name");
+  const { data, error } = await supabase
+    .from("people")
+    .select("*")
+    .order("name");
 
   if (error) throw error;
   return (data as PersonRow[]).map(mapPersonRow);
 }
 
-export async function updatePerson(id: string, patch: PersonPatch): Promise<Person> {
+export async function updatePerson(
+  id: string,
+  patch: PersonPatch
+): Promise<Person> {
   const supabase = await createClient();
   const dbPatch = toPersonDbPatch(patch);
 
@@ -207,7 +226,10 @@ export async function updatePerson(id: string, patch: PersonPatch): Promise<Pers
   return mapPersonRow(data as PersonRow);
 }
 
-export async function createPerson(input: { name: string; income: number }): Promise<Person> {
+export async function createPerson(input: {
+  name: string;
+  income: number;
+}): Promise<Person> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
@@ -218,7 +240,11 @@ export async function createPerson(input: { name: string; income: number }): Pro
     linked_user_id: null,
   };
 
-  const { data, error } = await supabase.from("people").insert(dbRow).select().single();
+  const { data, error } = await supabase
+    .from("people")
+    .insert(dbRow)
+    .select()
+    .single();
 
   if (error) throw error;
   return mapPersonRow(data as PersonRow);
@@ -238,11 +264,15 @@ export async function deletePerson(id: string): Promise<void> {
 
   // If there are transactions, reassign them to another person
   if (transactions && transactions.length > 0) {
-    const replacementPersonId = await findReplacementPerson(id, householdId, supabase);
+    const replacementPersonId = await findReplacementPerson(
+      id,
+      householdId,
+      supabase
+    );
 
     if (!replacementPersonId) {
       const error = new Error(
-        "Cannot delete person because they have transactions and there are no other people to reassign them to.",
+        "Cannot delete person because they have transactions and there are no other people to reassign them to."
       ) as Error & { code: string };
       error.code = "NO_REPLACEMENT_PERSON";
       throw error;
@@ -270,7 +300,7 @@ async function findReplacementPerson(
   excludeId: string,
   householdId: string,
   // biome-ignore lint/suspicious/noExplicitAny: Supabase client type
-  supabase: any,
+  supabase: any
 ): Promise<string | null> {
   // Try to get the default payer
   const defaultPayerId = await getDefaultPayerId();
@@ -312,13 +342,14 @@ export async function getCategories(): Promise<Category[]> {
     .from("household_categories")
     .select(
       `
+      id,
       category_id,
       target_percent,
       household_id,
       categories (
         name
       )
-    `,
+    `
     )
     .order("categories(name)");
 
@@ -326,23 +357,27 @@ export async function getCategories(): Promise<Category[]> {
   return (data as CategoryRow[]).map(mapCategoryRow);
 }
 
-export async function updateCategory(id: string, patch: CategoryPatch): Promise<Category> {
+export async function updateCategory(
+  id: string,
+  patch: CategoryPatch
+): Promise<Category> {
   const supabase = await createClient();
   const dbPatch = toCategoryDbPatch(patch);
 
   const { data, error } = await supabase
     .from("household_categories")
     .update(dbPatch)
-    .eq("category_id", id)
+    .eq("id", id) // Use PK, not FK
     .select(
       `
+      id,
       category_id,
       target_percent,
       household_id,
       categories (
         name
       )
-    `,
+    `
     )
     .single();
 
@@ -354,13 +389,18 @@ export async function updateCategory(id: string, patch: CategoryPatch): Promise<
 // Transactions CRUD Operations
 // ============================================================================
 
-export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
+export async function getTransactions(
+  year?: number,
+  month?: number
+): Promise<Transaction[]> {
   const supabase = await createClient();
   const query = supabase.from("transactions").select("*");
 
   // Return all transactions if no date filter
   if (year === undefined || month === undefined) {
-    const { data, error } = await query.order("created_at", { ascending: false });
+    const { data, error } = await query.order("created_at", {
+      ascending: false,
+    });
     if (error) throw error;
     return (data as TransactionRow[]).map(mapTransactionRow);
   }
@@ -376,11 +416,17 @@ async function getTransactionsForMonth(
   // biome-ignore lint/suspicious/noExplicitAny: Supabase client type
   supabase: any,
   year: number,
-  month: number,
+  month: number
 ): Promise<Transaction[]> {
-  const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
-  const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
-  const prevMonthStartDate = new Date(Date.UTC(year, month - 2, 1)).toISOString().split("T")[0];
+  const startDate = new Date(Date.UTC(year, month - 1, 1))
+    .toISOString()
+    .split("T")[0];
+  const endDate = new Date(Date.UTC(year, month, 0))
+    .toISOString()
+    .split("T")[0];
+  const prevMonthStartDate = new Date(Date.UTC(year, month - 2, 1))
+    .toISOString()
+    .split("T")[0];
 
   // Fetch transactions from previous month through current month
   // (needed because credit-card expenses from previous month appear in current month)
@@ -401,21 +447,27 @@ async function getTransactionsForMonth(
     supabase,
     startDate,
     year,
-    month,
+    month
   );
 
   // Deduplicate: keep transactions from currentMonthData over virtual ones
-  const existingIds = new Set(currentMonthData.map((t: TransactionRow) => t.id));
+  const existingIds = new Set(
+    currentMonthData.map((t: TransactionRow) => t.id)
+  );
   const uniqueVirtualTransactions = virtualTransactions.filter(
-    (transaction) => !existingIds.has(transaction.id),
+    (transaction) => !existingIds.has(transaction.id)
   );
 
   const allTransactions = [...currentMonthData, ...uniqueVirtualTransactions];
 
   // Sort by creation time (most recent first)
   allTransactions.sort((a, b) => {
-    const createdAtCompare = String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
-    return createdAtCompare !== 0 ? createdAtCompare : Number(b.id ?? 0) - Number(a.id ?? 0);
+    const createdAtCompare = String(b.created_at ?? "").localeCompare(
+      String(a.created_at ?? "")
+    );
+    return createdAtCompare !== 0
+      ? createdAtCompare
+      : Number(b.id ?? 0) - Number(a.id ?? 0);
   });
 
   return allTransactions.map(mapTransactionRow);
@@ -427,10 +479,13 @@ async function getTransactionsForMonth(
 function filterByAccountingMonth(
   rows: TransactionRow[],
   year: number,
-  month: number,
+  month: number
 ): TransactionRow[] {
   return rows.filter((row) => {
-    const accounting = getAccountingYearMonthUtc(row.date, row.is_credit_card ?? false);
+    const accounting = getAccountingYearMonthUtc(
+      row.date,
+      row.is_credit_card ?? false
+    );
     return accounting.year === year && accounting.month === month;
   });
 }
@@ -443,7 +498,7 @@ async function materializeRecurringTransactions(
   supabase: any,
   startDate: string,
   year: number,
-  month: number,
+  month: number
 ): Promise<TransactionRow[]> {
   const { data: recurringData, error: recurringError } = await supabase
     .from("transactions")
@@ -463,24 +518,30 @@ async function materializeRecurringTransactions(
   ];
 
   const virtualTransactions =
-    (recurringData as TransactionRow[] | null)?.flatMap((recurringTransaction) => {
-      const originalDate = parseDateStringUtc(recurringTransaction.date);
-      const day = originalDate.getUTCDate();
+    (recurringData as TransactionRow[] | null)?.flatMap(
+      (recurringTransaction) => {
+        const originalDate = parseDateStringUtc(recurringTransaction.date);
+        const day = originalDate.getUTCDate();
 
-      return monthsToMaterialize.map((targetMonth) => {
-        let targetDate = new Date(Date.UTC(targetMonth.year, targetMonth.month - 1, day));
+        return monthsToMaterialize.map((targetMonth) => {
+          let targetDate = new Date(
+            Date.UTC(targetMonth.year, targetMonth.month - 1, day)
+          );
 
-        // Clamp to last day of month if day overflowed
-        if (targetDate.getUTCMonth() !== targetMonth.month - 1) {
-          targetDate = new Date(Date.UTC(targetMonth.year, targetMonth.month, 0));
-        }
+          // Clamp to last day of month if day overflowed
+          if (targetDate.getUTCMonth() !== targetMonth.month - 1) {
+            targetDate = new Date(
+              Date.UTC(targetMonth.year, targetMonth.month, 0)
+            );
+          }
 
-        return {
-          ...recurringTransaction,
-          date: targetDate.toISOString().split("T")[0],
-        };
-      });
-    }) ?? [];
+          return {
+            ...recurringTransaction,
+            date: targetDate.toISOString().split("T")[0],
+          };
+        });
+      }
+    ) ?? [];
 
   // Filter to transactions whose accounting month matches
   return filterByAccountingMonth(virtualTransactions, year, month);
@@ -488,13 +549,19 @@ async function materializeRecurringTransactions(
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .single();
 
   if (error) return null;
   return mapTransactionRow(data as TransactionRow);
 }
 
-export async function createTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
+export async function createTransaction(
+  t: Omit<Transaction, "id">
+): Promise<Transaction> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
@@ -507,8 +574,8 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     category_id: isIncome ? null : t.categoryId,
     paid_by: t.paidBy,
     is_recurring: t.isRecurring,
-    is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
-    exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
+    is_credit_card: isIncome ? false : t.isCreditCard ?? false,
+    exclude_from_split: isIncome ? false : t.excludeFromSplit ?? false,
     is_forecast: isForecast,
     date: t.date,
     household_id: householdId,
@@ -516,13 +583,20 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     is_increment: t.isIncrement ?? true,
   };
 
-  const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();
+  const { data, error } = await supabase
+    .from("transactions")
+    .insert(dbRow)
+    .select()
+    .single();
 
   if (error) throw error;
   return mapTransactionRow(data as TransactionRow);
 }
 
-export async function updateTransaction(id: number, patch: TransactionPatch): Promise<Transaction> {
+export async function updateTransaction(
+  id: number,
+  patch: TransactionPatch
+): Promise<Transaction> {
   const supabase = await createClient();
   const dbPatch = toTransactionDbPatch(patch);
 
@@ -545,7 +619,7 @@ export async function deleteTransaction(id: number): Promise<void> {
 
 export async function bulkUpdateTransactions(
   ids: number[],
-  patch: BulkTransactionPatch,
+  patch: BulkTransactionPatch
 ): Promise<Transaction[]> {
   const supabase = await createClient();
   const dbPatch = toBulkTransactionDbPatch(patch);
@@ -611,4 +685,83 @@ export async function updateDefaultPayerId(personId: string): Promise<void> {
   if (!updateData || updateData.length === 0) {
     throw new Error("Failed to update default payer - no rows updated");
   }
+}
+
+// ============================================================================
+// Outlier Statistics
+// ============================================================================
+
+/**
+ * Calculates mean and standard deviation of expense amounts per category
+ * from the 12 months preceding the reference month.
+ * Used to detect outlier expenses.
+ */
+export async function getOutlierStatistics(
+  referenceYear: number,
+  referenceMonth: number
+): Promise<CategoryStatistics[]> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  // Calculate the date range: 12 months before the reference month
+  const referenceDate = dayjs.utc(`${referenceYear}-${referenceMonth}-01`);
+  const prevMonth = referenceDate.subtract(1, "month");
+  const endDate = prevMonth.endOf("month");
+  const startDate = endDate.subtract(11, "month").startOf("month");
+
+  const startDateStr = startDate.format("YYYY-MM-DD");
+  const endDateStr = endDate.format("YYYY-MM-DD");
+  const prevMonthStr = prevMonth.format("YYYY-MM");
+
+  // Fetch expense transactions (non-recurring, not excluded from split) from the 12-month period
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("category_id, amount, date, is_credit_card")
+    .eq("household_id", householdId)
+    .eq("type", "expense")
+    .eq("is_recurring", false)
+    .eq("exclude_from_split", false)
+    .not("category_id", "is", null)
+    .gte("date", startDateStr)
+    .lte("date", endDateStr);
+
+  if (error) throw error;
+
+  // Group amounts by category, excluding credit card transactions from previous month
+  const categoryAmounts = new Map<string, number[]>();
+  for (const row of data ?? []) {
+    if (!row.category_id) continue;
+
+    // Skip credit card transactions from the previous month
+    if (row.is_credit_card && row.date?.startsWith(prevMonthStr)) {
+      continue;
+    }
+
+    const amounts = categoryAmounts.get(row.category_id) ?? [];
+    amounts.push(Number(row.amount));
+    categoryAmounts.set(row.category_id, amounts);
+  }
+
+  // Calculate statistics per category
+  const statistics: CategoryStatistics[] = [];
+  for (const [categoryId, amounts] of categoryAmounts) {
+    if (amounts.length === 0) continue;
+
+    const count = amounts.length;
+    const mean = amounts.reduce((sum, val) => sum + val, 0) / count;
+
+    // Calculate standard deviation
+    const squaredDiffs = amounts.map((val) => (val - mean) ** 2);
+    const variance = squaredDiffs.reduce((sum, val) => sum + val, 0) / count;
+    const standardDeviation = Math.sqrt(variance);
+
+    statistics.push({
+      categoryId,
+      mean,
+      standardDeviation,
+      transactionCount: count,
+    });
+  }
+
+  return statistics;
 }

@@ -130,6 +130,7 @@ export type PersonRow = {
 
 /** Raw database row shape for household_categories join */
 export type CategoryRow = {
+  id: string; // PK of household_categories
   category_id: string;
   target_percent: number | string;
   household_id: string | null;
@@ -163,3 +164,14 @@ export type ApiErrorResponse = { error: string };
 
 export type DefaultPayerResponse = { defaultPayerId: string | null };
 export type CurrentUserResponse = { userId: string };
+
+// ============================================================================
+// Outlier Detection Types
+// ============================================================================
+
+export type CategoryStatistics = {
+  readonly categoryId: string;
+  mean: number;
+  standardDeviation: number;
+  transactionCount: number;
+};
