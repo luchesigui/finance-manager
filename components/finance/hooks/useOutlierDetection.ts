@@ -11,7 +11,7 @@ const STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
 
 function buildOutlierStatisticsUrl(year: number, month: number): string {
   return `/api/outlier-statistics?year=${encodeURIComponent(
-    year
+    year,
   )}&month=${encodeURIComponent(month)}`;
 }
 
@@ -22,8 +22,7 @@ function buildOutlierStatisticsUrl(year: number, month: number): string {
 export function useOutlierDetection(year: number, month: number) {
   const query = useQuery({
     queryKey: ["outlier-statistics", year, month],
-    queryFn: () =>
-      fetchJson<CategoryStatistics[]>(buildOutlierStatisticsUrl(year, month)),
+    queryFn: () => fetchJson<CategoryStatistics[]>(buildOutlierStatisticsUrl(year, month)),
     staleTime: STALE_TIME_MS,
   });
 
@@ -31,8 +30,7 @@ export function useOutlierDetection(year: number, month: number) {
   const thresholds = useMemo(() => {
     const map = new Map<string, number>();
     for (const stat of query.data ?? []) {
-      const threshold =
-        stat.mean + OUTLIER_THRESHOLD_MULTIPLIER * stat.standardDeviation;
+      const threshold = stat.mean + OUTLIER_THRESHOLD_MULTIPLIER * stat.standardDeviation;
       map.set(stat.categoryId, threshold);
     }
     return map;
