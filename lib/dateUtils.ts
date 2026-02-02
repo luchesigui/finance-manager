@@ -1,7 +1,12 @@
 /**
  * Centralized date utilities for consistent date handling across the application.
- * Eliminates duplication of date parsing and manipulation logic.
+ * Uses dayjs internally for reliable date manipulation.
  */
+
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc);
 
 /**
  * Parses a YYYY-MM-DD date string to a Date object in local timezone.
@@ -9,8 +14,7 @@
  * @param dateString - Date string in YYYY-MM-DD format
  */
 export function parseDateString(dateString: string): Date {
-  const [year, month, day] = dateString.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  return dayjs(dateString).toDate();
 }
 
 /**
@@ -18,8 +22,7 @@ export function parseDateString(dateString: string): Date {
  * @param dateString - Date string in YYYY-MM-DD format
  */
 export function parseDateStringUtc(dateString: string): Date {
-  const [year, month, day] = dateString.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
+  return dayjs.utc(dateString).toDate();
 }
 
 /**
@@ -27,10 +30,7 @@ export function parseDateStringUtc(dateString: string): Date {
  * @param date - Date object to convert
  */
 export function toDateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return dayjs(date).format("YYYY-MM-DD");
 }
 
 /**
@@ -38,9 +38,7 @@ export function toDateString(date: Date): string {
  * @param date - Date object to convert
  */
 export function toYearMonthString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
+  return dayjs(date).format("YYYY-MM");
 }
 
 /**
@@ -50,19 +48,7 @@ export function toYearMonthString(date: Date): string {
  * @param monthsToAdd - Number of months to add (can be negative)
  */
 export function addMonthsClamped(date: Date, monthsToAdd: number): Date {
-  const originalDay = date.getDate();
-  const targetMonthIndex = date.getMonth() + monthsToAdd;
-  const candidate = new Date(date.getFullYear(), targetMonthIndex, originalDay);
-
-  // Calculate expected month index (handling negative values)
-  const expectedMonthIndex = ((targetMonthIndex % 12) + 12) % 12;
-
-  // If month rolled over, clamp to last day of the target month
-  if (candidate.getMonth() !== expectedMonthIndex) {
-    return new Date(date.getFullYear(), targetMonthIndex + 1, 0);
-  }
-
-  return candidate;
+  return dayjs(date).add(monthsToAdd, "month").toDate();
 }
 
 /**
@@ -71,21 +57,7 @@ export function addMonthsClamped(date: Date, monthsToAdd: number): Date {
  * @param monthsToAdd - Number of months to add (can be negative)
  */
 export function addMonthsClampedUtc(date: Date, monthsToAdd: number): Date {
-  const year = date.getUTCFullYear();
-  const monthIndex = date.getUTCMonth();
-  const day = date.getUTCDate();
-
-  const targetMonthIndex = monthIndex + monthsToAdd;
-  const candidate = new Date(Date.UTC(year, targetMonthIndex, day));
-
-  const expectedMonthIndex = ((targetMonthIndex % 12) + 12) % 12;
-
-  // Day overflowed; clamp to last day of target month
-  if (candidate.getUTCMonth() !== expectedMonthIndex) {
-    return new Date(Date.UTC(year, targetMonthIndex + 1, 0));
-  }
-
-  return candidate;
+  return dayjs.utc(date).add(monthsToAdd, "month").toDate();
 }
 
 /**
@@ -98,11 +70,11 @@ export function getAccountingYearMonth(
   dateString: string,
   isCreditCard: boolean,
 ): { year: number; month: number } {
-  const base = parseDateString(dateString);
-  const accountingDate = isCreditCard ? addMonthsClamped(base, 1) : base;
+  const base = dayjs(dateString);
+  const accountingDate = isCreditCard ? base.add(1, "month") : base;
   return {
-    year: accountingDate.getFullYear(),
-    month: accountingDate.getMonth() + 1,
+    year: accountingDate.year(),
+    month: accountingDate.month() + 1,
   };
 }
 
@@ -113,10 +85,16 @@ export function getAccountingYearMonthUtc(
   dateString: string,
   isCreditCard: boolean,
 ): { year: number; month: number } {
-  const base = parseDateStringUtc(dateString);
-  const accountingDate = isCreditCard ? addMonthsClampedUtc(base, 1) : base;
+  const base = dayjs.utc(dateString);
+  const accountingDate = isCreditCard ? base.add(1, "month") : base;
   return {
-    year: accountingDate.getUTCFullYear(),
-    month: accountingDate.getUTCMonth() + 1,
+    year: accountingDate.year(),
+    month: accountingDate.month() + 1,
   };
 }
+
+/**
+ * Exports the configured dayjs instance for direct usage when needed.
+ * Prefer using the specific utility functions above when possible.
+ */
+export { dayjs };

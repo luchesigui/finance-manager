@@ -1,9 +1,10 @@
 import "server-only";
 
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-
-import { getAccountingYearMonthUtc, parseDateStringUtc } from "@/lib/dateUtils";
+import {
+  dayjs,
+  getAccountingYearMonthUtc,
+  parseDateStringUtc,
+} from "@/lib/dateUtils";
 import { createClient } from "@/lib/supabase/server";
 import type {
   BulkTransactionPatch,
@@ -18,8 +19,6 @@ import type {
   TransactionPatch,
   TransactionRow,
 } from "@/lib/types";
-
-dayjs.extend(utc);
 
 // ============================================================================
 // Database Row Mappers (snake_case -> camelCase)
