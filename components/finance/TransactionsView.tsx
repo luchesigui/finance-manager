@@ -99,7 +99,6 @@ export function TransactionsView() {
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
-  const [isCategoryFilterInverted, setIsCategoryFilterInverted] = useState(false);
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -235,23 +234,11 @@ export function TransactionsView() {
       if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
       if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
 
-      // Multi-category filter with inverse selection support
+      // Multi-category filter
       if (categoryFilter.size > 0) {
-        // Income transactions have no category
-        if (transaction.categoryId === null) {
-          // In normal mode, income doesn't match any category filter
-          // In inverted mode, income passes (it's not in the excluded set)
-          if (!isCategoryFilterInverted) return false;
-        } else {
-          const categoryInSet = categoryFilter.has(transaction.categoryId);
-          // Normal mode: only show selected categories
-          // Inverted mode: show all EXCEPT selected categories
-          if (isCategoryFilterInverted) {
-            if (categoryInSet) return false;
-          } else {
-            if (!categoryInSet) return false;
-          }
-        }
+        // Income transactions have no category, so they don't match category filter
+        if (transaction.categoryId === null) return false;
+        if (!categoryFilter.has(transaction.categoryId)) return false;
       }
 
       // Credit card filter
@@ -275,16 +262,7 @@ export function TransactionsView() {
 
       return true;
     },
-    [
-      paidByFilter,
-      typeFilter,
-      categoryFilter,
-      isCategoryFilterInverted,
-      creditCardFilter,
-      searchQuery,
-      categories,
-      people,
-    ],
+    [paidByFilter, typeFilter, categoryFilter, creditCardFilter, searchQuery, categories, people],
   );
 
   const visibleTransactionsForSelectedMonth = useMemo(
@@ -660,7 +638,6 @@ Retorne APENAS o JSON, sem markdown.
                     setTypeFilter("all");
                     setPaidByFilter("all");
                     setCategoryFilter(new Set());
-                    setIsCategoryFilterInverted(false);
                     setCreditCardFilter("all");
                   }}
                   className="text-xs text-accent-primary hover:text-blue-400 font-medium flex items-center gap-1"
@@ -718,9 +695,7 @@ Retorne APENAS o JSON, sem markdown.
                   <span className="truncate">
                     {categoryFilter.size === 0
                       ? "Todas"
-                      : isCategoryFilterInverted
-                        ? `Exceto ${categoryFilter.size}`
-                        : `${categoryFilter.size} selecionada${categoryFilter.size > 1 ? "s" : ""}`}
+                      : `${categoryFilter.size} selecionada${categoryFilter.size > 1 ? "s" : ""}`}
                   </span>
                   <svg
                     className={`w-4 h-4 transition-transform ${isCategoryDropdownOpen ? "rotate-180" : ""}`}
@@ -739,42 +714,25 @@ Retorne APENAS o JSON, sem markdown.
                 </button>
                 {isCategoryDropdownOpen && typeFilter !== "income" && (
                   <div className="absolute top-full right-0 mt-1 z-50 bg-noir-surface border border-noir-border rounded-interactive shadow-lg min-w-[220px] animate-in slide-in-from-top-2 duration-200">
-                    <div className="p-2 border-b border-noir-border">
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCategoryFilter(new Set(categories.map((c) => c.id)));
-                          }}
-                          className="text-xs text-accent-primary hover:text-blue-400 font-medium"
-                        >
-                          Selecionar Todas
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCategoryFilter(new Set());
-                            setIsCategoryFilterInverted(false);
-                          }}
-                          className="text-xs text-muted hover:text-body font-medium"
-                        >
-                          Limpar
-                        </button>
-                      </div>
-                      <label className="flex items-center gap-2 cursor-pointer p-1.5 rounded hover:bg-noir-active/50 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={isCategoryFilterInverted}
-                          onChange={(e) => setIsCategoryFilterInverted(e.target.checked)}
-                          disabled={categoryFilter.size === 0}
-                          className="w-4 h-4 text-accent-warning rounded border-noir-border bg-noir-active focus:ring-accent-warning disabled:opacity-50"
-                        />
-                        <span
-                          className={`text-xs font-medium ${isCategoryFilterInverted ? "text-accent-warning" : "text-body"}`}
-                        >
-                          Seleção inversa (excluir)
-                        </span>
-                      </label>
+                    <div className="p-2 border-b border-noir-border flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryFilter(new Set(categories.map((c) => c.id)));
+                        }}
+                        className="text-xs text-accent-primary hover:text-blue-400 font-medium"
+                      >
+                        Selecionar Todas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryFilter(new Set());
+                        }}
+                        className="text-xs text-muted hover:text-body font-medium"
+                      >
+                        Limpar
+                      </button>
                     </div>
                     <div className="max-h-[200px] overflow-y-auto p-1">
                       {categories.map((category) => (
@@ -916,10 +874,7 @@ Retorne APENAS o JSON, sem markdown.
                   {typeFilter !== "all" &&
                     ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
                   {paidByFilter !== "all" && " para este pagador"}
-                  {categoryFilter.size > 0 &&
-                    (isCategoryFilterInverted
-                      ? " excluindo categorias selecionadas"
-                      : " nas categorias selecionadas")}
+                  {categoryFilter.size > 0 && " nas categorias selecionadas"}
                   {creditCardFilter !== "all" &&
                     ` ${creditCardFilter === "yes" ? "no cartão" : "fora do cartão"}`}
                   .
