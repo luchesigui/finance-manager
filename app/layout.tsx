@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: "Controle financeiro familiar - Inspirado em Casais Inteligentes Enriquecem Juntos",
 };
 
+// Required for Supabase auth - prevents static generation that fails without env vars
 export const dynamic = "force-dynamic";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

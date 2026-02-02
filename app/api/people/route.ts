@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createPersonBodySchema, updatePersonBodySchema } from "@/lib/schemas";
 import { createPerson, deletePerson, getPeople, updatePerson } from "@/lib/server/financeStore";
-import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
+import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 import type { PersonPatch } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,9 @@ export const dynamic = "force-dynamic";
  * Fetches all people in the household.
  */
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   try {
     const people = await getPeople();
     return NextResponse.json(people);
@@ -26,6 +29,9 @@ export async function GET() {
  * Creates a new person.
  */
 export async function POST(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const body = await readJsonBody(request);
   const validation = validateBody(body, createPersonBodySchema);
 
@@ -47,6 +53,9 @@ export async function POST(request: Request) {
  * Updates a person by ID.
  */
 export async function PATCH(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const body = await readJsonBody(request);
   const validation = validateBody(body, updatePersonBodySchema);
 
@@ -71,6 +80,9 @@ export async function PATCH(request: Request) {
  * Deletes a person by ID (provided as query parameter).
  */
 export async function DELETE(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const personId = searchParams.get("personId");
 

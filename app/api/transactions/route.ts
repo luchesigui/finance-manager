@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createTransactionsBodySchema } from "@/lib/schemas";
 import { createTransaction, getTransactions } from "@/lib/server/financeStore";
-import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
+import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,9 @@ export const dynamic = "force-dynamic";
  * Fetches transactions, optionally filtered by year and month.
  */
 export async function GET(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   try {
     const url = new URL(request.url);
     const yearParam = url.searchParams.get("year");
@@ -33,6 +36,9 @@ export async function GET(request: Request) {
  * Accepts a single transaction object or an array of transactions.
  */
 export async function POST(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const body = await readJsonBody(request);
   const validation = validateBody(body, createTransactionsBodySchema);
 

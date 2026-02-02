@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { requireAuth } from "@/lib/server/requestBodyValidation";
+
 type GeminiRequestBody = {
   prompt: string;
 };
 
 export async function POST(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {

@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { FieldError } from "@/components/ui/FieldError";
 import { zodValidator } from "@/lib/form";
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"sign-in" | "sign-up">("sign-in");
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const form = useForm({
     defaultValues: {

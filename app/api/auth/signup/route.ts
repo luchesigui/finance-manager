@@ -67,11 +67,10 @@ export async function POST(request: Request) {
       });
     }
 
-    // If auto-confirm is enabled, return session
+    // If auto-confirm is enabled, session is set via cookies - no need to expose it
     return NextResponse.json({
       success: true,
-      user: data.user,
-      session: data.session,
+      requiresConfirmation: false,
     });
   } catch (error) {
     console.error("Unexpected sign-up error:", error);

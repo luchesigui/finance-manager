@@ -1,7 +1,30 @@
 import "server-only";
 
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
+
+/**
+ * Checks if the request is authenticated.
+ * Returns the user if authenticated, or a 401 response if not.
+ */
+export async function requireAuth(): Promise<
+  { success: true; userId: string } | { success: false; response: NextResponse }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      success: false,
+      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  return { success: true, userId: user.id };
+}
 
 /**
  * Safely reads and parses JSON from a request body.

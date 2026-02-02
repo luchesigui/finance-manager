@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { updateCategoryBodySchema } from "@/lib/schemas";
 import { getCategories, updateCategory } from "@/lib/server/financeStore";
-import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
+import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 import type { CategoryPatch } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,9 @@ export const dynamic = "force-dynamic";
  * Fetches all categories for the household.
  */
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   try {
     const categories = await getCategories();
     return NextResponse.json(categories);
@@ -26,6 +29,9 @@ export async function GET() {
  * Updates a category by ID.
  */
 export async function PATCH(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const body = await readJsonBody(request);
   const validation = validateBody(body, updateCategoryBodySchema);
 

@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 
 import { updateTransactionBodySchema } from "@/lib/schemas";
 import { deleteTransaction, getTransaction, updateTransaction } from "@/lib/server/financeStore";
-import { parseNumericId, readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
+import {
+  parseNumericId,
+  readJsonBody,
+  requireAuth,
+  validateBody,
+} from "@/lib/server/requestBodyValidation";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -11,6 +16,9 @@ type RouteParams = { params: Promise<{ id: string }> };
  * Updates a transaction by ID.
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const { id } = await params;
   const transactionId = parseNumericId(id);
 
@@ -44,6 +52,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
  * Deletes a transaction by ID.
  */
 export async function DELETE(_request: Request, { params }: RouteParams) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const { id } = await params;
   const transactionId = parseNumericId(id);
 

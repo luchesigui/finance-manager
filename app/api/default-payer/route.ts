@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { updateDefaultPayerBodySchema } from "@/lib/schemas";
 import { getDefaultPayerId, updateDefaultPayerId } from "@/lib/server/financeStore";
-import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
+import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,9 @@ export const dynamic = "force-dynamic";
  * Gets the default payer ID for the household.
  */
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   try {
     const defaultPayerId = await getDefaultPayerId();
     return NextResponse.json({ defaultPayerId });
@@ -25,6 +28,9 @@ export async function GET() {
  * Updates the default payer for the household.
  */
 export async function PATCH(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const body = await readJsonBody(request);
   const validation = validateBody(body, updateDefaultPayerBodySchema);
 

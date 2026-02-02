@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 
 import { bulkDeleteBodySchema, bulkUpdateBodySchema } from "@/lib/schemas";
 import { bulkDeleteTransactions, bulkUpdateTransactions } from "@/lib/server/financeStore";
-import { readJsonBody, validateBody } from "@/lib/server/requestBodyValidation";
+import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 /**
  * PATCH /api/transactions/bulk
  * Updates multiple transactions at once.
  */
 export async function PATCH(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const body = await readJsonBody(request);
   const validation = validateBody(body, bulkUpdateBodySchema);
 
@@ -31,6 +34,9 @@ export async function PATCH(request: Request) {
  * Deletes multiple transactions at once.
  */
 export async function DELETE(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.success) return auth.response;
+
   const body = await readJsonBody(request);
   const validation = validateBody(body, bulkDeleteBodySchema);
 
