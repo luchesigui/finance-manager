@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { fetchJson } from "@/lib/apiClient";
 import type { CategoryStatistics, Transaction } from "@/lib/types";
 
-const OUTLIER_THRESHOLD_MULTIPLIER = 1;
+const OUTLIER_THRESHOLD_MULTIPLIER = 2;
 const STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
 
 function buildOutlierStatisticsUrl(year: number, month: number): string {
@@ -53,7 +53,6 @@ export function useOutlierDetection(year: number, month: number) {
     // Must have a category
     if (!transaction.categoryId) return false;
 
-    console.log({ transaction, thresholds });
     const threshold = thresholds.get(transaction.categoryId);
     // No historical data for this category
     if (threshold === undefined) return false;
