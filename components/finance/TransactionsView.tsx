@@ -599,8 +599,8 @@ Retorne APENAS o JSON, sem markdown.
         </div>
       </div>
 
-      <div className="noir-card overflow-hidden">
-        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="noir-card">
+        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-t-card">
           <h2 className="font-semibold text-heading">
             Histórico de {formatMonthYear(selectedMonthDate)}
           </h2>
@@ -648,7 +648,7 @@ Retorne APENAS o JSON, sem markdown.
 
         {/* Filter options */}
         {isFilterOpen && (
-          <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
+          <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200 overflow-visible">
             <div className="flex flex-wrap items-center justify-end gap-3">
               {(typeFilter !== "all" ||
                 paidByFilter !== "all" ||
@@ -738,7 +738,7 @@ Retorne APENAS o JSON, sem markdown.
                   </svg>
                 </button>
                 {isCategoryDropdownOpen && typeFilter !== "income" && (
-                  <div className="absolute top-full left-0 mt-1 z-50 bg-noir-surface border border-noir-border rounded-interactive shadow-lg min-w-[220px] animate-in slide-in-from-top-2 duration-200">
+                  <div className="absolute top-full right-0 mt-1 z-50 bg-noir-surface border border-noir-border rounded-interactive shadow-lg min-w-[220px] animate-in slide-in-from-top-2 duration-200">
                     <div className="p-2 border-b border-noir-border">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <button
