@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 type CurrentMonthContextValue = {
   selectedMonthDate: Date;
@@ -18,15 +18,12 @@ export function CurrentMonthProvider({ children }: Readonly<{ children: React.Re
   const selectedYear = selectedMonthDate.getFullYear();
   const selectedMonthNumber = selectedMonthDate.getMonth() + 1;
 
-  const contextValue = useMemo<CurrentMonthContextValue>(
-    () => ({
-      selectedMonthDate,
-      setSelectedMonthDate,
-      selectedYear,
-      selectedMonthNumber,
-    }),
-    [selectedMonthDate, selectedYear, selectedMonthNumber],
-  );
+  const contextValue: CurrentMonthContextValue = {
+    selectedMonthDate,
+    setSelectedMonthDate,
+    selectedYear,
+    selectedMonthNumber,
+  };
 
   return (
     <CurrentMonthContext.Provider value={contextValue}>{children}</CurrentMonthContext.Provider>

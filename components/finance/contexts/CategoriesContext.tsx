@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
 
 import { useCategoryMutations } from "@/components/finance/hooks/useCategoryMutations";
 import { useCategoryQuery } from "@/components/finance/hooks/useCategoryQuery";
@@ -32,15 +32,12 @@ export function CategoriesProvider({ children }: Readonly<{ children: React.Reac
   const { categories, isLoading } = useCategoryQuery();
   const { updateCategoryField, updateCategories } = useCategoryMutations();
 
-  const contextValue = useMemo<CategoriesContextValue>(
-    () => ({
-      categories,
-      isCategoriesLoading: isLoading,
-      updateCategoryField,
-      updateCategories,
-    }),
-    [categories, isLoading, updateCategoryField, updateCategories],
-  );
+  const contextValue: CategoriesContextValue = {
+    categories,
+    isCategoriesLoading: isLoading,
+    updateCategoryField,
+    updateCategories,
+  };
 
   return <CategoriesContext.Provider value={contextValue}>{children}</CategoriesContext.Provider>;
 }

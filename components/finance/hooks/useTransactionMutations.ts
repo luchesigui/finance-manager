@@ -1,16 +1,10 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
 
 import { fetchJson, jsonRequestInit } from "@/lib/apiClient";
 import { getAccountingYearMonth } from "@/lib/dateUtils";
-import type {
-  BulkTransactionPatch,
-  NewTransactionFormState,
-  Transaction,
-  TransactionPatch,
-} from "@/lib/types";
+import type { BulkTransactionPatch, Transaction, TransactionPatch } from "@/lib/types";
 
 /**
  * Compares transactions by creation date (descending) and ID.
@@ -56,7 +50,9 @@ export function useTransactionMutations(
   // Delete mutation with optimistic update
   const deleteMutation = useMutation({
     mutationFn: (id: number) =>
-      fetch(`/api/transactions/${encodeURIComponent(id)}`, { method: "DELETE" }).then((res) => {
+      fetch(`/api/transactions/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }).then((res) => {
         if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
       }),
     onMutate: async (id) => {
@@ -89,7 +85,13 @@ export function useTransactionMutations(
 
   // Bulk update mutation
   const bulkUpdateMutation = useMutation({
-    mutationFn: ({ ids, patch }: { ids: number[]; patch: BulkTransactionPatch }) =>
+    mutationFn: ({
+      ids,
+      patch,
+    }: {
+      ids: number[];
+      patch: BulkTransactionPatch;
+    }) =>
       fetchJson<Transaction[]>("/api/transactions/bulk", jsonRequestInit("PATCH", { ids, patch })),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
@@ -118,32 +120,19 @@ export function useTransactionMutations(
     },
   });
 
-  const createTransactions = useCallback(
-    (payload: Array<Omit<Transaction, "id">>) => {
-      createMutation.mutate(payload);
-    },
-    [createMutation],
-  );
+  const createTransactions = (payload: Array<Omit<Transaction, "id">>) => {
+    createMutation.mutate(payload);
+  };
 
-  const deleteTransactionById = useCallback(
-    (id: number) => deleteMutation.mutate(id),
-    [deleteMutation],
-  );
+  const deleteTransactionById = (id: number) => deleteMutation.mutate(id);
 
-  const updateTransactionById = useCallback(
-    (id: number, patch: TransactionPatch) => updateMutation.mutate({ id, patch }),
-    [updateMutation],
-  );
+  const updateTransactionById = (id: number, patch: TransactionPatch) =>
+    updateMutation.mutate({ id, patch });
 
-  const bulkUpdateTransactions = useCallback(
-    (ids: number[], patch: BulkTransactionPatch) => bulkUpdateMutation.mutate({ ids, patch }),
-    [bulkUpdateMutation],
-  );
+  const bulkUpdateTransactions = (ids: number[], patch: BulkTransactionPatch) =>
+    bulkUpdateMutation.mutate({ ids, patch });
 
-  const bulkDeleteTransactions = useCallback(
-    (ids: number[]) => bulkDeleteMutation.mutate(ids),
-    [bulkDeleteMutation],
-  );
+  const bulkDeleteTransactions = (ids: number[]) => bulkDeleteMutation.mutate(ids);
 
   return {
     createTransactions,

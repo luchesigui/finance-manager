@@ -1,18 +1,5 @@
 "use client";
 
-import { useForm } from "@tanstack/react-form";
-import {
-  CreditCard,
-  Layers,
-  MinusCircle,
-  PlusCircle,
-  RefreshCw,
-  TrendingDown,
-  TrendingUp,
-  UserX,
-} from "lucide-react";
-import { useMemo } from "react";
-
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
@@ -24,6 +11,16 @@ import { toYearMonthString } from "@/lib/dateUtils";
 import { zodValidator } from "@/lib/form";
 import { amountSchema, descriptionSchema } from "@/lib/formSchemas";
 import type { NewTransactionFormState } from "@/lib/types";
+import {
+  CreditCard,
+  Layers,
+  MinusCircle,
+  PlusCircle,
+  RefreshCw,
+  TrendingDown,
+  TrendingUp,
+  UserX,
+} from "lucide-react";
 
 // ============================================================================
 // Types
@@ -97,8 +94,8 @@ export function TransactionFormFields({
   const { people } = usePeople();
   const { selectedMonthDate } = useCurrentMonth();
 
-  const monthOptions = useMemo(() => generateMonthOptions(selectedMonthDate), [selectedMonthDate]);
-  const currentYearMonth = useMemo(() => toYearMonthString(selectedMonthDate), [selectedMonthDate]);
+  const monthOptions = generateMonthOptions(selectedMonthDate);
+  const currentYearMonth = toYearMonthString(selectedMonthDate);
 
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
 
@@ -230,7 +227,9 @@ export function TransactionFormFields({
                             ? "Ex: Salário, Freelance, Bônus..."
                             : "Ex: Luz, Mercado, iFood..."
                         }
-                        className={`noir-input w-full ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        className={`noir-input w-full ${
+                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
+                        }`}
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
@@ -262,7 +261,9 @@ export function TransactionFormFields({
                     <CurrencyInput
                       id={inputId("amount")}
                       placeholder="R$ 0,00"
-                      className={`noir-input w-full ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                      className={`noir-input w-full ${
+                        field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
+                      }`}
                       value={field.state.value}
                       onValueChange={(value) => field.handleChange(value)}
                       required

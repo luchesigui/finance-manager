@@ -1,0 +1,16 @@
+---
+description: React 19 and React Compiler memoization guidance
+globs: ["**/*.tsx", "**/*.jsx"]
+---
+
+# React 19 + React Compiler
+
+This project uses **React 19** with the **React Compiler** enabled (see `next.config.js`). The compiler automatically memoizes components and callbacks.
+
+## Do not add manual memoization by default
+
+- **Avoid `useCallback`** – the compiler handles stable function references.
+- **Avoid `useMemo`** – the compiler handles derived values and object/array identity where it matters.
+- **Avoid `React.memo`** – the compiler optimizes re-renders.
+
+Write plain functions and variables; let the compiler optimize. Only add `useCallback` or `useMemo` when there is a **documented exception** (e.g. a third-party API or hook that requires a stable reference and is not compiled).

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 
 /**
  * Hook to manage forecast inclusion override state.
@@ -11,7 +11,7 @@ export function useForecastInclusion() {
     Record<number, boolean>
   >({});
 
-  const setForecastInclusionOverride = useCallback((transactionId: number, include: boolean) => {
+  const setForecastInclusionOverride = (transactionId: number, include: boolean) => {
     setForecastInclusionOverrides((prev) => {
       if (include) {
         if (prev[transactionId]) return prev;
@@ -21,12 +21,10 @@ export function useForecastInclusion() {
       const { [transactionId]: _removed, ...rest } = prev;
       return rest;
     });
-  }, []);
+  };
 
-  const isForecastIncluded = useCallback(
-    (transactionId: number) => forecastInclusionOverrides[transactionId] === true,
-    [forecastInclusionOverrides],
-  );
+  const isForecastIncluded = (transactionId: number) =>
+    forecastInclusionOverrides[transactionId] === true;
 
   return {
     forecastInclusionOverrides,

@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 import type { Transaction } from "@/lib/types";
 
 /**
@@ -20,22 +18,15 @@ export function useTransactionDerivations(
   transactions: Transaction[],
   forecastInclusionOverrides: Record<number, boolean>,
 ) {
-  const transactionsForSelectedMonth = useMemo(
-    () => [...transactions].sort(compareByCreationDesc),
-    [transactions],
-  );
+  const transactionsForSelectedMonth = [...transactions].sort(compareByCreationDesc);
 
-  const transactionsForCalculations = useMemo(() => {
-    return transactions
-      .filter(
-        (transaction) => !transaction.isForecast || forecastInclusionOverrides[transaction.id],
-      )
-      .map((transaction) => {
-        if (!transaction.isForecast) return transaction;
-        if (!forecastInclusionOverrides[transaction.id]) return transaction;
-        return { ...transaction, isForecast: false };
-      });
-  }, [transactions, forecastInclusionOverrides]);
+  const transactionsForCalculations = transactions
+    .filter((transaction) => !transaction.isForecast || forecastInclusionOverrides[transaction.id])
+    .map((transaction) => {
+      if (!transaction.isForecast) return transaction;
+      if (!forecastInclusionOverrides[transaction.id]) return transaction;
+      return { ...transaction, isForecast: false };
+    });
 
   return {
     transactionsForSelectedMonth,

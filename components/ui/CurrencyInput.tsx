@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 type CurrencyInputProps = {
   id?: string;
   name?: string;
@@ -31,15 +29,10 @@ export function CurrencyInput({
   value,
   onValueChange,
 }: CurrencyInputProps) {
-  const currencyFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      }),
-    [],
-  );
-
+  const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
   const displayValue = value == null ? "" : currencyFormatter.format(value);
 
   return (

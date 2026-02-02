@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
 
 import { usePeopleMutations } from "@/components/finance/hooks/usePeopleMutations";
 import { usePeopleQuery } from "@/components/finance/hooks/usePeopleQuery";
@@ -34,17 +34,14 @@ export function PeopleProvider({ children }: Readonly<{ children: React.ReactNod
   const { people, isLoading } = usePeopleQuery();
   const { updatePersonField, updatePeople, createPerson, deletePerson } = usePeopleMutations();
 
-  const contextValue = useMemo<PeopleContextValue>(
-    () => ({
-      people,
-      isPeopleLoading: isLoading,
-      updatePersonField,
-      updatePeople,
-      createPerson,
-      deletePerson,
-    }),
-    [people, isLoading, updatePersonField, updatePeople, createPerson, deletePerson],
-  );
+  const contextValue: PeopleContextValue = {
+    people,
+    isPeopleLoading: isLoading,
+    updatePersonField,
+    updatePeople,
+    createPerson,
+    deletePerson,
+  };
 
   return <PeopleContext.Provider value={contextValue}>{children}</PeopleContext.Provider>;
 }

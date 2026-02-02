@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
 
 import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
 import { useForecastInclusion } from "@/components/finance/hooks/useForecastInclusion";
@@ -68,46 +68,25 @@ export function TransactionsProvider({ children }: Readonly<{ children: React.Re
   );
 
   // Action: Add transactions from form state
-  const addTransactionsFromFormState = useCallback(
-    (formState: NewTransactionFormState) => {
-      const payload = buildTransactionPayload(formState, selectedMonthDate);
-      if (payload.length > 0) {
-        createTransactions(payload);
-      }
-    },
-    [createTransactions, selectedMonthDate],
-  );
+  const addTransactionsFromFormState = (formState: NewTransactionFormState) => {
+    const payload = buildTransactionPayload(formState, selectedMonthDate);
+    if (payload.length > 0) {
+      createTransactions(payload);
+    }
+  };
 
-  // ============================================================================
-  // Context Value
-  // ============================================================================
-
-  const contextValue = useMemo<TransactionsContextValue>(
-    () => ({
-      transactionsForSelectedMonth,
-      transactionsForCalculations,
-      isTransactionsLoading: isLoading,
-      addTransactionsFromFormState,
-      deleteTransactionById,
-      updateTransactionById,
-      isForecastIncluded,
-      setForecastInclusionOverride,
-      bulkUpdateTransactions,
-      bulkDeleteTransactions,
-    }),
-    [
-      transactionsForSelectedMonth,
-      transactionsForCalculations,
-      isLoading,
-      addTransactionsFromFormState,
-      deleteTransactionById,
-      updateTransactionById,
-      isForecastIncluded,
-      setForecastInclusionOverride,
-      bulkUpdateTransactions,
-      bulkDeleteTransactions,
-    ],
-  );
+  const contextValue: TransactionsContextValue = {
+    transactionsForSelectedMonth,
+    transactionsForCalculations,
+    isTransactionsLoading: isLoading,
+    addTransactionsFromFormState,
+    deleteTransactionById,
+    updateTransactionById,
+    isForecastIncluded,
+    setForecastInclusionOverride,
+    bulkUpdateTransactions,
+    bulkDeleteTransactions,
+  };
 
   return (
     <TransactionsContext.Provider value={contextValue}>{children}</TransactionsContext.Provider>

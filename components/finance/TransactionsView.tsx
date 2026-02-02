@@ -18,7 +18,7 @@ import {
   UserX,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { TransactionFormFields } from "@/components/finance/TransactionFormFields";
@@ -28,7 +28,6 @@ import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerConte
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
-import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
@@ -229,62 +228,47 @@ export function TransactionsView() {
     }
   }, [categoryFilter, categories]);
 
-  const matchesFilters = useCallback(
-    (transaction: Transaction) => {
-      if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
-      if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
+  const matchesFilters = (transaction: Transaction) => {
+    if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
+    if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
 
-      // Multi-category filter
-      if (categoryFilter.size > 0) {
-        // Income transactions have no category, so they don't match category filter
-        if (transaction.categoryId === null) return false;
-        if (!categoryFilter.has(transaction.categoryId)) return false;
-      }
+    // Multi-category filter
+    if (categoryFilter.size > 0) {
+      // Income transactions have no category, so they don't match category filter
+      if (transaction.categoryId === null) return false;
+      if (!categoryFilter.has(transaction.categoryId)) return false;
+    }
 
-      // Credit card filter
-      if (creditCardFilter !== "all") {
-        const isCreditCard = creditCardFilter === "yes";
-        if (transaction.isCreditCard !== isCreditCard) return false;
-      }
+    // Credit card filter
+    if (creditCardFilter !== "all") {
+      const isCreditCard = creditCardFilter === "yes";
+      if (transaction.isCreditCard !== isCreditCard) return false;
+    }
 
-      // Fuzzy search filter
-      if (searchQuery.trim()) {
-        const category = categories.find((cat) => cat.id === transaction.categoryId);
-        const person = people.find((pers) => pers.id === transaction.paidBy);
-        const searchableText = [
-          transaction.description,
-          category?.name ?? "",
-          person?.name ?? "",
-          transaction.date,
-        ].join(" ");
-        if (!fuzzyMatch(searchableText, searchQuery)) return false;
-      }
+    // Fuzzy search filter
+    if (searchQuery.trim()) {
+      const category = categories.find((cat) => cat.id === transaction.categoryId);
+      const person = people.find((pers) => pers.id === transaction.paidBy);
+      const searchableText = [
+        transaction.description,
+        category?.name ?? "",
+        person?.name ?? "",
+        transaction.date,
+      ].join(" ");
+      if (!fuzzyMatch(searchableText, searchQuery)) return false;
+    }
 
-      return true;
-    },
-    [paidByFilter, typeFilter, categoryFilter, creditCardFilter, searchQuery, categories, people],
+    return true;
+  };
+
+  const visibleTransactionsForSelectedMonth = transactionsForSelectedMonth.filter(matchesFilters);
+  const visibleTransactionsForCalculations = transactionsForCalculations.filter(matchesFilters);
+  const visibleCalculationIds = new Set(
+    visibleTransactionsForCalculations.map((transaction) => transaction.id),
   );
-
-  const visibleTransactionsForSelectedMonth = useMemo(
-    () => transactionsForSelectedMonth.filter(matchesFilters),
-    [transactionsForSelectedMonth, matchesFilters],
-  );
-  const visibleTransactionsForCalculations = useMemo(
-    () => transactionsForCalculations.filter(matchesFilters),
-    [transactionsForCalculations, matchesFilters],
-  );
-
-  const visibleCalculationIds = useMemo(
-    () => new Set(visibleTransactionsForCalculations.map((transaction) => transaction.id)),
-    [visibleTransactionsForCalculations],
-  );
-  const visibleExcludedForecastCount = useMemo(
-    () =>
-      visibleTransactionsForSelectedMonth.filter(
-        (transaction) => transaction.isForecast && !visibleCalculationIds.has(transaction.id),
-      ).length,
-    [visibleTransactionsForSelectedMonth, visibleCalculationIds],
-  );
+  const visibleExcludedForecastCount = visibleTransactionsForSelectedMonth.filter(
+    (transaction) => transaction.isForecast && !visibleCalculationIds.has(transaction.id),
+  ).length;
 
   const handleOpenEditModal = (transaction: Transaction) => {
     setEditingTransaction(transaction);
@@ -527,7 +511,9 @@ Retorne APENAS o JSON, sem markdown.
             {(values) => (
               <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
                 <Plus
-                  className={`${values.type === "income" ? "bg-accent-positive" : "bg-accent-primary"} text-white rounded-interactive p-1`}
+                  className={`${
+                    values.type === "income" ? "bg-accent-positive" : "bg-accent-primary"
+                  } text-white rounded-interactive p-1`}
                   size={24}
                 />
                 {values.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
@@ -698,7 +684,9 @@ Retorne APENAS o JSON, sem markdown.
                       : `${categoryFilter.size} selecionada${categoryFilter.size > 1 ? "s" : ""}`}
                   </span>
                   <svg
-                    className={`w-4 h-4 transition-transform ${isCategoryDropdownOpen ? "rotate-180" : ""}`}
+                    className={`w-4 h-4 transition-transform ${
+                      isCategoryDropdownOpen ? "rotate-180" : ""
+                    }`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -964,7 +952,9 @@ Retorne APENAS o JSON, sem markdown.
                         {transaction.description}
                         {isIncome && (
                           <span
-                            className={`${isIncrement ? "noir-badge-positive" : "noir-badge-warning"} flex items-center gap-1`}
+                            className={`${
+                              isIncrement ? "noir-badge-positive" : "noir-badge-warning"
+                            } flex items-center gap-1`}
                           >
                             {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
                             {isIncrement ? "Renda" : "Dedução"}
@@ -1195,7 +1185,10 @@ Retorne APENAS o JSON, sem markdown.
                     className="noir-select w-full animate-in slide-in-from-top-1 duration-200"
                     value={bulkEditFormState.categoryId}
                     onChange={(e) =>
-                      setBulkEditFormState((prev) => ({ ...prev, categoryId: e.target.value }))
+                      setBulkEditFormState((prev) => ({
+                        ...prev,
+                        categoryId: e.target.value,
+                      }))
                     }
                   >
                     {categories.map((category) => (
@@ -1235,7 +1228,10 @@ Retorne APENAS o JSON, sem markdown.
                     className="noir-select w-full animate-in slide-in-from-top-1 duration-200"
                     value={bulkEditFormState.paidBy}
                     onChange={(e) =>
-                      setBulkEditFormState((prev) => ({ ...prev, paidBy: e.target.value }))
+                      setBulkEditFormState((prev) => ({
+                        ...prev,
+                        paidBy: e.target.value,
+                      }))
                     }
                   >
                     {people.map((person) => (

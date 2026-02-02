@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
 
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useCurrentUserQuery } from "@/components/finance/hooks/useCurrentUserQuery";
@@ -48,19 +48,13 @@ export function DefaultPayerProvider({ children }: Readonly<{ children: React.Re
   );
 
   // Wrapper for setDefaultPayerId that includes people validation
-  const handleSetDefaultPayerId = useMemo(
-    () => (personId: string) => setDefaultPayerId(personId, people),
-    [setDefaultPayerId, people],
-  );
+  const handleSetDefaultPayerId = (personId: string) => setDefaultPayerId(personId, people);
 
-  const contextValue = useMemo<DefaultPayerContextValue>(
-    () => ({
-      defaultPayerId,
-      setDefaultPayerId: handleSetDefaultPayerId,
-      isUpdating,
-    }),
-    [defaultPayerId, handleSetDefaultPayerId, isUpdating],
-  );
+  const contextValue: DefaultPayerContextValue = {
+    defaultPayerId,
+    setDefaultPayerId: handleSetDefaultPayerId,
+    isUpdating,
+  };
 
   return (
     <DefaultPayerContext.Provider value={contextValue}>{children}</DefaultPayerContext.Provider>

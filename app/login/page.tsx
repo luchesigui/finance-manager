@@ -3,7 +3,7 @@
 import { useForm } from "@tanstack/react-form";
 import { Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { FieldError } from "@/components/ui/FieldError";
 import { zodValidator } from "@/lib/form";
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"sign-in" | "sign-up">("sign-in");
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
+  const supabase = createClient();
 
   const form = useForm({
     defaultValues: {
@@ -140,7 +140,9 @@ export default function LoginPage() {
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        className={`noir-input w-full ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        className={`noir-input w-full ${
+                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
+                        }`}
                         placeholder="seu@email.com"
                       />
                     </div>
@@ -172,7 +174,9 @@ export default function LoginPage() {
                         value={field.state.value}
                         onBlur={field.handleBlur}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        className={`noir-input w-full ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        className={`noir-input w-full ${
+                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
+                        }`}
                         placeholder="••••••••"
                       />
                     </div>

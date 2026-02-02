@@ -2,8 +2,8 @@
 
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
-import { PieChart, Plus, Save, Trash2, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { PieChart, Plus, Save, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { PersonEditRow } from "@/components/finance/PersonEditRow";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
@@ -16,7 +16,6 @@ import { fetchJson } from "@/lib/apiClient";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
 import { zodValidator } from "@/lib/form";
 import { incomeSchema, personNameSchema } from "@/lib/formSchemas";
-import { formatPercent } from "@/lib/format";
 import type { Category, CurrentUserResponse, Person, PersonPatch } from "@/lib/types";
 
 // ============================================================================
@@ -118,47 +117,32 @@ export function SettingsView() {
   }, [categories]);
 
   // Separate current user from other participants
-  const currentUserPerson = useMemo(
-    () => people.find((person) => person.linkedUserId === currentUserId),
-    [people, currentUserId],
-  );
-
-  const otherPeople = useMemo(
-    () => people.filter((person) => person.linkedUserId !== currentUserId),
-    [people, currentUserId],
-  );
+  const currentUserPerson = people.find((person) => person.linkedUserId === currentUserId);
+  const otherPeople = people.filter((person) => person.linkedUserId !== currentUserId);
 
   // Calculate shares using edited values
-  const editedPeople = useMemo(() => {
-    return people.map((person) => {
-      const edits = personEdits[person.id];
-      return edits ? { ...person, name: edits.name, income: edits.income } : person;
-    });
-  }, [people, personEdits]);
+  const editedPeople = people.map((person) => {
+    const edits = personEdits[person.id];
+    return edits ? { ...person, name: edits.name, income: edits.income } : person;
+  });
 
   const totalIncome = calculateTotalIncome(editedPeople);
 
   // Check for unsaved changes
-  const hasUnsavedChanges = useMemo(() => {
-    return people.some((person) => {
-      const edits = personEdits[person.id];
-      return edits && (edits.name !== person.name || edits.income !== person.income);
-    });
-  }, [people, personEdits]);
+  const hasUnsavedChanges = people.some((person) => {
+    const edits = personEdits[person.id];
+    return edits && (edits.name !== person.name || edits.income !== person.income);
+  });
 
-  const hasUnsavedCategoryChanges = useMemo(() => {
-    return categories.some((category) => {
-      const edits = categoryEdits[category.id];
-      return edits && edits.targetPercent !== category.targetPercent;
-    });
-  }, [categories, categoryEdits]);
+  const hasUnsavedCategoryChanges = categories.some((category) => {
+    const edits = categoryEdits[category.id];
+    return edits && edits.targetPercent !== category.targetPercent;
+  });
 
-  const totalCategoryPercent = useMemo(() => {
-    return categories.reduce((sum, category) => {
-      const edits = categoryEdits[category.id];
-      return sum + (edits?.targetPercent ?? category.targetPercent);
-    }, 0);
-  }, [categories, categoryEdits]);
+  const totalCategoryPercent = categories.reduce((sum, category) => {
+    const edits = categoryEdits[category.id];
+    return sum + (edits?.targetPercent ?? category.targetPercent);
+  }, 0);
 
   // ============================================================================
   // Handlers
@@ -362,7 +346,9 @@ export function SettingsView() {
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
                         required
-                        className={`noir-input w-full text-sm ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        className={`noir-input w-full text-sm ${
+                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
+                        }`}
                         placeholder="Nome do participante"
                       />
                       <FieldError errors={field.state.meta.errors} />
@@ -387,7 +373,9 @@ export function SettingsView() {
                         value={field.state.value}
                         onValueChange={(value) => field.handleChange(value)}
                         required
-                        className={`noir-input w-full text-sm ${field.state.meta.errors.length > 0 ? "border-accent-negative" : ""}`}
+                        className={`noir-input w-full text-sm ${
+                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
+                        }`}
                         placeholder="R$ 0,00"
                       />
                       <FieldError errors={field.state.meta.errors} />
@@ -510,7 +498,9 @@ export function SettingsView() {
           <div className="flex justify-between items-center pt-4 border-t border-noir-border mt-4">
             <span className="font-semibold text-body">Total Planejado</span>
             <span
-              className={`font-bold tabular-nums ${totalCategoryPercent === 100 ? "text-accent-positive" : "text-accent-negative"}`}
+              className={`font-bold tabular-nums ${
+                totalCategoryPercent === 100 ? "text-accent-positive" : "text-accent-negative"
+              }`}
             >
               {totalCategoryPercent}%
             </span>

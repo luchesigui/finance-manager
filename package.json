@@ -30,6 +30,7 @@
     "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
     "autoprefixer": "^10.4.20",
+    "babel-plugin-react-compiler": "^1.0.0",
     "husky": "^9.1.0",
     "lint-staged": "^15.2.10",
     "postcss": "^8.4.49",

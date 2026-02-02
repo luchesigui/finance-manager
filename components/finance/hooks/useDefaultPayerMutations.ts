@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
 
 import { DEFAULT_PAYER_QUERY_KEY } from "@/components/finance/hooks/useDefaultPayerQuery";
 import { fetchJson, jsonRequestInit } from "@/lib/apiClient";
@@ -32,17 +31,14 @@ export function useDefaultPayerMutations() {
     },
   });
 
-  const setDefaultPayerId = useCallback(
-    (personId: string, people: Array<{ id: string }>) => {
-      const exists = people.some((person) => person.id === personId);
-      if (!exists) {
-        console.warn("Attempted to set default payer to non-existent person");
-        return;
-      }
-      updateMutation.mutate(personId);
-    },
-    [updateMutation],
-  );
+  const setDefaultPayerId = (personId: string, people: Array<{ id: string }>) => {
+    const exists = people.some((person) => person.id === personId);
+    if (!exists) {
+      console.warn("Attempted to set default payer to non-existent person");
+      return;
+    }
+    updateMutation.mutate(personId);
+  };
 
   return {
     setDefaultPayerId,

@@ -1,8 +1,5 @@
 "use client";
 
-import { Eye, EyeOff, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
-import { useMemo } from "react";
-
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import {
   calculateIncomeBreakdown,
@@ -14,6 +11,7 @@ import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
+import { Eye, EyeOff, ThumbsUp, TrendingDown, TrendingUp } from "lucide-react";
 
 type SummaryCardsProps = {
   people: Person[];
@@ -35,17 +33,10 @@ export function SummaryCards({
     transactionsForCalculations,
   } = useTransactions();
 
-  const forecastExpenses = useMemo(
-    () =>
-      transactionsForSelectedMonth.filter(
-        (transaction) => transaction.isForecast && transaction.type !== "income",
-      ),
-    [transactionsForSelectedMonth],
+  const forecastExpenses = transactionsForSelectedMonth.filter(
+    (transaction) => transaction.isForecast && transaction.type !== "income",
   );
-  const forecastTotal = useMemo(
-    () => forecastExpenses.reduce((sum, transaction) => sum + transaction.amount, 0),
-    [forecastExpenses],
-  );
+  const forecastTotal = forecastExpenses.reduce((sum, transaction) => sum + transaction.amount, 0);
   const hasForecastExpenses = forecastExpenses.length > 0;
   const forecastCountLabel =
     forecastExpenses.length === 1 ? "1 item" : `${forecastExpenses.length} itens`;
@@ -122,15 +113,23 @@ export function SummaryCards({
 
       {/* Free Balance Card */}
       <div
-        className={`noir-card p-card-padding group relative overflow-hidden ${isPositiveBalance ? "border-accent-positive/30" : "border-accent-negative/30"}`}
+        className={`noir-card p-card-padding group relative overflow-hidden ${
+          isPositiveBalance ? "border-accent-positive/30" : "border-accent-negative/30"
+        }`}
       >
         <div
-          className={`absolute inset-0 opacity-5 ${isPositiveBalance ? "bg-accent-positive" : "bg-accent-negative"}`}
+          className={`absolute inset-0 opacity-5 ${
+            isPositiveBalance ? "bg-accent-positive" : "bg-accent-negative"
+          }`}
         />
         <div className="relative">
           <h3 className="text-body text-sm font-medium mb-1">Saldo Livre</h3>
           <p
-            className={`text-2xl font-bold tabular-nums ${isPositiveBalance ? "text-accent-positive text-glow-positive" : "text-accent-negative text-glow-negative"}`}
+            className={`text-2xl font-bold tabular-nums ${
+              isPositiveBalance
+                ? "text-accent-positive text-glow-positive"
+                : "text-accent-negative text-glow-negative"
+            }`}
           >
             {formatCurrency(freeBalance)}
           </p>
