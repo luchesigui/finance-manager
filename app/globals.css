@@ -31,30 +31,30 @@
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Background Colors */
-  --noir-primary: #fafafa;
+  /* Background Colors - Clean white with subtle grays */
+  --noir-primary: #ffffff;
   --noir-surface: #ffffff;
-  --noir-sidebar: #f5f5f7;
-  --noir-active: #e5e7eb;
-  --noir-border: rgba(0, 0, 0, 0.08);
-  --noir-border-light: rgba(0, 0, 0, 0.12);
+  --noir-sidebar: #fafbfc;
+  --noir-active: #f3f4f6;
+  --noir-border: #e5e7eb;
+  --noir-border-light: #d1d5db;
 
-  /* Text Colors */
+  /* Text Colors - Good contrast for readability */
   --text-heading: #111827;
-  --text-body: #4b5563;
-  --text-muted: #9ca3af;
+  --text-body: #374151;
+  --text-muted: #6b7280;
 
-  /* Accent Colors (adjusted for light bg) */
+  /* Accent Colors (darker for good contrast on white) */
   --accent-primary: #2563eb;
-  --accent-spending: #ca8a04;
-  --accent-positive: #16a34a;
+  --accent-spending: #a16207;
+  --accent-positive: #15803d;
   --accent-negative: #dc2626;
-  --accent-warning: #ea580c;
+  --accent-warning: #c2410c;
 
   /* Reduced glow intensity for light mode */
-  --glow-accent: rgba(37, 99, 235, 0.2);
-  --glow-positive: rgba(22, 163, 74, 0.2);
-  --glow-negative: rgba(220, 38, 38, 0.2);
+  --glow-accent: rgba(37, 99, 235, 0.15);
+  --glow-positive: rgba(21, 128, 61, 0.15);
+  --glow-negative: rgba(220, 38, 38, 0.15);
 }
 
 html,
@@ -253,20 +253,20 @@ body {
 
 /* Light theme specific overrides - using non-nested selectors for Tailwind compatibility */
 
-/* Cards need subtle shadow instead of border glow */
+/* Cards - clean white with subtle border and shadow */
 [data-theme="light"] .noir-card {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
   background-color: var(--noir-surface);
   border-color: var(--noir-border);
 }
 
 [data-theme="light"] .noir-card:hover {
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
 }
 
 /* Override body background */
 [data-theme="light"] body {
-  background-color: var(--noir-primary);
+  background-color: #f8fafc;
   color: var(--text-body);
 }
 
@@ -300,6 +300,10 @@ body {
   color: var(--accent-warning);
 }
 
+[data-theme="light"] .text-accent-spending {
+  color: var(--accent-spending);
+}
+
 [data-theme="light"] .bg-accent-primary {
   background-color: var(--accent-primary);
 }
@@ -310,6 +314,10 @@ body {
 
 [data-theme="light"] .bg-accent-negative {
   background-color: var(--accent-negative);
+}
+
+[data-theme="light"] .bg-accent-spending {
+  background-color: var(--accent-spending);
 }
 
 /* Background overrides */
@@ -338,10 +346,79 @@ body {
   border-color: var(--noir-border-light);
 }
 
+/* Input and select overrides for light theme */
+[data-theme="light"] .noir-input,
+[data-theme="light"] .noir-select {
+  background-color: #ffffff;
+  border-color: var(--noir-border);
+  color: var(--text-heading);
+}
+
+[data-theme="light"] .noir-input:focus,
+[data-theme="light"] .noir-select:focus {
+  border-color: var(--accent-primary);
+}
+
+/* Button overrides for light theme */
+[data-theme="light"] .noir-btn-secondary {
+  background-color: var(--noir-active);
+  border-color: var(--noir-border);
+  color: var(--text-body);
+}
+
+[data-theme="light"] .noir-btn-secondary:hover {
+  background-color: #e5e7eb;
+  color: var(--text-heading);
+}
+
+/* Hover state overrides */
+[data-theme="light"] .hover\:bg-noir-active\/30:hover {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+[data-theme="light"] .hover\:bg-noir-surface:hover {
+  background-color: #f9fafb;
+}
+
+[data-theme="light"] .hover\:bg-noir-active:hover {
+  background-color: #e5e7eb;
+}
+
+/* Progress bars in light mode */
+[data-theme="light"] .noir-progress-track {
+  background-color: #e5e7eb;
+}
+
 /* Adjust glassmorphism for light mode */
 [data-theme="light"] .noir-glass {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(12px);
+  border-color: var(--noir-border);
+}
+
+/* Table row hovers */
+[data-theme="light"] .noir-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Alert panels and active states */
+[data-theme="light"] .bg-noir-active\/50 {
+  background-color: rgba(243, 244, 246, 0.5);
+}
+
+[data-theme="light"] .bg-noir-active\/30 {
+  background-color: rgba(243, 244, 246, 0.3);
+}
+
+/* Header and navigation */
+[data-theme="light"] header {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: var(--noir-border);
+}
+
+/* Mobile nav */
+[data-theme="light"] .bg-noir-sidebar\/95 {
+  background-color: rgba(255, 255, 255, 0.95);
 }
 
 /* Scrollbar for light theme */
@@ -357,15 +434,45 @@ body {
   background: #94a3b8;
 }
 
-/* Reduce glow effects in light mode */
+/* Reduce glow effects in light mode - use subtle shadows instead */
 [data-theme="light"] .shadow-glow-accent {
-  box-shadow: 0 0 15px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 [data-theme="light"] .shadow-glow-positive {
-  box-shadow: 0 0 15px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
 }
 
 [data-theme="light"] .shadow-glow-negative {
-  box-shadow: 0 0 15px rgba(220, 38, 38, 0.2);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+[data-theme="light"] .shadow-glow-warning {
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.1);
+}
+
+/* Badge backgrounds need adjustment for light theme */
+[data-theme="light"] .noir-badge-positive {
+  background-color: rgba(21, 128, 61, 0.1);
+  color: var(--accent-positive);
+}
+
+[data-theme="light"] .noir-badge-negative {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: var(--accent-negative);
+}
+
+[data-theme="light"] .noir-badge-warning {
+  background-color: rgba(194, 65, 12, 0.1);
+  color: var(--accent-warning);
+}
+
+[data-theme="light"] .noir-badge-accent {
+  background-color: rgba(37, 99, 235, 0.1);
+  color: var(--accent-primary);
+}
+
+[data-theme="light"] .noir-badge-muted {
+  background-color: #f3f4f6;
+  color: var(--text-body);
 }
