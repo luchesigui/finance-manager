@@ -8,7 +8,12 @@ export { QuickStatsGrid } from "./QuickStatsGrid";
 export { SavingsConfetti } from "./SavingsConfetti";
 
 // Hooks
-export { useDashboardAlerts, type Alert, type AlertType, type AlertCategory } from "./hooks/useDashboardAlerts";
+export {
+  useDashboardAlerts,
+  type Alert,
+  type AlertType,
+  type AlertCategory,
+} from "./hooks/useDashboardAlerts";
 export {
   useHealthScore,
   type HealthScoreResult,

@@ -24,11 +24,7 @@ type OutlierSpotlightProps = {
 // Component
 // ============================================================================
 
-export function OutlierSpotlight({
-  outliers,
-  categories,
-  totalExpenses,
-}: OutlierSpotlightProps) {
+export function OutlierSpotlight({ outliers, categories, totalExpenses }: OutlierSpotlightProps) {
   if (outliers.length === 0) {
     return null;
   }
@@ -38,8 +34,7 @@ export function OutlierSpotlight({
 
   // Calculate total outlier amount
   const totalOutlierAmount = outliers.reduce((sum, t) => sum + t.amount, 0);
-  const outlierPercentOfTotal =
-    totalExpenses > 0 ? (totalOutlierAmount / totalExpenses) * 100 : 0;
+  const outlierPercentOfTotal = totalExpenses > 0 ? (totalOutlierAmount / totalExpenses) * 100 : 0;
 
   return (
     <div className="noir-card overflow-hidden border border-accent-warning/30">
@@ -55,9 +50,7 @@ export function OutlierSpotlight({
         {/* Outlier list */}
         <div className="space-y-3">
           {outliers.slice(0, 5).map((outlier) => {
-            const category = outlier.categoryId
-              ? categoryMap.get(outlier.categoryId)
-              : null;
+            const category = outlier.categoryId ? categoryMap.get(outlier.categoryId) : null;
 
             return (
               <div
@@ -83,9 +76,7 @@ export function OutlierSpotlight({
                       <p className="text-sm font-bold text-accent-warning tabular-nums">
                         {formatCurrency(outlier.amount)}
                       </p>
-                      {category && (
-                        <p className="text-xs text-muted">{category.name}</p>
-                      )}
+                      {category && <p className="text-xs text-muted">{category.name}</p>}
                     </div>
                   </div>
                 </div>
@@ -95,7 +86,8 @@ export function OutlierSpotlight({
 
           {outliers.length > 5 && (
             <p className="text-xs text-muted text-center pt-2">
-              + {outliers.length - 5} {outliers.length - 5 === 1 ? "outro gasto" : "outros gastos"} fora do padrão
+              + {outliers.length - 5} {outliers.length - 5 === 1 ? "outro gasto" : "outros gastos"}{" "}
+              fora do padrão
             </p>
           )}
         </div>

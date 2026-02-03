@@ -28,16 +28,11 @@ type QuickStatsGridProps = {
 // Component
 // ============================================================================
 
-export function QuickStatsGrid({
-  factors,
-  totalExpenses,
-  effectiveIncome,
-}: QuickStatsGridProps) {
+export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: QuickStatsGridProps) {
   const { liberdadeFinanceira, freeBalance } = factors;
 
   // Calculate budget usage percentage
-  const budgetUsagePercent =
-    effectiveIncome > 0 ? (totalExpenses / effectiveIncome) * 100 : 0;
+  const budgetUsagePercent = effectiveIncome > 0 ? (totalExpenses / effectiveIncome) * 100 : 0;
 
   // Determine if savings goal is achieved
   const savingsGoalAchieved = liberdadeFinanceira.percentAchieved >= 100;
@@ -47,9 +42,7 @@ export function QuickStatsGrid({
 
   // Balance percentage of income
   const balancePercent =
-    effectiveIncome > 0
-      ? Math.abs((freeBalance.value / effectiveIncome) * 100)
-      : 0;
+    effectiveIncome > 0 ? Math.abs((freeBalance.value / effectiveIncome) * 100) : 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-grid-gap">
@@ -185,9 +178,7 @@ export function QuickStatsGrid({
       {/* Card C: Saldo Livre */}
       <div
         className={`noir-card p-card-padding relative overflow-hidden ${
-          isPositiveBalance
-            ? "border-accent-positive/30"
-            : "border-accent-negative/30"
+          isPositiveBalance ? "border-accent-positive/30" : "border-accent-negative/30"
         }`}
       >
         {/* Background effect */}
@@ -230,9 +221,7 @@ export function QuickStatsGrid({
             ) : (
               <TrendingDown size={16} className="text-accent-negative" />
             )}
-            <span className="text-sm text-body">
-              {balancePercent.toFixed(0)}% da renda
-            </span>
+            <span className="text-sm text-body">{balancePercent.toFixed(0)}% da renda</span>
           </div>
 
           {/* Status badge */}

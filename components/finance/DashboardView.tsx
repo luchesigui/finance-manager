@@ -104,7 +104,8 @@ export function DashboardView() {
         // A more accurate approach would require the actual mean from the statistics
         const categoryStat = categorySummary.find((c) => c.id === t.categoryId);
         const historicalAverage = categoryStat
-          ? categoryStat.totalSpent / Math.max(expenseTransactions.filter((e) => e.categoryId === t.categoryId).length, 1)
+          ? categoryStat.totalSpent /
+            Math.max(expenseTransactions.filter((e) => e.categoryId === t.categoryId).length, 1)
           : 0;
 
         return {
@@ -142,10 +143,10 @@ export function DashboardView() {
   const yearMonth = `${selectedYear}-${String(selectedMonthNumber).padStart(2, "0")}`;
 
   // Generate mock trend data (in a real implementation, this would come from an API)
-  const trendData = useMemo(() => generateMockTrendData(selectedYear, selectedMonthNumber), [
-    selectedYear,
-    selectedMonthNumber,
-  ]);
+  const trendData = useMemo(
+    () => generateMockTrendData(selectedYear, selectedMonthNumber),
+    [selectedYear, selectedMonthNumber],
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -197,7 +198,20 @@ export function DashboardView() {
  */
 function generateMockTrendData(year: number, month: number): MonthlyTrendData[] {
   const data: MonthlyTrendData[] = [];
-  const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  const monthNames = [
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
+  ];
 
   // Generate 6 months of data ending at the current month
   for (let i = 5; i >= 0; i--) {

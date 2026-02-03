@@ -75,9 +75,7 @@ export function HealthScore({ healthScore }: HealthScoreProps) {
       <div className="flex flex-col md:flex-row md:items-center gap-4">
         {/* Header with icon and title */}
         <div className="flex items-center gap-3">
-          <div
-            className={`p-3 rounded-card ${config.bgColor} ${config.textColor}`}
-          >
+          <div className={`p-3 rounded-card ${config.bgColor} ${config.textColor}`}>
             <Activity size={28} />
           </div>
           <div>

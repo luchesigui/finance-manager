@@ -135,10 +135,12 @@ function generateBudgetAlerts(categorySummary: CategorySummaryRow[]): Alert[] {
       type: "warning",
       category: "budget",
       title: `${warningCategories.length} categoria${warningCategories.length > 1 ? "s" : ""} acima do orçamento`,
-      description: warningCategories.map((cat) => {
-        const percent = Math.round((cat.realPercentOfIncome / cat.targetPercent) * 100);
-        return `${cat.name} (${percent}%)`;
-      }).join(", "),
+      description: warningCategories
+        .map((cat) => {
+          const percent = Math.round((cat.realPercentOfIncome / cat.targetPercent) * 100);
+          return `${cat.name} (${percent}%)`;
+        })
+        .join(", "),
     });
   }
 
@@ -160,9 +162,7 @@ function generateOutlierAlerts(outlierCount: number): Alert[] {
 }
 
 function generateForecastAlerts(transactions: Transaction[]): Alert[] {
-  const forecastTransactions = transactions.filter(
-    (t) => t.isForecast && t.type !== "income",
-  );
+  const forecastTransactions = transactions.filter((t) => t.isForecast && t.type !== "income");
 
   if (forecastTransactions.length === 0) return [];
 

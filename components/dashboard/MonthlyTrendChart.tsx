@@ -61,10 +61,7 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
       <div className="space-y-1">
         {payload.map((entry) => (
           <div key={entry.dataKey} className="flex items-center gap-2 text-sm">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
             <span className="text-muted">{entry.name}:</span>
             <span className="text-heading font-medium tabular-nums">
               {formatCurrency(entry.value)}
@@ -120,9 +117,7 @@ export function MonthlyTrendChart({ data, currentMonthIndex }: MonthlyTrendChart
           <TrendingUp size={18} className="text-accent-primary" />
           <h2 className="font-semibold text-heading">Tendência Liberdade Financeira</h2>
         </div>
-        <div className="p-8 text-center text-muted">
-          Dados históricos não disponíveis
-        </div>
+        <div className="p-8 text-center text-muted">Dados históricos não disponíveis</div>
       </div>
     );
   }
@@ -141,10 +136,7 @@ export function MonthlyTrendChart({ data, currentMonthIndex }: MonthlyTrendChart
         {/* Chart */}
         <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={data}
-              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-            >
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#FACC15" stopOpacity={0.3} />

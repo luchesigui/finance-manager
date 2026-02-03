@@ -142,17 +142,12 @@ function calculateOutliersFactor(outlierCount: number): OutliersFactor {
   return { score, count: outlierCount };
 }
 
-function calculateSettlementFactor(
-  settlementData: Array<{ balance: number }>,
-): SettlementFactor {
+function calculateSettlementFactor(settlementData: Array<{ balance: number }>): SettlementFactor {
   // Balanced if all balances are within a small threshold
   const balanced = settlementData.every((person) => Math.abs(person.balance) < 1);
 
   // Score based on how balanced it is
-  const totalImbalance = settlementData.reduce(
-    (sum, person) => sum + Math.abs(person.balance),
-    0,
-  );
+  const totalImbalance = settlementData.reduce((sum, person) => sum + Math.abs(person.balance), 0);
 
   // If no imbalance, 100. Otherwise, decrease score based on imbalance magnitude
   // Cap at 0 score for very large imbalances
@@ -193,7 +188,9 @@ function generateSummary(factors: HealthScoreFactors): string {
 
   if (factors.liberdadeFinanceira.percentAchieved < 100) {
     const remaining = factors.liberdadeFinanceira.target - factors.liberdadeFinanceira.actual;
-    issues.push(`Meta de poupança em ${Math.round(factors.liberdadeFinanceira.percentAchieved)}%, faltam R$ ${remaining.toFixed(0)}`);
+    issues.push(
+      `Meta de poupança em ${Math.round(factors.liberdadeFinanceira.percentAchieved)}%, faltam R$ ${remaining.toFixed(0)}`,
+    );
   }
 
   if (factors.categoriesOnBudget.onBudget < factors.categoriesOnBudget.total) {
@@ -202,7 +199,9 @@ function generateSummary(factors: HealthScoreFactors): string {
   }
 
   if (factors.outliers.count > 0) {
-    issues.push(`${factors.outliers.count} gasto${factors.outliers.count > 1 ? "s" : ""} fora do padrão`);
+    issues.push(
+      `${factors.outliers.count} gasto${factors.outliers.count > 1 ? "s" : ""} fora do padrão`,
+    );
   }
 
   if (factors.freeBalance.value < 0) {
