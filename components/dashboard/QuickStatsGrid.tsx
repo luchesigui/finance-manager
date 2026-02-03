@@ -52,7 +52,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
     <div className="grid grid-cols-1 md:grid-cols-3 gap-grid-gap">
       {/* Card A: Liberdade Financeira (highlighted) */}
       <div
-        className={`noir-card p-card-padding relative overflow-hidden ${
+        className={`noir-card p-6 relative overflow-hidden ${
           savingsGoalAchieved
             ? "border-2 border-accent-positive/50 shadow-glow-positive"
             : "border-2 border-accent-spending/30"
@@ -130,7 +130,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
       </div>
 
       {/* Card B: Total Gasto vs Orçamento */}
-      <div className="noir-card p-card-padding">
+      <div className="noir-card p-6">
         <div className="flex items-center gap-2 mb-3">
           <div className="p-2 rounded-interactive bg-accent-negative/20 text-accent-negative">
             <TrendingDown size={18} />
@@ -183,7 +183,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
 
       {/* Card C: Saldo Livre */}
       <div
-        className={`noir-card p-card-padding relative overflow-hidden ${
+        className={`noir-card p-6 relative overflow-hidden ${
           isPositiveBalance ? "border-accent-positive/30" : "border-accent-negative/30"
         }`}
       >

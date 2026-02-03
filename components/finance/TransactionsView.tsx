@@ -596,6 +596,8 @@ Retorne APENAS o JSON, sem markdown.
                   : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
               }`}
               title="Filtrar lançamentos"
+              aria-label="Filtrar lançamentos"
+              aria-expanded={isFilterOpen}
             >
               <Filter size={16} />
             </button>
@@ -608,6 +610,8 @@ Retorne APENAS o JSON, sem markdown.
                   : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
               }`}
               title="Buscar lançamentos"
+              aria-label="Buscar lançamentos"
+              aria-expanded={isSearchOpen}
             >
               <Search size={16} />
             </button>
@@ -922,7 +926,7 @@ Retorne APENAS o JSON, sem markdown.
                   key={transaction.id}
                   role={isSelectionMode && canSelect ? "button" : undefined}
                   tabIndex={isSelectionMode && canSelect ? 0 : undefined}
-                  className={`p-4 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
+                  className={`p-5 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
                     isSelected ? "bg-accent-primary/10" : ""
                   } ${isIncome ? "border-l-2 border-l-accent-positive" : ""} ${
                     isSelectionMode && canSelect ? "cursor-pointer" : ""
@@ -990,35 +994,35 @@ Retorne APENAS o JSON, sem markdown.
                           <span
                             className={`${
                               isIncrement ? "noir-badge-positive" : "noir-badge-warning"
-                            } flex items-center gap-1`}
+                            } flex items-center gap-1.5`}
                           >
-                            {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            {isIncrement ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                             {isIncrement ? "Renda" : "Dedução"}
                           </span>
                         )}
                         {isForecast && (
-                          <span className="noir-badge-warning flex items-center gap-1">
-                            <CrystalBallLine size={10} /> Previsão
+                          <span className="noir-badge-warning flex items-center gap-1.5">
+                            <CrystalBallLine size={12} /> Previsão
                           </span>
                         )}
                         {transaction.isRecurring && (
-                          <span className="noir-badge-accent flex items-center gap-1">
-                            <RefreshCw size={10} /> Recorrente
+                          <span className="noir-badge-accent flex items-center gap-1.5">
+                            <RefreshCw size={12} /> Recorrente
                           </span>
                         )}
                         {transaction.isCreditCard && (
-                          <span className="noir-badge-accent flex items-center gap-1">
-                            <CreditCard size={10} /> Cartão
+                          <span className="noir-badge-accent flex items-center gap-1.5">
+                            <CreditCard size={12} /> Cartão
                           </span>
                         )}
                         {transaction.excludeFromSplit && (
-                          <span className="noir-badge-muted flex items-center gap-1">
-                            <UserX size={10} /> Fora da divisão
+                          <span className="noir-badge-muted flex items-center gap-1.5">
+                            <UserX size={12} /> Fora da divisão
                           </span>
                         )}
                         {isOutlier(transaction) && (
-                          <span className="noir-badge-negative flex items-center gap-1">
-                            <AlertTriangle size={10} /> Fora do padrão
+                          <span className="noir-badge-negative flex items-center gap-1.5">
+                            <AlertTriangle size={12} /> Fora do padrão
                           </span>
                         )}
                       </h4>
@@ -1053,6 +1057,7 @@ Retorne APENAS o JSON, sem markdown.
                           onClick={() => handleOpenEditModal(transaction)}
                           className="text-muted hover:text-accent-primary p-2 transition-all rounded-interactive hover:bg-accent-primary/10"
                           title="Editar"
+                          aria-label={`Editar lançamento: ${transaction.description}`}
                         >
                           <Pencil size={16} />
                         </button>
@@ -1062,6 +1067,7 @@ Retorne APENAS o JSON, sem markdown.
                             onClick={() => deleteTransactionById(transaction.id)}
                             className="text-muted hover:text-accent-negative p-2 transition-all rounded-interactive hover:bg-accent-negative/10"
                             title="Excluir"
+                            aria-label={`Excluir lançamento: ${transaction.description}`}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -1098,10 +1104,15 @@ Retorne APENAS o JSON, sem markdown.
 
       {/* Edit Transaction Modal */}
       {editingTransaction && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="noir-card max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
+        >
+          <div className="noir-card max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3 className="font-semibold text-heading flex items-center gap-2">
+              <h3 id="edit-modal-title" className="font-semibold text-heading flex items-center gap-2">
                 <Pencil className="text-accent-primary" size={20} />
                 Editar Lançamento
               </h3>
@@ -1109,6 +1120,7 @@ Retorne APENAS o JSON, sem markdown.
                 type="button"
                 onClick={handleCloseEditModal}
                 className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
+                aria-label="Fechar modal de edição"
               >
                 <X size={20} />
               </button>
@@ -1176,10 +1188,15 @@ Retorne APENAS o JSON, sem markdown.
 
       {/* Bulk Edit Modal */}
       {isBulkEditModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="noir-card max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-edit-modal-title"
+        >
+          <div className="noir-card max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3 className="font-semibold text-heading flex items-center gap-2">
+              <h3 id="bulk-edit-modal-title" className="font-semibold text-heading flex items-center gap-2">
                 <Pencil className="text-accent-primary" size={20} />
                 Editar em Massa
                 <span className="noir-badge-muted">{selectedIds.size} lançamento(s)</span>
@@ -1188,6 +1205,7 @@ Retorne APENAS o JSON, sem markdown.
                 type="button"
                 onClick={handleCloseBulkEditModal}
                 className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
+                aria-label="Fechar modal de edição em massa"
               >
                 <X size={20} />
               </button>

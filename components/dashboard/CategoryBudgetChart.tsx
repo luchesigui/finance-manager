@@ -101,15 +101,17 @@ function CategoryBar({ category, totalIncome, isSavingsCategory }: CategoryBarPr
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 bg-noir-active rounded-full overflow-hidden">
+      <div className="h-2 bg-noir-active rounded-full overflow-hidden relative">
         <div
-          className={`h-full ${barColor} transition-all duration-500 ease-out`}
+          className={`h-full ${barColor} transition-all duration-500 ease-out ${
+            showWarning ? "bg-stripes" : ""
+          }`}
           style={{ width: `${Math.min(percentOfTarget, 100)}%` }}
         />
       </div>
 
       {/* Target indicator (subtle) */}
-      <div className="flex justify-between text-[10px] text-muted mt-1">
+      <div className="flex justify-between text-[11px] text-muted mt-1">
         <span>0</span>
         <span>Meta: {formatCurrency(targetAmount)}</span>
       </div>

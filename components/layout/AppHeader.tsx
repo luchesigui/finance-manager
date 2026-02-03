@@ -29,7 +29,7 @@ export function AppHeader() {
 
   return (
     <header className="bg-noir-sidebar border-b border-noir-border sticky top-0 z-10 backdrop-blur-md bg-opacity-95">
-      <div className="max-w-5xl mx-auto py-4 px-4 flex justify-between items-center">
+      <div className="max-w-5xl mx-auto py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="bg-accent-primary p-2 rounded-interactive text-white shadow-glow-accent">
             <Wallet size={24} />
@@ -66,6 +66,7 @@ export function AppHeader() {
             onClick={handleSignOut}
             className="p-2 text-muted hover:text-accent-negative transition-colors rounded-interactive hover:bg-accent-negative/10"
             title="Sair"
+            aria-label="Sair da conta"
           >
             <LogOut size={20} />
           </button>

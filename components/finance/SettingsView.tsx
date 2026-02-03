@@ -2,7 +2,7 @@
 
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
-import { PieChart, Plus, Save, Users } from "lucide-react";
+import { Monitor, Moon, PieChart, Plus, Save, Sun, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PersonEditRow } from "@/components/finance/PersonEditRow";
@@ -16,6 +16,7 @@ import { fetchJson } from "@/lib/apiClient";
 import { getCategoryColorStyle } from "@/lib/categoryColors";
 import { zodValidator } from "@/lib/form";
 import { incomeSchema, personNameSchema } from "@/lib/formSchemas";
+import { useTheme } from "@/lib/theme/ThemeContext";
 import type { Category, CurrentUserResponse, Person, PersonPatch } from "@/lib/types";
 
 // ============================================================================
@@ -258,6 +259,33 @@ export function SettingsView() {
     setShowNewPersonForm(false);
     createPersonForm.reset();
   };
+
+  // ============================================================================
+  // Theme Settings
+  // ============================================================================
+
+  const { theme, setTheme } = useTheme();
+
+  const themeOptions = [
+    {
+      value: "system" as const,
+      label: "Sistema",
+      description: "Segue a preferência do seu dispositivo",
+      icon: Monitor,
+    },
+    {
+      value: "dark" as const,
+      label: "Escuro",
+      description: "Tema Financial Noir",
+      icon: Moon,
+    },
+    {
+      value: "light" as const,
+      label: "Claro",
+      description: "Tema Paper",
+      icon: Sun,
+    },
+  ];
 
   // ============================================================================
   // Render
@@ -505,6 +533,81 @@ export function SettingsView() {
               {totalCategoryPercent}%
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Appearance Section */}
+      <div className="noir-card overflow-hidden">
+        <div className="p-4 border-b border-noir-border bg-noir-active/50">
+          <h2 className="font-semibold text-heading">Aparência</h2>
+          <p className="text-xs text-muted mt-1">
+            Personalize como o FinançasPro aparece no seu dispositivo
+          </p>
+        </div>
+
+        <div className="p-4">
+          <fieldset>
+            <legend className="sr-only">Escolha o tema</legend>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {themeOptions.map((option) => {
+                const Icon = option.icon;
+                const isSelected = theme === option.value;
+
+                return (
+                  <label
+                    key={option.value}
+                    className={`
+                      relative flex flex-col items-center gap-2 p-4 rounded-card 
+                      border-2 cursor-pointer transition-all duration-200
+                      ${
+                        isSelected
+                          ? "border-accent-primary bg-accent-primary/10"
+                          : "border-noir-border hover:border-noir-border-light hover:bg-noir-active/30"
+                      }
+                    `}
+                  >
+                    <input
+                      type="radio"
+                      name="theme"
+                      value={option.value}
+                      checked={isSelected}
+                      onChange={() => setTheme(option.value)}
+                      className="sr-only"
+                    />
+
+                    <div
+                      className={`
+                        p-3 rounded-interactive
+                        ${
+                          isSelected
+                            ? "bg-accent-primary/20 text-accent-primary"
+                            : "bg-noir-active text-body"
+                        }
+                      `}
+                    >
+                      <Icon size={24} />
+                    </div>
+
+                    <div className="text-center">
+                      <span
+                        className={`
+                          font-medium block
+                          ${isSelected ? "text-accent-primary" : "text-heading"}
+                        `}
+                      >
+                        {option.label}
+                      </span>
+                      <span className="text-xs text-muted">{option.description}</span>
+                    </div>
+
+                    {isSelected && (
+                      <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent-primary" />
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
         </div>
       </div>
     </div>
