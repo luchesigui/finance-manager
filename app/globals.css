@@ -4,10 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="dark"] {
   color-scheme: dark;
 
-  /* Financial Noir CSS Variables */
+  /* Financial Noir CSS Variables (Dark Theme) */
   --noir-primary: #050a0f;
   --noir-surface: #0d141c;
   --noir-sidebar: #090e14;
@@ -24,6 +25,41 @@
   --accent-positive: #22c55e;
   --accent-negative: #ef4444;
   --accent-warning: #f97316;
+
+  /* Glow shadow intensities */
+  --glow-accent: rgba(59, 130, 246, 0.3);
+  --glow-positive: rgba(34, 197, 94, 0.3);
+  --glow-negative: rgba(239, 68, 68, 0.3);
+}
+
+/* Light Theme (Paper) */
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Background Colors */
+  --noir-primary: #fafafa;
+  --noir-surface: #ffffff;
+  --noir-sidebar: #f5f5f7;
+  --noir-active: #e5e7eb;
+  --noir-border: rgba(0, 0, 0, 0.08);
+  --noir-border-light: rgba(0, 0, 0, 0.12);
+
+  /* Text Colors */
+  --text-heading: #111827;
+  --text-body: #4b5563;
+  --text-muted: #9ca3af;
+
+  /* Accent Colors (adjusted for light bg) */
+  --accent-primary: #2563eb;
+  --accent-spending: #ca8a04;
+  --accent-positive: #16a34a;
+  --accent-negative: #dc2626;
+  --accent-warning: #ea580c;
+
+  /* Reduced glow intensity for light mode */
+  --glow-accent: rgba(37, 99, 235, 0.2);
+  --glow-positive: rgba(22, 163, 74, 0.2);
+  --glow-negative: rgba(220, 38, 38, 0.2);
 }
 
 html,
@@ -217,5 +253,35 @@ body {
       rgba(0, 0, 0, 0.2) 4px,
       rgba(0, 0, 0, 0.2) 8px
     );
+  }
+}
+
+/* Light theme specific overrides */
+[data-theme="light"] {
+  /* Cards need subtle shadow instead of border glow */
+  .noir-card {
+    @apply shadow-sm;
+  }
+
+  .noir-card:hover {
+    @apply shadow-md;
+  }
+
+  /* Adjust glassmorphism for light mode */
+  .noir-glass {
+    @apply bg-white/80 backdrop-blur-md;
+  }
+
+  /* Scrollbar for light theme */
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
   }
 }
