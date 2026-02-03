@@ -23,7 +23,7 @@ import {
   getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { useOutlierDetection } from "@/components/finance/hooks/useOutlierDetection";
-import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 
 import { MonthNavigator } from "./MonthNavigator";
 import { useCategories } from "./contexts/CategoriesContext";
@@ -65,8 +65,6 @@ const MONTH_NAMES_FULL = [
   "Dezembro",
 ];
 
-const LIBERDADE_FINANCEIRA_CATEGORY = "liberdade financeira";
-
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -98,12 +96,27 @@ function getEffectiveDayOfMonth(selectedYear: number, selectedMonth: number): nu
 }
 
 /**
+ * Generates a deterministic pseudo-random value based on year and month.
+ * This ensures consistent values when viewing the same data from different perspectives.
+ */
+function getSeededVariance(year: number, month: number, seed = 0): number {
+  // Simple hash function for deterministic "randomness"
+  const hash = (year * 12 + month + seed) * 2654435761;
+  const normalized = (hash % 1000) / 1000; // 0 to 1
+  return (normalized - 0.5) * 15; // -7.5 to +7.5 variance
+}
+
+/**
  * Generates health trend data for the chart.
- * Shows past 3 months (or available data) + current month + 2 projected months.
+ * Shows past 3 months + current selected month + 2 projected months.
+ *
+ * Note: The current score shown is always for the SELECTED month, not today's month.
+ * Historical scores use deterministic variance for consistency.
+ * In production, historical scores should come from stored data.
  */
 function generateHealthTrendData(
-  currentYear: number,
-  currentMonth: number,
+  selectedYear: number,
+  selectedMonth: number,
   currentScore: number,
 ): HealthTrendDataPoint[] {
   const data: HealthTrendDataPoint[] = [];
@@ -111,10 +124,10 @@ function generateHealthTrendData(
   const todayYear = today.getFullYear();
   const todayMonth = today.getMonth() + 1;
 
-  // Generate past 3 months + current + 2 future months
+  // Generate past 3 months + selected + 2 future months (relative to selected month)
   for (let offset = -3; offset <= 2; offset++) {
-    let m = currentMonth + offset;
-    let y = currentYear;
+    let m = selectedMonth + offset;
+    let y = selectedYear;
 
     // Handle year overflow/underflow
     while (m <= 0) {
@@ -126,25 +139,27 @@ function generateHealthTrendData(
       y += 1;
     }
 
-    const isCurrentMonth = y === todayYear && m === todayMonth;
+    // Is this the selected month we're viewing?
+    const isSelectedMonth = y === selectedYear && m === selectedMonth;
+
+    // Is this month in the future relative to TODAY (not the selected month)?
     const isFutureMonth = y > todayYear || (y === todayYear && m > todayMonth);
 
-    // For past months, generate a plausible score based on current score
-    // In a real implementation, this would come from actual historical data
     let score: number;
 
-    if (isCurrentMonth) {
+    if (isSelectedMonth) {
+      // Selected month always shows the actual calculated score
       score = currentScore;
     } else if (isFutureMonth) {
-      // Project future scores based on trend
-      // Simple projection: maintain current score with slight variance
-      const projectionOffset = offset - (currentMonth === todayMonth ? 0 : 1);
-      score = Math.max(0, Math.min(100, currentScore + projectionOffset * 2));
+      // Future months: project based on current score
+      // Use a simple projection that maintains score with slight improvement
+      const monthsAhead = (y - todayYear) * 12 + (m - todayMonth);
+      score = Math.max(0, Math.min(100, currentScore + monthsAhead * 1.5));
     } else {
-      // Historical data - simulate with variance around current score
-      // In production, this would be actual stored health scores
-      const historicalVariance = (Math.random() - 0.5) * 20;
-      score = Math.max(0, Math.min(100, currentScore + historicalVariance));
+      // Past months: use deterministic variance based on the month
+      // This ensures the same month always shows the same score
+      const variance = getSeededVariance(y, m);
+      score = Math.max(0, Math.min(100, currentScore + variance));
     }
 
     data.push({
@@ -152,7 +167,7 @@ function generateHealthTrendData(
       monthLabel: `${MONTH_NAMES_FULL[m - 1]} ${y}`,
       score: Math.round(score),
       isProjected: isFutureMonth,
-      isCurrent: isCurrentMonth,
+      isCurrent: isSelectedMonth,
     });
   }
 
@@ -200,15 +215,7 @@ export function DashboardView() {
     [categories],
   );
 
-  // Find Liberdade Financeira category ID
-  const liberdadeFinanceiraCategoryId = useMemo(() => {
-    const cat = categories.find(
-      (c) => normalizeCategoryName(c.name) === LIBERDADE_FINANCEIRA_CATEGORY,
-    );
-    return cat?.id;
-  }, [categories]);
-
-  // Calculate total expenses (including Liberdade Financeira for display)
+  // Calculate total expenses (including Liberdade Financeira)
   const expenseTransactions = useMemo(
     () => getExpenseTransactions(transactionsForCalculations),
     [transactionsForCalculations],
@@ -218,14 +225,6 @@ export function DashboardView() {
     () => calculateTotalExpenses(expenseTransactions),
     [expenseTransactions],
   );
-
-  // Calculate expenses excluding Liberdade Financeira (for budget comparison)
-  const expensesExcludingSavings = useMemo(() => {
-    const expensesWithoutSavings = expenseTransactions.filter(
-      (t) => t.categoryId !== liberdadeFinanceiraCategoryId,
-    );
-    return calculateTotalExpenses(expensesWithoutSavings);
-  }, [expenseTransactions, liberdadeFinanceiraCategoryId]);
 
   // Find outlier transactions with historical data
   const { outlierTransactions, outlierCount } = useMemo(() => {
@@ -302,7 +301,6 @@ export function DashboardView() {
         factors={healthScore.factors}
         totalExpenses={totalExpensesAll}
         effectiveIncome={effectiveIncome}
-        expensesExcludingSavings={expensesExcludingSavings}
       />
 
       {/* Alerts Panel */}

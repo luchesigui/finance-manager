@@ -239,13 +239,7 @@ export function HealthTrendChart({ data, currentScore }: HealthTrendChartProps) 
         </div>
 
         {/* Insights */}
-        <div className="mt-4 pt-4 border-t border-noir-border flex flex-wrap gap-4 text-sm">
-          <div>
-            <span className="text-muted">Média: </span>
-            <span className="text-heading font-medium tabular-nums">
-              {Math.round(insights.avgScore)} pts
-            </span>
-          </div>
+        <div className="mt-4 pt-4 border-t border-noir-border flex flex-wrap items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-muted">Atual: </span>
             <span
@@ -260,7 +254,7 @@ export function HealthTrendChart({ data, currentScore }: HealthTrendChartProps) 
               {Math.round(currentScore)} pts
             </span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted">
+          <div className="flex items-center gap-2 text-xs text-muted ml-auto">
             <span className="inline-block w-3 h-0.5 bg-accent-positive" /> Saudável (80+)
             <span className="inline-block w-3 h-0.5 bg-accent-warning ml-2" /> Atenção (50-79)
           </div>

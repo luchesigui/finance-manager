@@ -235,6 +235,20 @@ export function useDashboardAlerts({
   outlierCount,
 }: UseDashboardAlertsParams): Alert[] {
   return useMemo(() => {
+    // Check if there are no transactions for this month
+    if (transactions.length === 0) {
+      return [
+        {
+          id: "no-data",
+          type: "info",
+          category: "budget",
+          title: "Sem dados para este mês",
+          description:
+            "Nenhuma transação registrada. Adicione lançamentos para ver o resumo financeiro.",
+        },
+      ];
+    }
+
     // Calculate base income
     const baseIncome = calculateTotalIncome(people);
 

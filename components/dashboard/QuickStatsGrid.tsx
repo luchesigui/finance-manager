@@ -20,30 +20,23 @@ import { formatCurrency } from "@/lib/format";
 
 type QuickStatsGridProps = {
   factors: HealthScoreFactors;
+  /** Total expenses INCLUDING Liberdade Financeira */
   totalExpenses: number;
   effectiveIncome: number;
-  /** Expenses excluding Liberdade Financeira (for budget comparison) */
-  expensesExcludingSavings: number;
 };
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export function QuickStatsGrid({
-  factors,
-  totalExpenses,
-  effectiveIncome,
-  expensesExcludingSavings,
-}: QuickStatsGridProps) {
+export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: QuickStatsGridProps) {
   const { liberdadeFinanceira, freeBalance } = factors;
 
   // Calculate spending budget: Income - Expected Savings
   const spendingBudget = effectiveIncome - liberdadeFinanceira.target;
 
-  // Calculate budget usage percentage based on expenses excluding savings
-  const budgetUsagePercent =
-    spendingBudget > 0 ? (expensesExcludingSavings / spendingBudget) * 100 : 0;
+  // Calculate budget usage percentage based on ALL expenses (including savings)
+  const budgetUsagePercent = spendingBudget > 0 ? (totalExpenses / spendingBudget) * 100 : 0;
 
   // Determine if savings goal is achieved
   const savingsGoalAchieved = liberdadeFinanceira.percentAchieved >= 100;
@@ -147,7 +140,7 @@ export function QuickStatsGrid({
 
         {/* Primary value */}
         <p className="text-3xl font-bold text-heading tabular-nums">
-          {formatCurrency(expensesExcludingSavings)}
+          {formatCurrency(totalExpenses)}
         </p>
 
         {/* Budget usage */}
@@ -155,7 +148,7 @@ export function QuickStatsGrid({
           <div className="flex justify-between text-xs text-muted mb-1">
             <span>% do Orçamento</span>
             <span>
-              {formatCurrency(expensesExcludingSavings)} de {formatCurrency(spendingBudget)}
+              {formatCurrency(totalExpenses)} de {formatCurrency(spendingBudget)}
             </span>
           </div>
           <div className="h-2 bg-noir-active rounded-full overflow-hidden">
