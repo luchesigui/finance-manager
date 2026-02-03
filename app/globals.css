@@ -42,7 +42,7 @@
   /* Text Colors - Good contrast for readability */
   --text-heading: #111827;
   --text-body: #374151;
-  --text-muted: rgb(92 107 128 / var(--tw-text-opacity, 1)); /* Blue-gray for softer muted text */
+  --text-muted: #a0b1ca;
 
   /* Accent Colors (darker for good contrast on white) */
   --accent-primary: #2563eb;
@@ -373,15 +373,15 @@ body {
 
 /* Hover state overrides */
 [data-theme="light"] .hover\:bg-noir-active\/30:hover {
-  background-color: rgba(241, 245, 249, 0.7);
+  background-color: #e2e8f0;
 }
 
 [data-theme="light"] .hover\:bg-noir-surface:hover {
-  background-color: #f8fafc;
+  background-color: #e2e8f0;
 }
 
 [data-theme="light"] .hover\:bg-noir-active:hover {
-  background-color: #f1f5f9;
+  background-color: #e2e8f0;
 }
 
 /* Menu and navigation hover states */
@@ -394,11 +394,15 @@ body {
 }
 
 [data-theme="light"] .hover\:bg-accent-primary\/10:hover {
-  background-color: rgba(37, 99, 235, 0.08);
+  background-color: rgba(37, 99, 235, 0.12);
 }
 
 [data-theme="light"] .hover\:bg-accent-negative\/10:hover {
-  background-color: rgba(220, 38, 38, 0.08);
+  background-color: rgba(220, 38, 38, 0.12);
+}
+
+[data-theme="light"] .hover\:bg-noir-active\/50:hover {
+  background-color: #e2e8f0;
 }
 
 /* Progress bars in light mode */
@@ -425,6 +429,14 @@ body {
 
 [data-theme="light"] .bg-noir-active\/30 {
   background-color: #fafbfc;
+}
+
+[data-theme="light"] .bg-noir-active\/70 {
+  background-color: #f1f5f9;
+}
+
+[data-theme="light"] .hover\:bg-noir-active\/70:hover {
+  background-color: #e2e8f0;
 }
 
 /* Header and navigation */
