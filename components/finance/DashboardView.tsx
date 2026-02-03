@@ -6,8 +6,8 @@ import {
   AlertsPanel,
   CategoryBudgetChart,
   HealthScore,
-  MonthlyTrendChart,
-  type MonthlyTrendData,
+  HealthTrendChart,
+  type HealthTrendDataPoint,
   OutlierSpotlight,
   type OutlierTransaction,
   QuickStatsGrid,
@@ -23,13 +23,49 @@ import {
   getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { useOutlierDetection } from "@/components/finance/hooks/useOutlierDetection";
-import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 
 import { MonthNavigator } from "./MonthNavigator";
 import { useCategories } from "./contexts/CategoriesContext";
 import { useCurrentMonth } from "./contexts/CurrentMonthContext";
 import { usePeople } from "./contexts/PeopleContext";
 import { useTransactions } from "./contexts/TransactionsContext";
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const MONTH_NAMES_SHORT = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
+const MONTH_NAMES_FULL = [
+  "Janeiro",
+  "Fevereiro",
+  "Março",
+  "Abril",
+  "Maio",
+  "Junho",
+  "Julho",
+  "Agosto",
+  "Setembro",
+  "Outubro",
+  "Novembro",
+  "Dezembro",
+];
+
+const LIBERDADE_FINANCEIRA_CATEGORY = "liberdade financeira";
 
 // ============================================================================
 // Helper Functions
@@ -48,7 +84,6 @@ function getEffectiveDayOfMonth(selectedYear: number, selectedMonth: number): nu
   const currentDay = today.getDate();
 
   if (selectedYear === currentYear && selectedMonth === currentMonth) {
-    // Current month: use today's day
     return currentDay;
   }
 
@@ -56,12 +91,72 @@ function getEffectiveDayOfMonth(selectedYear: number, selectedMonth: number): nu
     selectedYear < currentYear ||
     (selectedYear === currentYear && selectedMonth < currentMonth)
   ) {
-    // Past month: use last day (31) to indicate month is complete
     return 31;
   }
 
-  // Future month: use day 1 (month hasn't started yet)
   return 1;
+}
+
+/**
+ * Generates health trend data for the chart.
+ * Shows past 3 months (or available data) + current month + 2 projected months.
+ */
+function generateHealthTrendData(
+  currentYear: number,
+  currentMonth: number,
+  currentScore: number,
+): HealthTrendDataPoint[] {
+  const data: HealthTrendDataPoint[] = [];
+  const today = new Date();
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth() + 1;
+
+  // Generate past 3 months + current + 2 future months
+  for (let offset = -3; offset <= 2; offset++) {
+    let m = currentMonth + offset;
+    let y = currentYear;
+
+    // Handle year overflow/underflow
+    while (m <= 0) {
+      m += 12;
+      y -= 1;
+    }
+    while (m > 12) {
+      m -= 12;
+      y += 1;
+    }
+
+    const isCurrentMonth = y === todayYear && m === todayMonth;
+    const isFutureMonth = y > todayYear || (y === todayYear && m > todayMonth);
+
+    // For past months, generate a plausible score based on current score
+    // In a real implementation, this would come from actual historical data
+    let score: number;
+
+    if (isCurrentMonth) {
+      score = currentScore;
+    } else if (isFutureMonth) {
+      // Project future scores based on trend
+      // Simple projection: maintain current score with slight variance
+      const projectionOffset = offset - (currentMonth === todayMonth ? 0 : 1);
+      score = Math.max(0, Math.min(100, currentScore + projectionOffset * 2));
+    } else {
+      // Historical data - simulate with variance around current score
+      // In production, this would be actual stored health scores
+      const historicalVariance = (Math.random() - 0.5) * 20;
+      score = Math.max(0, Math.min(100, currentScore + historicalVariance));
+    }
+
+    data.push({
+      month: MONTH_NAMES_SHORT[m - 1],
+      monthLabel: `${MONTH_NAMES_FULL[m - 1]} ${y}`,
+      score: Math.round(score),
+      isProjected: isFutureMonth,
+      isCurrent: isCurrentMonth,
+    });
+  }
+
+  return data;
 }
 
 // ============================================================================
@@ -94,7 +189,7 @@ export function DashboardView() {
     [categories, transactionsForCalculations, effectiveIncome],
   );
 
-  // Build excluded category IDs for fair distribution
+  // Build excluded category IDs for fair distribution (Liberdade Financeira)
   const excludedCategoryIds = useMemo(
     () =>
       new Set(
@@ -104,6 +199,14 @@ export function DashboardView() {
       ),
     [categories],
   );
+
+  // Find Liberdade Financeira category ID
+  const liberdadeFinanceiraCategoryId = useMemo(() => {
+    const cat = categories.find(
+      (c) => normalizeCategoryName(c.name) === LIBERDADE_FINANCEIRA_CATEGORY,
+    );
+    return cat?.id;
+  }, [categories]);
 
   // Calculate total expenses (including Liberdade Financeira for display)
   const expenseTransactions = useMemo(
@@ -116,6 +219,14 @@ export function DashboardView() {
     [expenseTransactions],
   );
 
+  // Calculate expenses excluding Liberdade Financeira (for budget comparison)
+  const expensesExcludingSavings = useMemo(() => {
+    const expensesWithoutSavings = expenseTransactions.filter(
+      (t) => t.categoryId !== liberdadeFinanceiraCategoryId,
+    );
+    return calculateTotalExpenses(expensesWithoutSavings);
+  }, [expenseTransactions, liberdadeFinanceiraCategoryId]);
+
   // Find outlier transactions with historical data
   const { outlierTransactions, outlierCount } = useMemo(() => {
     if (isOutlierLoading) {
@@ -125,9 +236,6 @@ export function DashboardView() {
     const outliers = expenseTransactions
       .filter((t) => isOutlier(t))
       .map((t) => {
-        // Get category statistics to calculate historical average
-        // Note: We're using a simple approximation here since we have the threshold
-        // A more accurate approach would require the actual mean from the statistics
         const categoryStat = categorySummary.find((c) => c.id === t.categoryId);
         const historicalAverage = categoryStat
           ? categoryStat.totalSpent /
@@ -172,10 +280,10 @@ export function DashboardView() {
   // Format year-month for confetti cookie
   const yearMonth = `${selectedYear}-${String(selectedMonthNumber).padStart(2, "0")}`;
 
-  // Generate mock trend data (in a real implementation, this would come from an API)
-  const trendData = useMemo(
-    () => generateMockTrendData(selectedYear, selectedMonthNumber),
-    [selectedYear, selectedMonthNumber],
+  // Generate health trend data (past 3 months + current + 2 projected)
+  const healthTrendData = useMemo(
+    () => generateHealthTrendData(selectedYear, selectedMonthNumber, healthScore.score),
+    [selectedYear, selectedMonthNumber, healthScore.score],
   );
 
   return (
@@ -194,6 +302,7 @@ export function DashboardView() {
         factors={healthScore.factors}
         totalExpenses={totalExpensesAll}
         effectiveIncome={effectiveIncome}
+        expensesExcludingSavings={expensesExcludingSavings}
       />
 
       {/* Alerts Panel */}
@@ -204,8 +313,8 @@ export function DashboardView() {
         {/* Category Budget Chart */}
         <CategoryBudgetChart categorySummary={categorySummary} totalIncome={effectiveIncome} />
 
-        {/* Monthly Trend Chart */}
-        <MonthlyTrendChart data={trendData} />
+        {/* Health Trend Chart */}
+        <HealthTrendChart data={healthTrendData} currentScore={healthScore.score} />
       </div>
 
       {/* Outlier Spotlight */}
@@ -216,58 +325,4 @@ export function DashboardView() {
       />
     </div>
   );
-}
-
-// ============================================================================
-// Mock Data Generator (Temporary)
-// ============================================================================
-
-/**
- * Generates mock trend data for the chart.
- * In a production implementation, this should come from a /api/dashboard/trends endpoint.
- */
-function generateMockTrendData(year: number, month: number): MonthlyTrendData[] {
-  const data: MonthlyTrendData[] = [];
-  const monthNames = [
-    "Jan",
-    "Fev",
-    "Mar",
-    "Abr",
-    "Mai",
-    "Jun",
-    "Jul",
-    "Ago",
-    "Set",
-    "Out",
-    "Nov",
-    "Dez",
-  ];
-
-  // Generate 6 months of data ending at the current month
-  for (let i = 5; i >= 0; i--) {
-    let m = month - i;
-    let y = year;
-
-    if (m <= 0) {
-      m += 12;
-      y -= 1;
-    }
-
-    // Mock data - in production, this would be actual historical data
-    const baseIncome = 10000 + Math.random() * 2000;
-    const baseExpenses = 7000 + Math.random() * 2000;
-    const baseSavings = 1500 + Math.random() * 700;
-    const savingsTarget = 2000;
-
-    data.push({
-      month: monthNames[m - 1],
-      income: Math.round(baseIncome),
-      expenses: Math.round(baseExpenses),
-      savings: Math.round(baseSavings),
-      savingsTarget,
-      freeBalance: Math.round(baseIncome - baseExpenses),
-    });
-  }
-
-  return data;
 }

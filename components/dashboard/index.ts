@@ -2,7 +2,7 @@
 export { AlertsPanel } from "./AlertsPanel";
 export { CategoryBudgetChart } from "./CategoryBudgetChart";
 export { HealthScore } from "./HealthScore";
-export { MonthlyTrendChart, type MonthlyTrendData } from "./MonthlyTrendChart";
+export { HealthTrendChart, type HealthTrendDataPoint } from "./HealthTrendChart";
 export { OutlierSpotlight, type OutlierTransaction } from "./OutlierSpotlight";
 export { QuickStatsGrid } from "./QuickStatsGrid";
 export { SavingsConfetti } from "./SavingsConfetti";

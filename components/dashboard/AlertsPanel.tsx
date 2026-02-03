@@ -1,6 +1,15 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, Bell, CheckCircle2, Info } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Bell,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Info,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 import type { Alert, AlertType } from "@/components/dashboard/hooks/useDashboardAlerts";
 
@@ -15,6 +24,8 @@ type AlertsPanelProps = {
 // ============================================================================
 // Constants
 // ============================================================================
+
+const ALERTS_COLLAPSED_KEY = "dashboard_alerts_collapsed";
 
 const ALERT_CONFIG: Record<
   AlertType,
@@ -47,6 +58,38 @@ const ALERT_CONFIG: Record<
 };
 
 // ============================================================================
+// Hooks
+// ============================================================================
+
+function useCollapsedState(): [boolean, (collapsed: boolean) => void] {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Load initial state from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(ALERTS_COLLAPSED_KEY);
+      if (stored !== null) {
+        setIsCollapsed(stored === "true");
+      }
+    } catch {
+      // localStorage not available
+    }
+  }, []);
+
+  // Persist to localStorage when changed
+  const setCollapsed = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    try {
+      localStorage.setItem(ALERTS_COLLAPSED_KEY, String(collapsed));
+    } catch {
+      // localStorage not available
+    }
+  };
+
+  return [isCollapsed, setCollapsed];
+}
+
+// ============================================================================
 // Components
 // ============================================================================
 
@@ -65,6 +108,8 @@ function AlertItem({ alert }: { alert: Alert }) {
 }
 
 export function AlertsPanel({ alerts }: AlertsPanelProps) {
+  const [isCollapsed, setCollapsed] = useCollapsedState();
+
   if (alerts.length === 0) {
     return null;
   }
@@ -75,35 +120,54 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
   const infoAlerts = alerts.filter((a) => a.type === "info");
   const successAlerts = alerts.filter((a) => a.type === "success");
 
+  // Determine badge color based on most severe alert
+  const badgeClass =
+    criticalAlerts.length > 0
+      ? "noir-badge-negative"
+      : warningAlerts.length > 0
+        ? "noir-badge-warning"
+        : successAlerts.length > 0
+          ? "noir-badge-positive"
+          : "noir-badge-muted";
+
   return (
     <div className="noir-card overflow-hidden">
-      <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setCollapsed(!isCollapsed)}
+        className="w-full p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2 hover:bg-noir-active/70 transition-colors"
+      >
         <Bell size={18} className="text-accent-primary" />
         <h2 className="font-semibold text-heading">Atenção Necessária</h2>
-        <span className="ml-auto text-xs text-muted">{alerts.length} alertas</span>
-      </div>
+        <span className={`ml-2 ${badgeClass}`}>{alerts.length}</span>
+        <span className="ml-auto text-muted">
+          {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+        </span>
+      </button>
 
-      <div className="p-4 divide-y divide-noir-border">
-        {/* Success alerts first (if any) */}
-        {successAlerts.map((alert) => (
-          <AlertItem key={alert.id} alert={alert} />
-        ))}
+      {!isCollapsed && (
+        <div className="p-4 divide-y divide-noir-border animate-in slide-in-from-top-2 duration-200">
+          {/* Success alerts first (if any) */}
+          {successAlerts.map((alert) => (
+            <AlertItem key={alert.id} alert={alert} />
+          ))}
 
-        {/* Critical alerts */}
-        {criticalAlerts.map((alert) => (
-          <AlertItem key={alert.id} alert={alert} />
-        ))}
+          {/* Critical alerts */}
+          {criticalAlerts.map((alert) => (
+            <AlertItem key={alert.id} alert={alert} />
+          ))}
 
-        {/* Warning alerts */}
-        {warningAlerts.map((alert) => (
-          <AlertItem key={alert.id} alert={alert} />
-        ))}
+          {/* Warning alerts */}
+          {warningAlerts.map((alert) => (
+            <AlertItem key={alert.id} alert={alert} />
+          ))}
 
-        {/* Info alerts */}
-        {infoAlerts.map((alert) => (
-          <AlertItem key={alert.id} alert={alert} />
-        ))}
-      </div>
+          {/* Info alerts */}
+          {infoAlerts.map((alert) => (
+            <AlertItem key={alert.id} alert={alert} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

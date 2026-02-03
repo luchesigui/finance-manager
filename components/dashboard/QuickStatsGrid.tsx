@@ -22,17 +22,28 @@ type QuickStatsGridProps = {
   factors: HealthScoreFactors;
   totalExpenses: number;
   effectiveIncome: number;
+  /** Expenses excluding Liberdade Financeira (for budget comparison) */
+  expensesExcludingSavings: number;
 };
 
 // ============================================================================
 // Component
 // ============================================================================
 
-export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: QuickStatsGridProps) {
+export function QuickStatsGrid({
+  factors,
+  totalExpenses,
+  effectiveIncome,
+  expensesExcludingSavings,
+}: QuickStatsGridProps) {
   const { liberdadeFinanceira, freeBalance } = factors;
 
-  // Calculate budget usage percentage
-  const budgetUsagePercent = effectiveIncome > 0 ? (totalExpenses / effectiveIncome) * 100 : 0;
+  // Calculate spending budget: Income - Expected Savings
+  const spendingBudget = effectiveIncome - liberdadeFinanceira.target;
+
+  // Calculate budget usage percentage based on expenses excluding savings
+  const budgetUsagePercent =
+    spendingBudget > 0 ? (expensesExcludingSavings / spendingBudget) * 100 : 0;
 
   // Determine if savings goal is achieved
   const savingsGoalAchieved = liberdadeFinanceira.percentAchieved >= 100;
@@ -136,14 +147,16 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
 
         {/* Primary value */}
         <p className="text-3xl font-bold text-heading tabular-nums">
-          {formatCurrency(totalExpenses)}
+          {formatCurrency(expensesExcludingSavings)}
         </p>
 
         {/* Budget usage */}
         <div className="mt-3">
           <div className="flex justify-between text-xs text-muted mb-1">
-            <span>% da Renda</span>
-            <span>{budgetUsagePercent.toFixed(0)}%</span>
+            <span>% do Orçamento</span>
+            <span>
+              {formatCurrency(expensesExcludingSavings)} de {formatCurrency(spendingBudget)}
+            </span>
           </div>
           <div className="h-2 bg-noir-active rounded-full overflow-hidden">
             <div
