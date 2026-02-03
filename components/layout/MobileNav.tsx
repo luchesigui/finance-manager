@@ -32,13 +32,13 @@ export function MobileNav() {
             aria-current={isActive ? "page" : undefined}
           >
             <div
-              className={`p-1.5 rounded-interactive transition-all duration-200 ${
-                isActive ? "bg-accent-primary/20 shadow-glow-accent" : ""
+              className={`p-2 rounded-interactive transition-all duration-200 ${
+                isActive ? "bg-accent-primary/20 shadow-glow-accent" : "hover:bg-noir-active/50"
               }`}
             >
-              <tab.icon size={22} />
+              <tab.icon size={20} />
             </div>
-            <span className="text-[10px] font-medium">{tab.label}</span>
+            <span className="text-[11px] font-medium">{tab.label}</span>
           </Link>
         );
       })}
