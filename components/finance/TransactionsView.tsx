@@ -107,6 +107,7 @@ export function TransactionsView() {
   const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
+  const [outlierFilter, setOutlierFilter] = useState<"all" | "yes" | "no">("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -263,6 +264,13 @@ export function TransactionsView() {
         transaction.date,
       ].join(" ");
       if (!fuzzyMatch(searchableText, searchQuery)) return false;
+    }
+
+    // Outlier filter
+    if (outlierFilter !== "all") {
+      const isOutlierTransaction = isOutlier(transaction);
+      if (outlierFilter === "yes" && !isOutlierTransaction) return false;
+      if (outlierFilter === "no" && isOutlierTransaction) return false;
     }
 
     return true;
@@ -624,7 +632,8 @@ Retorne APENAS o JSON, sem markdown.
               {(typeFilter !== "all" ||
                 paidByFilter !== "all" ||
                 categoryFilter.size > 0 ||
-                creditCardFilter !== "all") && (
+                creditCardFilter !== "all" ||
+                outlierFilter !== "all") && (
                 <button
                   type="button"
                   onClick={() => {
@@ -632,6 +641,7 @@ Retorne APENAS o JSON, sem markdown.
                     setPaidByFilter("all");
                     setCategoryFilter(new Set());
                     setCreditCardFilter("all");
+                    setOutlierFilter("all");
                   }}
                   className="text-xs text-accent-primary hover:text-blue-400 font-medium flex items-center gap-1"
                 >
@@ -773,6 +783,25 @@ Retorne APENAS o JSON, sem markdown.
                   <option value="all">Todos</option>
                   <option value="yes">Cartão</option>
                   <option value="no">Não cartão</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="outlier-filter"
+                  className="text-xs font-medium text-body flex items-center gap-1"
+                >
+                  <AlertTriangle size={12} />
+                  Fora do padrão
+                </label>
+                <select
+                  id="outlier-filter"
+                  className="noir-select text-sm py-1"
+                  value={outlierFilter}
+                  onChange={(e) => setOutlierFilter(e.target.value as "all" | "yes" | "no")}
+                >
+                  <option value="all">Todos</option>
+                  <option value="yes">Sim</option>
+                  <option value="no">Não</option>
                 </select>
               </div>
             </div>
