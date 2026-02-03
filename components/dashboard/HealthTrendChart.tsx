@@ -127,7 +127,7 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
         </div>
         <div className="p-8 flex items-center justify-center">
           <div className="animate-pulse flex flex-col items-center gap-2">
-            <div className="h-[200px] w-full bg-noir-active rounded" />
+            <div className="h-[350px] w-full bg-noir-active rounded" />
             <span className="text-sm text-muted">Carregando dados...</span>
           </div>
         </div>
@@ -183,7 +183,7 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
 
       <div className="p-4">
         {/* Chart */}
-        <div className="h-[250px] w-full">
+        <div className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
