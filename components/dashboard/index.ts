@@ -22,3 +22,9 @@ export {
   type LiberdadeFinanceiraFactor,
   type MonthPeriod,
 } from "./hooks/useHealthScore";
+export {
+  useHealthScoreQuery,
+  formatPeriod,
+  generatePeriodRange,
+  type HealthScoreData,
+} from "./hooks/useHealthScoreQuery";

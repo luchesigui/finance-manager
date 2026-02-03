@@ -29,6 +29,7 @@ export type HealthTrendDataPoint = {
 type HealthTrendChartProps = {
   data: HealthTrendDataPoint[];
   currentScore: number;
+  isLoading?: boolean;
 };
 
 // ============================================================================
@@ -83,7 +84,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 // Component
 // ============================================================================
 
-export function HealthTrendChart({ data, currentScore }: HealthTrendChartProps) {
+export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendChartProps) {
   // Calculate insights from actual data (not projected)
   const insights = useMemo(() => {
     const actualData = data.filter((d) => !d.isProjected);
@@ -116,6 +117,23 @@ export function HealthTrendChart({ data, currentScore }: HealthTrendChartProps) 
 
     return { avgScore, trend, trendDelta };
   }, [data, currentScore]);
+
+  if (isLoading) {
+    return (
+      <div className="noir-card overflow-hidden">
+        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
+          <Activity size={18} className="text-accent-primary" />
+          <h2 className="font-semibold text-heading">Tendência de Saúde Financeira</h2>
+        </div>
+        <div className="p-8 flex items-center justify-center">
+          <div className="animate-pulse flex flex-col items-center gap-2">
+            <div className="h-[200px] w-full bg-noir-active rounded" />
+            <span className="text-sm text-muted">Carregando dados...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (data.length === 0) {
     return (

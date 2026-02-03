@@ -12,8 +12,11 @@ import {
   type OutlierTransaction,
   QuickStatsGrid,
   SavingsConfetti,
+  formatPeriod,
+  generatePeriodRange,
   useDashboardAlerts,
   useHealthScore,
+  useHealthScoreQuery,
 } from "@/components/dashboard";
 import {
   calculateCategorySummary,
@@ -65,6 +68,10 @@ const MONTH_NAMES_FULL = [
   "Dezembro",
 ];
 
+// Chart shows: 3 past months + current + 2 future months = 6 total
+const MONTHS_BEFORE = 3;
+const MONTHS_AFTER = 2;
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -96,87 +103,43 @@ function getEffectiveDayOfMonth(selectedYear: number, selectedMonth: number): nu
 }
 
 /**
- * Generates a deterministic score for a given year/month.
- * This score is COMPLETELY INDEPENDENT of any other month's data.
- * The same year/month will always produce the same score.
- *
- * In production, this should be replaced with actual stored health scores.
+ * Parses a period string (yyyy-mm) into year and month.
  */
-function getMonthScore(year: number, month: number): number {
-  // Simple hash function to generate deterministic score
-  // Using prime multipliers for better distribution
-  const hash = Math.abs((year * 12 + month) * 2654435761);
-  const normalized = (hash % 1000) / 1000; // 0 to 1
-
-  // Generate score in range 55-85 (reasonable health score range)
-  const minScore = 55;
-  const maxScore = 85;
-  return Math.round(minScore + normalized * (maxScore - minScore));
+function parsePeriod(period: string): { year: number; month: number } {
+  const [yearStr, monthStr] = period.split("-");
+  return {
+    year: Number.parseInt(yearStr, 10),
+    month: Number.parseInt(monthStr, 10),
+  };
 }
 
 /**
- * Generates health trend data for the chart.
- * Shows past 3 months + current selected month + 2 projected months.
- *
- * Each month's score is calculated independently:
- * - Selected month: shows the actual calculated score
- * - Other months: shows a deterministic score based on year/month
- * - Future months (relative to today): marked as projected
- *
- * In production, historical scores should come from stored data.
+ * Converts API health score data to chart data points.
  */
-function generateHealthTrendData(
-  selectedYear: number,
-  selectedMonth: number,
-  currentScore: number,
+function convertToChartData(
+  apiData: Array<{ period: string; score: number }> | undefined,
+  selectedPeriod: string,
 ): HealthTrendDataPoint[] {
-  const data: HealthTrendDataPoint[] = [];
+  if (!apiData || apiData.length === 0) {
+    return [];
+  }
+
   const today = new Date();
   const todayYear = today.getFullYear();
   const todayMonth = today.getMonth() + 1;
 
-  // Generate past 3 months + selected + 2 future months (relative to selected month)
-  for (let offset = -3; offset <= 2; offset++) {
-    let m = selectedMonth + offset;
-    let y = selectedYear;
+  return apiData.map((item) => {
+    const { year, month } = parsePeriod(item.period);
+    const isFutureMonth = year > todayYear || (year === todayYear && month > todayMonth);
 
-    // Handle year overflow/underflow
-    while (m <= 0) {
-      m += 12;
-      y -= 1;
-    }
-    while (m > 12) {
-      m -= 12;
-      y += 1;
-    }
-
-    // Is this the selected month we're viewing?
-    const isSelectedMonth = y === selectedYear && m === selectedMonth;
-
-    // Is this month in the future relative to TODAY (not the selected month)?
-    const isFutureMonth = y > todayYear || (y === todayYear && m > todayMonth);
-
-    let score: number;
-
-    if (isSelectedMonth) {
-      // Selected month always shows the actual calculated score
-      score = currentScore;
-    } else {
-      // All other months: use deterministic score based only on year/month
-      // This score is completely independent of the selected month's score
-      score = getMonthScore(y, m);
-    }
-
-    data.push({
-      month: MONTH_NAMES_SHORT[m - 1],
-      monthLabel: `${MONTH_NAMES_FULL[m - 1]} ${y}`,
-      score,
+    return {
+      month: MONTH_NAMES_SHORT[month - 1],
+      monthLabel: `${MONTH_NAMES_FULL[month - 1]} ${year}`,
+      score: item.score,
       isProjected: isFutureMonth,
-      isCurrent: isSelectedMonth,
-    });
-  }
-
-  return data;
+      isCurrent: item.period === selectedPeriod,
+    };
+  });
 }
 
 // ============================================================================
@@ -188,6 +151,32 @@ export function DashboardView() {
   const { people } = usePeople();
   const { categories } = useCategories();
   const { transactionsForCalculations } = useTransactions();
+
+  // Current period string for comparisons
+  const selectedPeriod = formatPeriod(selectedYear, selectedMonthNumber);
+
+  // Generate periods for the trend chart (3 past + current + 2 future)
+  const trendPeriods = useMemo(
+    () => generatePeriodRange(selectedYear, selectedMonthNumber, MONTHS_BEFORE, MONTHS_AFTER),
+    [selectedYear, selectedMonthNumber],
+  );
+
+  // Fetch health scores from API for trend chart
+  const { data: healthScoreApiData, isLoading: isHealthScoreLoading } = useHealthScoreQuery({
+    periods: trendPeriods,
+  });
+
+  // Convert API data to chart format
+  const healthTrendData = useMemo(
+    () => convertToChartData(healthScoreApiData, selectedPeriod),
+    [healthScoreApiData, selectedPeriod],
+  );
+
+  // Get the current month's score from API data (for consistency with chart)
+  const currentMonthApiScore = useMemo(() => {
+    const currentData = healthScoreApiData?.find((d) => d.period === selectedPeriod);
+    return currentData?.score ?? 0;
+  }, [healthScoreApiData, selectedPeriod]);
 
   // Outlier detection
   const { isOutlier, isLoading: isOutlierLoading } = useOutlierDetection(
@@ -261,7 +250,7 @@ export function DashboardView() {
   // Calculate effective day of month for health score assessment
   const dayOfMonth = getEffectiveDayOfMonth(selectedYear, selectedMonthNumber);
 
-  // Health score calculation (with day-of-month awareness)
+  // Health score calculation (client-side for detailed factors needed by QuickStatsGrid)
   const healthScore = useHealthScore({
     people,
     categories,
@@ -283,12 +272,6 @@ export function DashboardView() {
 
   // Format year-month for confetti cookie
   const yearMonth = `${selectedYear}-${String(selectedMonthNumber).padStart(2, "0")}`;
-
-  // Generate health trend data (past 3 months + current + 2 projected)
-  const healthTrendData = useMemo(
-    () => generateHealthTrendData(selectedYear, selectedMonthNumber, healthScore.score),
-    [selectedYear, selectedMonthNumber, healthScore.score],
-  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -316,8 +299,12 @@ export function DashboardView() {
         {/* Category Budget Chart */}
         <CategoryBudgetChart categorySummary={categorySummary} totalIncome={effectiveIncome} />
 
-        {/* Health Trend Chart */}
-        <HealthTrendChart data={healthTrendData} currentScore={healthScore.score} />
+        {/* Health Trend Chart - uses API data for consistency */}
+        <HealthTrendChart
+          data={healthTrendData}
+          currentScore={currentMonthApiScore || healthScore.score}
+          isLoading={isHealthScoreLoading}
+        />
       </div>
 
       {/* Outlier Spotlight */}
