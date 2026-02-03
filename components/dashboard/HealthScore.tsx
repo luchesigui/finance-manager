@@ -10,6 +10,7 @@ import type { HealthScoreResult, HealthStatus } from "@/components/dashboard/hoo
 
 type HealthScoreProps = {
   healthScore: HealthScoreResult;
+  isLoading?: boolean;
 };
 
 // ============================================================================
@@ -57,10 +58,42 @@ const STATUS_CONFIG: Record<
 // Component
 // ============================================================================
 
-export function HealthScore({ healthScore }: HealthScoreProps) {
+export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
   const { score, status, summary } = healthScore;
   const config = STATUS_CONFIG[status];
   const StatusIcon = config.icon;
+
+  if (isLoading) {
+    return (
+      <div className="noir-card p-6 border-2 border-noir-border animate-pulse">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          {/* Header skeleton */}
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-card bg-noir-active">
+              <div className="w-7 h-7" />
+            </div>
+            <div>
+              <div className="h-4 w-28 bg-noir-active rounded mb-2" />
+              <div className="h-6 w-20 bg-noir-active rounded" />
+            </div>
+          </div>
+
+          {/* Progress bar skeleton */}
+          <div className="flex-1 md:px-6">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-4 bg-noir-active rounded-full" />
+              <div className="h-8 w-16 bg-noir-active rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Summary skeleton */}
+        <div className="mt-4 pt-4 border-t border-noir-border">
+          <div className="h-4 w-3/4 bg-noir-active rounded" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
