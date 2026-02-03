@@ -51,6 +51,34 @@ A prominent visual indicator at the top of the dashboard showing overall financi
 - **Atenção (50-79)**: Yellow/amber, warning icon
 - **Crítico (0-49)**: Red glow, alert icon
 
+**🎉 Savings Goal Celebration (Confetti)**
+
+When the Liberdade Financeira savings goal is achieved (≥100% of target), trigger a confetti animation to celebrate the achievement.
+
+**Implementation Details:**
+- Use a library like `canvas-confetti` or `react-confetti`
+- Confetti triggers once when the dashboard loads and goal is met
+- Controlled by a cookie (`savings_goal_celebrated_{yearMonth}`) with 7-day expiration
+- Cookie prevents confetti from showing repeatedly during the same achievement period
+- If user achieves goal, sees confetti, then the month changes to a new month where goal is also met, confetti shows again (new achievement)
+
+**Cookie Logic:**
+```typescript
+const CELEBRATION_COOKIE = `savings_goal_celebrated_${currentYearMonth}`;
+const hasSeenCelebration = getCookie(CELEBRATION_COOKIE);
+
+if (savingsGoalAchieved && !hasSeenCelebration) {
+  triggerConfetti();
+  setCookie(CELEBRATION_COOKIE, 'true', { expires: 7 }); // 7 days
+}
+```
+
+**Confetti Configuration:**
+- Duration: ~3 seconds
+- Colors: Gold, green (success colors)
+- Origin: Center-top of screen
+- Non-blocking: User can still interact with dashboard
+
 ---
 
 ### 2. Quick Stats Grid (4 Cards)
@@ -101,44 +129,35 @@ A notification-style panel highlighting items requiring attention.
 **Display Format:**
 ```
 ┌─ ATENÇÃO NECESSÁRIA ─────────────────────────────────────────┐
-│ 🔴 2 categorias acima do orçamento                    [Ver →]│
-│ 🟡 3 gastos fora do padrão detectados                 [Ver →]│
-│ 🟡 R$ 450,00 em previsões aguardando confirmação      [Ver →]│
-│ ⚪ Amanda deve transferir R$ 234,50 para Guilherme    [Ver →]│
+│ 🔴 2 categorias acima do orçamento                           │
+│ 🟡 3 gastos fora do padrão detectados                        │
+│ 🟡 R$ 450,00 em previsões aguardando confirmação             │
+│ ⚪ Amanda deve transferir R$ 234,50 para Guilherme           │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+> **Note:** Alerts are informational only - no action buttons. Users navigate to the relevant sections themselves if they want to take action.
 
 ---
 
 ### 4. Category Budget Overview
 
-Visual representation of all categories showing budget vs. actual spending.
+Visual representation of all categories showing budget vs. actual spending using horizontal bar charts.
 
-**Display Options:**
-
-#### Option A: Horizontal Bar Chart
+**Display: Horizontal Bar Chart**
 ```
-Moradia      [████████████████░░░░░░] 75% (R$ 2.250 / R$ 3.000)
-Alimentação  [██████████████████████████░] 130% ⚠️
-Transporte   [████████░░░░░░░░░░░░░░] 40%
-Lazer        [████████████░░░░░░░░░░] 60%
-```
-
-#### Option B: Radial/Donut Chart
-- Center: Total spent vs total income
-- Segments: Each category proportionally colored
-- Hover: Shows category details
-
-#### Option C: Traffic Light Grid
-```
-┌─────────┬─────────┬─────────┬─────────┐
-│ Moradia │  Alim.  │ Transp. │  Lazer  │
-│   🟢    │   🔴    │   🟢    │   🟢    │
-│   75%   │  130%   │   40%   │   60%   │
-└─────────┴─────────┴─────────┴─────────┘
+⭐ Lib.Financ. [████████████████░░░░░░] 80% (R$ 1.600 / R$ 2.000)
+Moradia       [████████████████░░░░░░] 75% (R$ 2.250 / R$ 3.000)
+Alimentação   [██████████████████████████░] 130% ⚠️
+Transporte    [████████░░░░░░░░░░░░░░] 40%
+Lazer         [████████████░░░░░░░░░░] 60%
 ```
 
-**Recommendation:** Start with Option A (horizontal bars) as it's most scannable.
+**Features:**
+- Liberdade Financeira always shown first with star icon
+- Color coding: green (under budget), yellow (near limit), red (over budget)
+- Shows both percentage and absolute values
+- Warning icon (⚠️) for categories exceeding target
 
 ---
 
@@ -166,59 +185,52 @@ A line/area chart showing financial patterns over time.
 
 ### 6. Outlier Spotlight
 
-Dedicated section for expense anomalies to increase awareness.
+Dedicated section for expense anomalies to increase awareness. This is a **read-only visualization** - users can navigate to the Transactions page if they want to take action on any item.
 
 **Display:**
 ```
 ┌─ GASTOS FORA DO PADRÃO ──────────────────────────────────────┐
 │                                                               │
 │  📍 iFood - R$ 350,00                          Alimentação   │
-│     Média histórica: R$ 85,00 (+312%)             [Revisar]  │
+│     Média histórica: R$ 85,00 (+312%)                        │
 │                                                               │
 │  📍 Manutenção Carro - R$ 1.200,00              Transporte   │
-│     Média histórica: R$ 200,00 (+500%)            [Revisar]  │
+│     Média histórica: R$ 200,00 (+500%)                       │
 │                                                               │
+│  ─────────────────────────────────────────────────────────   │
 │  Total em outliers: R$ 1.550,00 (15% do total gasto)         │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Actions:**
-- Mark as "Expected" (one-time expense)
-- Mark as "Exclude from split"
-- Navigate to edit transaction
+**Data Shown:**
+- Transaction description and amount
+- Category
+- Historical average for comparison
+- Percentage above average
+- Total outlier impact on monthly spending
 
 ---
 
-### 7. Income Distribution Visualization
+### 7. Header with Quick Actions
 
-Shows how household income is divided between participants.
+Quick actions are integrated into the page header for easy access without taking up dashboard real estate.
 
-**Display:**
+**Header Layout:**
 ```
-DISTRIBUIÇÃO DE RENDA
-┌────────────────────────────────────────────────┐
-│  Guilherme  [████████████████████░░] 65%      │
-│             R$ 8.500,00                        │
-│                                                │
-│  Amanda     [████████████░░░░░░░░░░] 35%      │
-│             R$ 4.500,00                        │
-├────────────────────────────────────────────────┤
-│  Total Familiar: R$ 13.000,00                  │
-│  Ajustes este mês: +R$ 500,00                  │
-└────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  🏠 Finanças Familiares    [➕ Nova Despesa] [📊] [⚙️]  Jan ▼  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
----
+**Actions in Header:**
+- **➕ Nova Despesa**: Primary action button (always visible with label)
+- **📊 Transações**: Icon button linking to transactions page
+- **⚙️ Configurações**: Icon button linking to settings
+- **Month Selector**: Dropdown to change the current month view
 
-### 8. Quick Actions Footer
-
-Prominent action buttons for common tasks.
-
-**Actions:**
-- ➕ Adicionar Despesa
-- 📊 Ver Transações
-- ⚙️ Configurações
-- 📅 Mudar Mês
+**Responsive Behavior:**
+- Desktop: All actions visible with "Nova Despesa" having a text label
+- Mobile: Icons only, with "Nova Despesa" as a floating action button (FAB)
 
 ---
 
@@ -286,17 +298,16 @@ type TrendsResponse = {
 ```
 
 #### 3. `/api/dashboard/alerts`
-Returns active alerts requiring attention.
+Returns active alerts requiring attention. Alerts are informational only (no action links).
 
 ```typescript
 type AlertsResponse = {
   alerts: {
     id: string;
-    type: 'critical' | 'warning' | 'info';
-    category: 'budget' | 'outlier' | 'forecast' | 'settlement';
+    type: 'critical' | 'warning' | 'info' | 'success';
+    category: 'savings' | 'budget' | 'outlier' | 'forecast' | 'settlement';
     title: string;
     description: string;
-    action?: { label: string; href: string };
   }[];
 };
 ```
@@ -346,24 +357,25 @@ type AlertsResponse = {
 ## Implementation Phases
 
 ### Phase 1: Foundation (MVP)
+- [ ] Header with quick actions integrated
 - [ ] Health Score component with basic calculation
 - [ ] Quick Stats grid (4 cards)
-- [ ] Basic Alerts panel
-- [ ] Category budget bars
+- [ ] Basic Alerts panel (read-only)
+- [ ] Category budget horizontal bars
 
-### Phase 2: Visualization
-- [ ] Monthly trend chart (using a charting library like Recharts)
-- [ ] Income distribution visualization
-- [ ] Enhanced category visualization
+### Phase 2: Visualization & Celebration
+- [ ] Monthly trend chart (using Recharts)
+- [ ] Outlier spotlight section (read-only)
+- [ ] Savings goal confetti celebration with cookie control
 
 ### Phase 3: Intelligence
-- [ ] Outlier spotlight section
 - [ ] Trend insights and recommendations
+- [ ] Streak tracking for savings goal
 - [ ] Predictive alerts (e.g., "At this rate, you'll exceed budget by...")
 
 ### Phase 4: Polish
 - [ ] Animations and transitions
-- [ ] Mobile optimizations
+- [ ] Mobile optimizations (FAB for new expense)
 - [ ] Dark mode refinements
 - [ ] Tutorial/onboarding for new users
 
@@ -378,11 +390,24 @@ type AlertsResponse = {
 - Responsive and customizable
 - Lightweight
 
+### Confetti Library
+**Recommendation: canvas-confetti**
+- Lightweight (~3KB gzipped)
+- No React wrapper needed (vanilla JS)
+- Highly customizable (colors, duration, particle count)
+- Good performance
+
+```bash
+npm install canvas-confetti
+npm install -D @types/canvas-confetti
+```
+
 ### State Management
 Continue using existing patterns:
 - React Query for server state
 - React Context for shared state
 - Local state for UI interactions
+- js-cookie for celebration cookie management
 
 ### New Components to Create
 
@@ -391,12 +416,17 @@ components/
   dashboard/
     HealthScore.tsx          # Hero health indicator
     QuickStatsGrid.tsx       # 4 metric cards
-    AlertsPanel.tsx          # Notifications/warnings
-    CategoryBudgetChart.tsx  # Category vs budget
+    AlertsPanel.tsx          # Notifications/warnings (read-only)
+    CategoryBudgetChart.tsx  # Category vs budget (horizontal bars)
     MonthlyTrendChart.tsx    # Historical trends
-    OutlierSpotlight.tsx     # Anomaly highlighting
-    IncomeDistribution.tsx   # Income split visual
-    DashboardActions.tsx     # Quick action buttons
+    OutlierSpotlight.tsx     # Anomaly highlighting (read-only)
+    SavingsConfetti.tsx      # Confetti celebration for goal achievement
+```
+
+```
+components/
+  layout/
+    DashboardHeader.tsx      # Header with quick actions integrated
 ```
 
 ### New Hooks to Create
@@ -432,7 +462,7 @@ After implementation, measure:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  🏠 Finanças Familiares                        Janeiro 2024 ▼  │
+│  🏠 Finanças Familiares   [➕ Nova Despesa] [📊] [⚙️]  Jan ▼  │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   ╔═══════════════════════════════════════════════════════╗    │
@@ -450,10 +480,10 @@ After implementation, measure:
 │  ║  80% da meta ║ │          │ │          │ │          │      │
 │  ╚══════════════╝ └──────────┘ └──────────┘ └──────────┘      │
 │                                                                 │
-│  ┌─ ATENÇÃO NECESSÁRIA ─────────────────────────────────────┐  │
-│  │ 🔴 Meta Lib. Financeira em 80% - faltam R$400     [Ver] │  │
-│  │ 🟡 Alimentação acima do orçamento (130%)          [Ver] │  │
-│  │ 🟡 2 gastos fora do padrão detectados             [Ver] │  │
+│  ┌─ ATENÇÃO ────────────────────────────────────────────────┐  │
+│  │ 🔴 Meta Lib. Financeira em 80% - faltam R$400            │  │
+│  │ 🟡 Alimentação acima do orçamento (130%)                 │  │
+│  │ 🟡 2 gastos fora do padrão detectados                    │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌─ CATEGORIAS ─────────────────────────────────────────────┐  │
@@ -462,6 +492,13 @@ After implementation, measure:
 │  │ Alimentação   [██████████████████████████░] 130% ⚠️     │  │
 │  │ Transporte    [████████░░░░░░░░░░░░░░] 40%  R$520      │  │
 │  │ Lazer         [████████████░░░░░░░░░░] 60%  R$360      │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌─ GASTOS FORA DO PADRÃO ──────────────────────────────────┐  │
+│  │ 📍 iFood - R$350            Alimentação | +312% média   │  │
+│  │ 📍 Manutenção - R$1.200     Transporte  | +500% média   │  │
+│  │ ─────────────────────────────────────────────────────    │  │
+│  │ Total outliers: R$1.550 (15% do gasto)                   │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌─ TENDÊNCIA LIBERDADE FINANCEIRA (6 MESES) ───────────────┐  │
@@ -476,11 +513,10 @@ After implementation, measure:
 │  │  Média: R$1.850/mês | Sequência: 4 meses atingindo meta  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  [➕ Nova Despesa]  [📊 Transações]  [⚙️ Configurar]    │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
+
+🎉 When savings goal is achieved (100%+), confetti animation plays!
+   (Controlled by 7-day cookie to avoid repetition)
 ```
 
 ---
@@ -494,8 +530,10 @@ This dashboard plan provides a comprehensive control panel that leverages all ex
 Key differentiators:
 1. **Liberdade Financeira First**: The savings goal is the hero metric, prominently displayed and weighted at 40% of the health score
 2. **Health Score**: Single metric that summarizes everything, led by savings achievement
-3. **Smart Alerts**: Proactive notifications with savings alerts as highest priority
-4. **Visual Budget Tracking**: Liberdade Financeira category shown first and highlighted
+3. **Informational Alerts**: Clean notifications without action clutter - users navigate themselves
+4. **Visual Budget Tracking**: Horizontal bars with Liberdade Financeira shown first
 5. **Savings Trend**: Dedicated trend chart showing savings consistency over time
+6. **Celebration**: Confetti animation when savings goal is achieved (cookie-controlled)
+7. **Header Actions**: Quick actions in header keep dashboard focused on data visualization
 
 The implementation should prioritize the Health Score and Liberdade Financeira card first, as these communicate the core value proposition: **"Are we building wealth?"**
