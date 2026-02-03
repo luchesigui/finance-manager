@@ -81,9 +81,9 @@ if (savingsGoalAchieved && !hasSeenCelebration) {
 
 ---
 
-### 2. Quick Stats Grid (4 Cards)
+### 2. Quick Stats Grid (3 Cards)
 
-Four key metrics displayed prominently below the health score.
+Three key metrics displayed prominently below the health score.
 
 #### Card A: Liberdade Financeira (PRIMARY - highlighted)
 - **Primary**: Amount saved this month toward financial freedom
@@ -97,12 +97,7 @@ Four key metrics displayed prominently below the health score.
 - **Secondary**: Progress bar showing % of planned budget used
 - **Status Badge**: "Dentro" or "Acima" do orçamento
 
-#### Card C: Renda Efetiva
-- **Primary**: Effective household income (base + adjustments)
-- **Secondary**: Income changes this month (increments/decrements)
-- **Icon**: Trending up/down indicator
-
-#### Card D: Saldo Livre (Free Balance)
+#### Card C: Saldo Livre (Free Balance)
 - **Primary**: Current month free balance amount (colored green/red)
 - **Secondary**: Percentage of income remaining
 - **Trend**: Arrow up/down vs. previous month
@@ -327,19 +322,19 @@ type AlertsResponse = {
 
 **Desktop (lg+):**
 - Health score: full width hero
-- Quick stats: 4 columns
+- Quick stats: 3 columns (Liberdade Financeira slightly larger)
 - Categories + Trends: 2 columns side by side
 - Alerts: sidebar or integrated
 
 **Tablet (md):**
-- Quick stats: 2x2 grid
+- Quick stats: 3 columns or 1 + 2 layout
 - Categories + Trends: stacked
 - Alerts: collapsible panel
 
 **Mobile (sm):**
 - All sections: single column, stacked
 - Health score: simplified
-- Categories: swipeable cards
+- Quick stats: stacked vertically
 
 ### Accessibility
 - Color-coded elements should have icon alternatives
@@ -409,6 +404,24 @@ Continue using existing patterns:
 - Local state for UI interactions
 - js-cookie for celebration cookie management
 
+### Code Reuse Guidelines
+
+> **Important:** Avoid duplicating calculation logic. The project already has well-structured hooks and utilities that should be reused:
+
+| Need | Reuse From |
+|------|------------|
+| Income calculations | `useFinanceCalculations.ts` → `calculateTotalIncome()`, `calculateIncomeBreakdown()` |
+| Expense totals | `useFinanceCalculations.ts` → `calculateTotalExpenses()` |
+| Category summaries | `useFinanceCalculations.ts` → `calculateCategorySummary()` |
+| Settlement data | `useFinanceCalculations.ts` → `calculateSettlementData()` |
+| Outlier detection | `useOutlierDetection.ts` → `isOutlier()` |
+| People with shares | `useFinanceCalculations.ts` → `calculatePeopleShareWithIncomeTransactions()` |
+| Transaction filtering | `TransactionsContext.tsx` → `transactionsForCalculations` |
+| Currency formatting | `format.ts` → `formatCurrency()` |
+| Date formatting | `format.ts` → `formatMonthYear()`, `formatDateString()` |
+
+**Do not** create new calculation functions in dashboard components. Import and compose existing utilities instead. If new calculations are needed, add them to the appropriate existing module.
+
 ### New Components to Create
 
 ```
@@ -471,14 +484,14 @@ After implementation, measure:
 │   ║  😊 ATENÇÃO - Meta de poupança em 80%, faltam R$400   ║    │
 │   ╚═══════════════════════════════════════════════════════╝    │
 │                                                                 │
-│  ┌══════════════╗ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  ║ 💎 LIBERDADE ║ │ GASTOS   │ │ RENDA    │ │ SALDO    │      │
-│  ║  FINANCEIRA  ║ │ DO MÊS   │ │ EFETIVA  │ │ LIVRE    │      │
-│  ║              ║ │          │ │          │ │          │      │
-│  ║  R$ 1.600    ║ │ R$10.550 │ │ R$13.000 │ │ +R$2.450 │      │
-│  ║  ████████░░  ║ │ 81% orcam│ │ +R$500   │ │ ↑ 12%    │      │
-│  ║  80% da meta ║ │          │ │          │ │          │      │
-│  ╚══════════════╝ └──────────┘ └──────────┘ └──────────┘      │
+│  ┌════════════════════╗ ┌───────────────┐ ┌───────────────┐  │
+│  ║ 💎 LIBERDADE       ║ │ GASTOS DO MÊS │ │ SALDO LIVRE   │  │
+│  ║    FINANCEIRA      ║ │               │ │               │  │
+│  ║                    ║ │  R$ 10.550    │ │  +R$ 2.450    │  │
+│  ║    R$ 1.600        ║ │  ████████░░   │ │    ↑ 12%      │  │
+│  ║    ████████░░      ║ │  81% orçam.   │ │               │  │
+│  ║    80% da meta     ║ │               │ │               │  │
+│  ╚════════════════════╝ └───────────────┘ └───────────────┘  │
 │                                                                 │
 │  ┌─ ATENÇÃO ────────────────────────────────────────────────┐  │
 │  │ 🔴 Meta Lib. Financeira em 80% - faltam R$400            │  │
