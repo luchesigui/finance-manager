@@ -926,7 +926,7 @@ Retorne APENAS o JSON, sem markdown.
                   key={transaction.id}
                   role={isSelectionMode && canSelect ? "button" : undefined}
                   tabIndex={isSelectionMode && canSelect ? 0 : undefined}
-                  className={`p-4 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
+                  className={`p-5 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
                     isSelected ? "bg-accent-primary/10" : ""
                   } ${isIncome ? "border-l-2 border-l-accent-positive" : ""} ${
                     isSelectionMode && canSelect ? "cursor-pointer" : ""
@@ -1105,7 +1105,7 @@ Retorne APENAS o JSON, sem markdown.
       {/* Edit Transaction Modal */}
       {editingTransaction && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="noir-card max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+          <div className="noir-card max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
               <h3 className="font-semibold text-heading flex items-center gap-2">
                 <Pencil className="text-accent-primary" size={20} />
@@ -1184,7 +1184,7 @@ Retorne APENAS o JSON, sem markdown.
       {/* Bulk Edit Modal */}
       {isBulkEditModalOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="noir-card max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+          <div className="noir-card max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
               <h3 className="font-semibold text-heading flex items-center gap-2">
                 <Pencil className="text-accent-primary" size={20} />

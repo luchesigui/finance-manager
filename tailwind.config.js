@@ -44,6 +44,10 @@ module.exports = {
         "dashboard-title": ["22px", { lineHeight: "1.3", fontWeight: "700" }],
         "dashboard-subtitle": ["18px", { lineHeight: "1.4", fontWeight: "600" }],
         "transaction-label": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
+        // Additional hierarchy tokens
+        "hero-number": ["36px", { lineHeight: "1.1", fontWeight: "700" }],
+        "section-title": ["16px", { lineHeight: "1.4", fontWeight: "600" }],
+        "caption": ["11px", { lineHeight: "1.4", fontWeight: "500" }],
       },
       borderRadius: {
         // Geometry from design spec
@@ -53,9 +57,12 @@ module.exports = {
         pill: "100px",
       },
       spacing: {
-        // Card padding and grid gap
-        "card-padding": "20px",
-        "grid-gap": "16px",
+        // Card padding and grid gap (8pt grid system)
+        "card-padding": "24px", // Updated from 20px (3 × 8pt)
+        "card-padding-sm": "16px", // 2 × 8pt
+        "grid-gap": "16px", // 2 × 8pt
+        "section-gap": "32px", // 4 × 8pt
+        "list-item-padding": "20px", // For transaction rows
       },
       boxShadow: {
         // Subtle glow effects
