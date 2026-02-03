@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import {
+  type CategorySummaryRow,
   calculateCategorySummary,
   calculateIncomeBreakdown,
   calculatePeopleShareWithIncomeTransactions,
@@ -10,7 +11,6 @@ import {
   calculateTotalExpenses,
   calculateTotalIncome,
   getExpenseTransactions,
-  type CategorySummaryRow,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BarChart3, Star } from "lucide-react";
+import { AlertTriangle, BarChart3 } from "lucide-react";
 
 import type { CategorySummaryRow } from "@/components/finance/hooks/useFinanceCalculations";
 import { normalizeCategoryName } from "@/lib/constants";
@@ -18,33 +18,37 @@ type CategoryBudgetChartProps = {
 type CategoryBarProps = {
   category: CategorySummaryRow;
   totalIncome: number;
-  isLiberdadeFinanceira: boolean;
+  isSavingsCategory: boolean;
 };
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const LIBERDADE_FINANCEIRA_CATEGORY = "liberdade financeira";
+// Categories where meeting/exceeding target is GOOD (savings/goals)
+const SAVINGS_CATEGORIES = new Set(["liberdade financeira"]);
+
+function isSavingsCategoryName(name: string): boolean {
+  return SAVINGS_CATEGORIES.has(normalizeCategoryName(name));
+}
 
 // ============================================================================
 // Components
 // ============================================================================
 
-function CategoryBar({ category, totalIncome, isLiberdadeFinanceira }: CategoryBarProps) {
+function CategoryBar({ category, totalIncome, isSavingsCategory }: CategoryBarProps) {
   const targetAmount = (category.targetPercent / 100) * totalIncome;
   const percentOfTarget = targetAmount > 0 ? (category.totalSpent / targetAmount) * 100 : 0;
 
-  // For regular categories: over budget is bad (red), under is good (green)
-  // For Liberdade Financeira: meeting target is good (green), under is warning (yellow)
+  // For regular expense categories: over budget is bad (red), under is good (green)
+  // For savings categories: meeting target is good (green), under is warning/bad
   const isOverBudget = percentOfTarget > 100;
   const isNearLimit = percentOfTarget >= 90 && percentOfTarget <= 100;
-  const isUnderTarget = percentOfTarget < 100;
 
   let barColor: string;
   let showWarning = false;
 
-  if (isLiberdadeFinanceira) {
+  if (isSavingsCategory) {
     // For savings: meeting/exceeding goal is good
     if (percentOfTarget >= 100) {
       barColor = "bg-accent-positive";
@@ -71,16 +75,7 @@ function CategoryBar({ category, totalIncome, isLiberdadeFinanceira }: CategoryB
       <div className="flex items-center gap-3 mb-1.5">
         {/* Category name */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {isLiberdadeFinanceira && (
-            <Star size={14} className="text-accent-spending flex-shrink-0" fill="currentColor" />
-          )}
-          <span
-            className={`text-sm font-medium truncate ${
-              isLiberdadeFinanceira ? "text-accent-spending" : "text-heading"
-            }`}
-          >
-            {category.name}
-          </span>
+          <span className="text-sm font-medium truncate text-heading">{category.name}</span>
           {showWarning && (
             <AlertTriangle size={14} className="text-accent-negative flex-shrink-0" />
           )}
@@ -92,7 +87,7 @@ function CategoryBar({ category, totalIncome, isLiberdadeFinanceira }: CategoryB
             className={`text-sm font-bold tabular-nums ${
               showWarning
                 ? "text-accent-negative"
-                : isLiberdadeFinanceira && percentOfTarget >= 100
+                : percentOfTarget >= 100 && isSavingsCategory
                   ? "text-accent-positive"
                   : "text-body"
             }`}
@@ -123,14 +118,8 @@ function CategoryBar({ category, totalIncome, isLiberdadeFinanceira }: CategoryB
 }
 
 export function CategoryBudgetChart({ categorySummary, totalIncome }: CategoryBudgetChartProps) {
-  // Separate Liberdade Financeira from other categories
-  const liberdadeFinanceira = categorySummary.find(
-    (cat) => normalizeCategoryName(cat.name) === LIBERDADE_FINANCEIRA_CATEGORY,
-  );
-
-  const otherCategories = categorySummary
-    .filter((cat) => normalizeCategoryName(cat.name) !== LIBERDADE_FINANCEIRA_CATEGORY)
-    .sort((a, b) => b.totalSpent - a.totalSpent); // Sort by spending (highest first)
+  // Sort categories by spending (highest first)
+  const sortedCategories = [...categorySummary].sort((a, b) => b.totalSpent - a.totalSpent);
 
   return (
     <div className="noir-card overflow-hidden">
@@ -140,24 +129,12 @@ export function CategoryBudgetChart({ categorySummary, totalIncome }: CategoryBu
       </div>
 
       <div className="p-4 space-y-1">
-        {/* Liberdade Financeira always first */}
-        {liberdadeFinanceira && (
-          <div className="pb-3 border-b border-noir-border mb-3">
-            <CategoryBar
-              category={liberdadeFinanceira}
-              totalIncome={totalIncome}
-              isLiberdadeFinanceira
-            />
-          </div>
-        )}
-
-        {/* Other categories */}
-        {otherCategories.map((category) => (
+        {sortedCategories.map((category) => (
           <CategoryBar
             key={category.id}
             category={category}
             totalIncome={totalIncome}
-            isLiberdadeFinanceira={false}
+            isSavingsCategory={isSavingsCategoryName(category.name)}
           />
         ))}
 

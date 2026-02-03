@@ -7,13 +7,13 @@ import {
   CategoryBudgetChart,
   HealthScore,
   MonthlyTrendChart,
+  type MonthlyTrendData,
   OutlierSpotlight,
+  type OutlierTransaction,
   QuickStatsGrid,
   SavingsConfetti,
   useDashboardAlerts,
   useHealthScore,
-  type MonthlyTrendData,
-  type OutlierTransaction,
 } from "@/components/dashboard";
 import {
   calculateCategorySummary,
@@ -23,20 +23,46 @@ import {
   getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { useOutlierDetection } from "@/components/finance/hooks/useOutlierDetection";
-import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
-import { formatMonthYear } from "@/lib/format";
+import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 
+import { MonthNavigator } from "./MonthNavigator";
 import { useCategories } from "./contexts/CategoriesContext";
 import { useCurrentMonth } from "./contexts/CurrentMonthContext";
 import { usePeople } from "./contexts/PeopleContext";
 import { useTransactions } from "./contexts/TransactionsContext";
-import { MonthNavigator } from "./MonthNavigator";
 
 // ============================================================================
-// Constants
+// Helper Functions
 // ============================================================================
 
-const LIBERDADE_FINANCEIRA_CATEGORY = "liberdade financeira";
+/**
+ * Calculates the appropriate day of month for health score assessment.
+ * - Current month: use today's day
+ * - Past month: use last day (month is complete)
+ * - Future month: use day 1 (month hasn't started)
+ */
+function getEffectiveDayOfMonth(selectedYear: number, selectedMonth: number): number {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const currentDay = today.getDate();
+
+  if (selectedYear === currentYear && selectedMonth === currentMonth) {
+    // Current month: use today's day
+    return currentDay;
+  }
+
+  if (
+    selectedYear < currentYear ||
+    (selectedYear === currentYear && selectedMonth < currentMonth)
+  ) {
+    // Past month: use last day (31) to indicate month is complete
+    return 31;
+  }
+
+  // Future month: use day 1 (month hasn't started yet)
+  return 1;
+}
 
 // ============================================================================
 // Component
@@ -120,12 +146,16 @@ export function DashboardView() {
     return { outlierTransactions: outliers, outlierCount: outliers.length };
   }, [expenseTransactions, isOutlier, isOutlierLoading, categorySummary]);
 
-  // Health score calculation
+  // Calculate effective day of month for health score assessment
+  const dayOfMonth = getEffectiveDayOfMonth(selectedYear, selectedMonthNumber);
+
+  // Health score calculation (with day-of-month awareness)
   const healthScore = useHealthScore({
     people,
     categories,
     transactions: transactionsForCalculations,
     outlierCount,
+    dayOfMonth,
   });
 
   // Dashboard alerts

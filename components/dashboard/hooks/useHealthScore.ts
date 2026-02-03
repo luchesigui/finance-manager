@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import {
+  type CategorySummaryRow,
   calculateCategorySummary,
   calculateIncomeBreakdown,
   calculatePeopleShareWithIncomeTransactions,
@@ -10,9 +11,9 @@ import {
   calculateTotalExpenses,
   calculateTotalIncome,
   getExpenseTransactions,
-  type CategorySummaryRow,
 } from "@/components/finance/hooks/useFinanceCalculations";
 import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import { formatCurrency } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
 
 // ============================================================================
@@ -20,6 +21,8 @@ import type { Category, Person, Transaction } from "@/lib/types";
 // ============================================================================
 
 export type HealthStatus = "healthy" | "warning" | "critical";
+
+export type MonthPeriod = "early" | "mid" | "late";
 
 export type LiberdadeFinanceiraFactor = {
   score: number;
@@ -82,6 +85,18 @@ const WEIGHTS = {
 // Helper Functions
 // ============================================================================
 
+/**
+ * Determines which period of the month we're in:
+ * - "early": days 1-10 (first 1/3)
+ * - "mid": days 11-20 (middle 1/3)
+ * - "late": days 21-31 (final 1/3)
+ */
+function getMonthPeriod(dayOfMonth: number): MonthPeriod {
+  if (dayOfMonth <= 10) return "early";
+  if (dayOfMonth <= 20) return "mid";
+  return "late";
+}
+
 function getLiberdadeFinanceiraCategory(categories: Category[]): Category | undefined {
   return categories.find(
     (cat) => normalizeCategoryName(cat.name) === LIBERDADE_FINANCEIRA_CATEGORY,
@@ -92,6 +107,7 @@ function calculateLiberdadeFinanceiraFactor(
   categories: Category[],
   categorySummary: CategorySummaryRow[],
   totalIncome: number,
+  dayOfMonth: number,
 ): LiberdadeFinanceiraFactor {
   const liberdadeCategory = getLiberdadeFinanceiraCategory(categories);
 
@@ -105,11 +121,30 @@ function calculateLiberdadeFinanceiraFactor(
 
   const percentAchieved = target > 0 ? (actual / target) * 100 : 0;
 
-  // Score: 100 if >= 100% achieved, scales down linearly below that
-  // But cap at 100 even if over-achieved
-  const score = Math.min(100, percentAchieved);
+  // Adjust score based on period of the month
+  const monthPeriod = getMonthPeriod(dayOfMonth);
 
-  return { score, actual, target, percentAchieved };
+  let score: number;
+
+  if (percentAchieved >= 100) {
+    // Goal achieved - always 100
+    score = 100;
+  } else if (monthPeriod === "early") {
+    // First 1/3 of month: It's OK not to have saved yet
+    // Even 0% achievement is acceptable, give a higher baseline score
+    // Scale from 70 (0%) to 100 (100%)
+    score = 70 + percentAchieved * 0.3;
+  } else if (monthPeriod === "mid") {
+    // Middle 1/3 of month: Should be making progress
+    // Scale from 40 (0%) to 100 (100%)
+    score = 40 + percentAchieved * 0.6;
+  } else {
+    // Final 1/3 of month: Time is running out
+    // Strict scoring - directly proportional to achievement
+    score = percentAchieved;
+  }
+
+  return { score: Math.min(100, score), actual, target, percentAchieved };
 }
 
 function calculateCategoriesOnBudgetFactor(
@@ -183,14 +218,24 @@ function getHealthStatus(score: number): HealthStatus {
   return "critical";
 }
 
-function generateSummary(factors: HealthScoreFactors): string {
+function generateSummary(factors: HealthScoreFactors, dayOfMonth: number): string {
   const issues: string[] = [];
+  const monthPeriod = getMonthPeriod(dayOfMonth);
 
   if (factors.liberdadeFinanceira.percentAchieved < 100) {
     const remaining = factors.liberdadeFinanceira.target - factors.liberdadeFinanceira.actual;
-    issues.push(
-      `Meta de poupança em ${Math.round(factors.liberdadeFinanceira.percentAchieved)}%, faltam R$ ${remaining.toFixed(0)}`,
-    );
+
+    // Adjust messaging based on time of month
+    if (monthPeriod === "early" && factors.liberdadeFinanceira.percentAchieved < 50) {
+      // Early in the month, low savings is not alarming
+      issues.push(
+        `Meta de poupança: ${formatCurrency(factors.liberdadeFinanceira.actual)} de ${formatCurrency(factors.liberdadeFinanceira.target)}`,
+      );
+    } else {
+      issues.push(
+        `Meta de poupança em ${Math.round(factors.liberdadeFinanceira.percentAchieved)}%, faltam ${formatCurrency(remaining)}`,
+      );
+    }
   }
 
   if (factors.categoriesOnBudget.onBudget < factors.categoriesOnBudget.total) {
@@ -227,6 +272,8 @@ type UseHealthScoreParams = {
   categories: Category[];
   transactions: Transaction[];
   outlierCount: number;
+  /** Day of the month (1-31) for period-aware scoring */
+  dayOfMonth: number;
 };
 
 export function useHealthScore({
@@ -234,6 +281,7 @@ export function useHealthScore({
   categories,
   transactions,
   outlierCount,
+  dayOfMonth,
 }: UseHealthScoreParams): HealthScoreResult {
   return useMemo(() => {
     // Calculate base income
@@ -277,12 +325,13 @@ export function useHealthScore({
     // Calculate free balance
     const freeBalance = effectiveIncome - totalExpensesAll;
 
-    // Calculate individual factors
+    // Calculate individual factors (with day-of-month awareness for savings)
     const factors: HealthScoreFactors = {
       liberdadeFinanceira: calculateLiberdadeFinanceiraFactor(
         categories,
         categorySummary,
         effectiveIncome,
+        dayOfMonth,
       ),
       categoriesOnBudget: calculateCategoriesOnBudgetFactor(categorySummary),
       outliers: calculateOutliersFactor(outlierCount),
@@ -300,8 +349,8 @@ export function useHealthScore({
     );
 
     const status = getHealthStatus(score);
-    const summary = generateSummary(factors);
+    const summary = generateSummary(factors, dayOfMonth);
 
     return { score, status, factors, summary };
-  }, [people, categories, transactions, outlierCount]);
+  }, [people, categories, transactions, outlierCount, dayOfMonth]);
 }

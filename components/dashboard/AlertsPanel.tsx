@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { AlertCircle, AlertTriangle, Bell, CheckCircle2, Info } from "lucide-react";
 
 import type { Alert, AlertType } from "@/components/dashboard/hooks/useDashboardAlerts";
 
@@ -20,38 +20,28 @@ const ALERT_CONFIG: Record<
   AlertType,
   {
     icon: typeof AlertCircle;
-    bgColor: string;
     textColor: string;
-    borderColor: string;
     emoji: string;
   }
 > = {
   critical: {
     icon: AlertCircle,
-    bgColor: "bg-accent-negative/10",
     textColor: "text-accent-negative",
-    borderColor: "border-accent-negative/30",
     emoji: "🔴",
   },
   warning: {
     icon: AlertTriangle,
-    bgColor: "bg-accent-warning/10",
     textColor: "text-accent-warning",
-    borderColor: "border-accent-warning/30",
     emoji: "🟡",
   },
   info: {
     icon: Info,
-    bgColor: "bg-accent-primary/10",
     textColor: "text-accent-primary",
-    borderColor: "border-accent-primary/30",
     emoji: "⚪",
   },
   success: {
     icon: CheckCircle2,
-    bgColor: "bg-accent-positive/10",
     textColor: "text-accent-positive",
-    borderColor: "border-accent-positive/30",
     emoji: "✅",
   },
 };
@@ -64,13 +54,11 @@ function AlertItem({ alert }: { alert: Alert }) {
   const config = ALERT_CONFIG[alert.type];
 
   return (
-    <div className="flex items-start gap-3 py-2">
+    <div className="flex items-start gap-3 py-3">
       <span className="text-base leading-none mt-0.5">{config.emoji}</span>
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-medium ${config.textColor}`}>{alert.title}</p>
-        {alert.description && (
-          <p className="text-xs text-muted mt-0.5 truncate">{alert.description}</p>
-        )}
+        {alert.description && <p className="text-xs text-muted mt-0.5">{alert.description}</p>}
       </div>
     </div>
   );
@@ -87,32 +75,15 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
   const infoAlerts = alerts.filter((a) => a.type === "info");
   const successAlerts = alerts.filter((a) => a.type === "success");
 
-  // Determine panel border color based on most severe alert
-  const panelBorderClass =
-    criticalAlerts.length > 0
-      ? "border-accent-negative/30"
-      : warningAlerts.length > 0
-        ? "border-accent-warning/30"
-        : successAlerts.length > 0
-          ? "border-accent-positive/30"
-          : "border-accent-primary/30";
-
-  // Determine panel background color
-  const panelBgClass =
-    criticalAlerts.length > 0
-      ? "bg-accent-negative/5"
-      : warningAlerts.length > 0
-        ? "bg-accent-warning/5"
-        : successAlerts.length > 0
-          ? "bg-accent-positive/5"
-          : "bg-accent-primary/5";
-
   return (
-    <div className={`noir-card p-4 border ${panelBorderClass} ${panelBgClass}`}>
-      <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-3">
-        Atenção Necessária
-      </h3>
-      <div className="space-y-1 divide-y divide-noir-border">
+    <div className="noir-card overflow-hidden">
+      <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
+        <Bell size={18} className="text-accent-primary" />
+        <h2 className="font-semibold text-heading">Atenção Necessária</h2>
+        <span className="ml-auto text-xs text-muted">{alerts.length} alertas</span>
+      </div>
+
+      <div className="p-4 divide-y divide-noir-border">
         {/* Success alerts first (if any) */}
         {successAlerts.map((alert) => (
           <AlertItem key={alert.id} alert={alert} />
