@@ -12,8 +12,8 @@ import { TransactionsProvider } from "@/components/finance/contexts/Transactions
 export function FinanceProviders({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
 
-  // Skip FinanceProviders on login/signup pages to avoid API calls
-  if (pathname?.startsWith("/login") || pathname?.startsWith("/signup")) {
+  // Skip FinanceProviders on landing, login, and signup pages to avoid API calls
+  if (pathname === "/" || pathname?.startsWith("/login") || pathname?.startsWith("/signup")) {
     return <>{children}</>;
   }
 
