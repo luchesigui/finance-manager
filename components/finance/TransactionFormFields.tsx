@@ -399,7 +399,7 @@ export function TransactionFormFields({
                           className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                           title="Se marcado, o lançamento entra no mês seguinte"
                         >
-                          <CreditCard size={14} /> Cartão de Crédito
+                          <CreditCard size={14} /> Próxima Fatura
                         </label>
                       </>
                     )}

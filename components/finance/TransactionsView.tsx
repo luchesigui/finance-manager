@@ -1341,7 +1341,7 @@ Retorne APENAS o JSON, sem markdown.
                     htmlFor="bulk-creditcard-enable"
                     className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
                   >
-                    <CreditCard size={14} /> Alterar Cartão de Crédito
+                    <CreditCard size={14} /> Alterar Próxima Fatura
                   </label>
                   {bulkEditFormState.isCreditCard !== null && (
                     <select
