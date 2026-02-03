@@ -670,47 +670,252 @@ module.exports = {
 
 ### 4.5 Theme Toggle Implementation
 
+**Location:** Settings/Configuration page (`/settings`)  
+**Default Behavior:** Follows user's system preference (`prefers-color-scheme`)
+
+#### Theme Context Provider
+
 ```tsx
-// components/ui/ThemeToggle.tsx
+// lib/theme/ThemeContext.tsx
 "use client";
 
-import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+type ThemeOption = "system" | "dark" | "light";
+type ResolvedTheme = "dark" | "light";
 
+type ThemeContextType = {
+  theme: ThemeOption;
+  resolvedTheme: ResolvedTheme;
+  setTheme: (theme: ThemeOption) => void;
+};
+
+const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<ThemeOption>("system");
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
+
+  // Initialize from localStorage or default to "system"
   useEffect(() => {
-    const stored = localStorage.getItem("theme") as "dark" | "light" | null;
-    const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    
-    const initialTheme = stored ?? (systemPrefersDark ? "dark" : "light");
-    setTheme(initialTheme);
-    document.documentElement.setAttribute("data-theme", initialTheme);
+    const stored = localStorage.getItem("theme") as ThemeOption | null;
+    if (stored && ["system", "dark", "light"].includes(stored)) {
+      setThemeState(stored);
+    }
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
+  // Resolve the actual theme based on selection and system preference
+  useEffect(() => {
+    const resolveTheme = (): ResolvedTheme => {
+      if (theme === "system") {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches 
+          ? "dark" 
+          : "light";
+      }
+      return theme;
+    };
+
+    const updateResolvedTheme = () => {
+      const resolved = resolveTheme();
+      setResolvedTheme(resolved);
+      document.documentElement.setAttribute("data-theme", resolved);
+    };
+
+    updateResolvedTheme();
+
+    // Listen for system theme changes (only relevant when theme is "system")
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemChange = () => {
+      if (theme === "system") {
+        updateResolvedTheme();
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemChange);
+  }, [theme]);
+
+  const setTheme = (newTheme: ThemeOption) => {
+    setThemeState(newTheme);
     localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
   };
 
   return (
-    <button
-      onClick={toggleTheme}
-      className="p-2 rounded-interactive hover:bg-noir-active transition-colors"
-      aria-label={`Mudar para tema ${theme === "dark" ? "claro" : "escuro"}`}
-    >
-      {theme === "dark" ? (
-        <Sun size={20} className="text-body hover:text-heading" />
-      ) : (
-        <Moon size={20} className="text-body hover:text-heading" />
-      )}
-    </button>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
+export function useTheme() {
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
+}
+```
+
+#### Settings Page Theme Section
+
+```tsx
+// components/finance/SettingsView.tsx - Add theme settings section
+
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/lib/theme/ThemeContext";
+
+function ThemeSettings() {
+  const { theme, setTheme } = useTheme();
+
+  const options = [
+    { 
+      value: "system", 
+      label: "Sistema", 
+      description: "Segue a preferência do seu dispositivo",
+      icon: Monitor 
+    },
+    { 
+      value: "dark", 
+      label: "Escuro", 
+      description: "Tema Financial Noir",
+      icon: Moon 
+    },
+    { 
+      value: "light", 
+      label: "Claro", 
+      description: "Tema Paper",
+      icon: Sun 
+    },
+  ] as const;
+
+  return (
+    <div className="noir-card overflow-hidden">
+      <div className="p-4 border-b border-noir-border bg-noir-active/50">
+        <h2 className="font-semibold text-heading">Aparência</h2>
+        <p className="text-xs text-muted mt-1">
+          Personalize como o FinançasPro aparece no seu dispositivo
+        </p>
+      </div>
+      
+      <div className="p-4">
+        <fieldset>
+          <legend className="sr-only">Escolha o tema</legend>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {options.map((option) => {
+              const Icon = option.icon;
+              const isSelected = theme === option.value;
+              
+              return (
+                <label
+                  key={option.value}
+                  className={`
+                    relative flex flex-col items-center gap-2 p-4 rounded-card 
+                    border-2 cursor-pointer transition-all duration-200
+                    ${isSelected 
+                      ? "border-accent-primary bg-accent-primary/10" 
+                      : "border-noir-border hover:border-noir-border-light hover:bg-noir-active/30"
+                    }
+                  `}
+                >
+                  <input
+                    type="radio"
+                    name="theme"
+                    value={option.value}
+                    checked={isSelected}
+                    onChange={() => setTheme(option.value)}
+                    className="sr-only"
+                  />
+                  
+                  <div className={`
+                    p-3 rounded-interactive
+                    ${isSelected 
+                      ? "bg-accent-primary/20 text-accent-primary" 
+                      : "bg-noir-active text-body"
+                    }
+                  `}>
+                    <Icon size={24} />
+                  </div>
+                  
+                  <div className="text-center">
+                    <span className={`
+                      font-medium block
+                      ${isSelected ? "text-accent-primary" : "text-heading"}
+                    `}>
+                      {option.label}
+                    </span>
+                    <span className="text-xs text-muted">
+                      {option.description}
+                    </span>
+                  </div>
+                  
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-accent-primary" />
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      </div>
+    </div>
   );
 }
 ```
+
+#### Root Layout Integration
+
+```tsx
+// app/layout.tsx - Wrap app with ThemeProvider
+
+import { ThemeProvider } from "@/lib/theme/ThemeContext";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        {/* Prevent flash of wrong theme */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              const stored = localStorage.getItem('theme');
+              const theme = stored || 'system';
+              let resolved = theme;
+              
+              if (theme === 'system') {
+                resolved = window.matchMedia('(prefers-color-scheme: dark)').matches 
+                  ? 'dark' 
+                  : 'light';
+              }
+              
+              document.documentElement.setAttribute('data-theme', resolved);
+            })();
+          `
+        }} />
+      </head>
+      <body>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+#### Theme Behavior Summary
+
+| User Selection | System Preference | Applied Theme |
+|----------------|-------------------|---------------|
+| System (default) | Dark | Dark |
+| System (default) | Light | Light |
+| Dark | Any | Dark |
+| Light | Any | Light |
+
+**Key Features:**
+- **Default:** "System" - automatically follows OS preference
+- **Persistent:** User's choice saved to localStorage
+- **Reactive:** When set to "System", responds to OS theme changes in real-time
+- **No Flash:** Inline script in `<head>` prevents wrong theme flash on page load
 
 ---
 
@@ -777,11 +982,15 @@ export function ThemeToggle() {
 |------|------|--------|
 | 5.1 | `globals.css` | Add light theme CSS variables |
 | 5.2 | `tailwind.config.js` | Update to use CSS variables |
-| 5.3 | Create `ThemeToggle.tsx` | New component |
-| 5.4 | `AppHeader.tsx` | Add theme toggle button |
-| 5.5 | `globals.css` | Add light-mode specific overrides |
+| 5.3 | Create `lib/theme/ThemeContext.tsx` | Theme provider with system preference support |
+| 5.4 | `app/layout.tsx` | Wrap app with ThemeProvider + anti-flash script |
+| 5.5 | `components/finance/SettingsView.tsx` | Add "Aparência" section with theme selector |
+| 5.6 | `globals.css` | Add light-mode specific overrides |
 
-**Estimated LOC Changed:** ~300 lines
+**Theme Toggle Location:** Settings page (`/settings`) - NOT in header/footer  
+**Default Behavior:** Follows system preference (`prefers-color-scheme`)
+
+**Estimated LOC Changed:** ~350 lines
 
 ### Phase 6: Focus Management & Keyboard Nav (Week 4)
 
