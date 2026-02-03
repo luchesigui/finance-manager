@@ -1104,10 +1104,15 @@ Retorne APENAS o JSON, sem markdown.
 
       {/* Edit Transaction Modal */}
       {editingTransaction && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
+        >
           <div className="noir-card max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3 className="font-semibold text-heading flex items-center gap-2">
+              <h3 id="edit-modal-title" className="font-semibold text-heading flex items-center gap-2">
                 <Pencil className="text-accent-primary" size={20} />
                 Editar Lançamento
               </h3>
@@ -1183,10 +1188,15 @@ Retorne APENAS o JSON, sem markdown.
 
       {/* Bulk Edit Modal */}
       {isBulkEditModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-edit-modal-title"
+        >
           <div className="noir-card max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3 className="font-semibold text-heading flex items-center gap-2">
+              <h3 id="bulk-edit-modal-title" className="font-semibold text-heading flex items-center gap-2">
                 <Pencil className="text-accent-primary" size={20} />
                 Editar em Massa
                 <span className="noir-badge-muted">{selectedIds.size} lançamento(s)</span>

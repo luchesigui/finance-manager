@@ -40,6 +40,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="bg-noir-primary text-body font-sans antialiased">
+        {/* Skip link for keyboard navigation - accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 
+                     noir-btn-primary z-50 focus:z-50"
+        >
+          Pular para conteúdo principal
+        </a>
         <ThemeProvider>
           <Providers>
             <div className="min-h-screen pb-20 md:pb-0">
