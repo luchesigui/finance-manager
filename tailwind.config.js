@@ -4,28 +4,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Financial Noir Color Palette (CSS Variables for theme switching)
+        // Financial Noir Color Palette
+        // Note: Using hardcoded values for Tailwind utilities (required for @apply with opacity modifiers)
+        // Theme switching is handled via CSS variables in globals.css
         noir: {
           // Backgrounds
-          primary: "var(--noir-primary)",
-          surface: "var(--noir-surface)",
-          sidebar: "var(--noir-sidebar)",
-          active: "var(--noir-active)",
+          primary: "#050A0F",
+          surface: "#0D141C",
+          sidebar: "#090E14",
+          active: "#1A2430",
           // Borders
-          border: "var(--noir-border)",
-          "border-light": "var(--noir-border-light)",
+          border: "rgba(255, 255, 255, 0.05)",
+          "border-light": "rgba(255, 255, 255, 0.1)",
         },
         // Text colors
-        heading: "var(--text-heading)",
-        body: "var(--text-body)",
-        muted: "var(--text-muted)",
+        heading: "#FFFFFF",
+        body: "#94A3B8",
+        muted: "#64748B",
         // Semantic accents
         accent: {
-          primary: "var(--accent-primary)",
-          spending: "var(--accent-spending)",
-          positive: "var(--accent-positive)",
-          negative: "var(--accent-negative)",
-          warning: "var(--accent-warning)",
+          primary: "#3B82F6",
+          spending: "#FACC15",
+          positive: "#22C55E",
+          negative: "#EF4444",
+          warning: "#F97316",
         },
       },
       fontFamily: {
@@ -65,10 +67,10 @@ module.exports = {
         "list-item-padding": "20px", // For transaction rows
       },
       boxShadow: {
-        // Subtle glow effects (using CSS variables for theme support)
-        "glow-accent": "0 0 20px var(--glow-accent)",
-        "glow-positive": "0 0 20px var(--glow-positive)",
-        "glow-negative": "0 0 20px var(--glow-negative)",
+        // Subtle glow effects
+        "glow-accent": "0 0 20px rgba(59, 130, 246, 0.3)",
+        "glow-positive": "0 0 20px rgba(34, 197, 94, 0.3)",
+        "glow-negative": "0 0 20px rgba(239, 68, 68, 0.3)",
         "glow-warning": "0 0 20px rgba(250, 204, 21, 0.3)",
         card: "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2)",
         "card-hover": "0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3)",
