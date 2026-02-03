@@ -148,9 +148,12 @@ function convertToChartData(
 
 export function DashboardView() {
   const { selectedMonthDate, selectedYear, selectedMonthNumber } = useCurrentMonth();
-  const { people } = usePeople();
-  const { categories } = useCategories();
-  const { transactionsForCalculations } = useTransactions();
+  const { people, isPeopleLoading } = usePeople();
+  const { categories, isCategoriesLoading } = useCategories();
+  const { transactionsForCalculations, isTransactionsLoading } = useTransactions();
+
+  // Combined loading state for health score calculation
+  const isDataLoading = isPeopleLoading || isCategoriesLoading || isTransactionsLoading;
 
   // Current period string for comparisons
   const selectedPeriod = formatPeriod(selectedYear, selectedMonthNumber);
@@ -282,7 +285,7 @@ export function DashboardView() {
       <MonthNavigator />
 
       {/* Health Score Hero */}
-      <HealthScore healthScore={healthScore} />
+      <HealthScore healthScore={healthScore} isLoading={isDataLoading} />
 
       {/* Quick Stats Grid */}
       <QuickStatsGrid
