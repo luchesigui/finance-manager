@@ -96,22 +96,33 @@ function getEffectiveDayOfMonth(selectedYear: number, selectedMonth: number): nu
 }
 
 /**
- * Generates a deterministic pseudo-random value based on year and month.
- * This ensures consistent values when viewing the same data from different perspectives.
+ * Generates a deterministic score for a given year/month.
+ * This score is COMPLETELY INDEPENDENT of any other month's data.
+ * The same year/month will always produce the same score.
+ *
+ * In production, this should be replaced with actual stored health scores.
  */
-function getSeededVariance(year: number, month: number, seed = 0): number {
-  // Simple hash function for deterministic "randomness"
-  const hash = (year * 12 + month + seed) * 2654435761;
+function getMonthScore(year: number, month: number): number {
+  // Simple hash function to generate deterministic score
+  // Using prime multipliers for better distribution
+  const hash = Math.abs((year * 12 + month) * 2654435761);
   const normalized = (hash % 1000) / 1000; // 0 to 1
-  return (normalized - 0.5) * 15; // -7.5 to +7.5 variance
+
+  // Generate score in range 55-85 (reasonable health score range)
+  const minScore = 55;
+  const maxScore = 85;
+  return Math.round(minScore + normalized * (maxScore - minScore));
 }
 
 /**
  * Generates health trend data for the chart.
  * Shows past 3 months + current selected month + 2 projected months.
  *
- * Note: The current score shown is always for the SELECTED month, not today's month.
- * Historical scores use deterministic variance for consistency.
+ * Each month's score is calculated independently:
+ * - Selected month: shows the actual calculated score
+ * - Other months: shows a deterministic score based on year/month
+ * - Future months (relative to today): marked as projected
+ *
  * In production, historical scores should come from stored data.
  */
 function generateHealthTrendData(
@@ -150,22 +161,16 @@ function generateHealthTrendData(
     if (isSelectedMonth) {
       // Selected month always shows the actual calculated score
       score = currentScore;
-    } else if (isFutureMonth) {
-      // Future months: project based on current score
-      // Use a simple projection that maintains score with slight improvement
-      const monthsAhead = (y - todayYear) * 12 + (m - todayMonth);
-      score = Math.max(0, Math.min(100, currentScore + monthsAhead * 1.5));
     } else {
-      // Past months: use deterministic variance based on the month
-      // This ensures the same month always shows the same score
-      const variance = getSeededVariance(y, m);
-      score = Math.max(0, Math.min(100, currentScore + variance));
+      // All other months: use deterministic score based only on year/month
+      // This score is completely independent of the selected month's score
+      score = getMonthScore(y, m);
     }
 
     data.push({
       month: MONTH_NAMES_SHORT[m - 1],
       monthLabel: `${MONTH_NAMES_FULL[m - 1]} ${y}`,
-      score: Math.round(score),
+      score,
       isProjected: isFutureMonth,
       isCurrent: isSelectedMonth,
     });
