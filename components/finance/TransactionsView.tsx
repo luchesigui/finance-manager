@@ -596,6 +596,8 @@ Retorne APENAS o JSON, sem markdown.
                   : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
               }`}
               title="Filtrar lançamentos"
+              aria-label="Filtrar lançamentos"
+              aria-expanded={isFilterOpen}
             >
               <Filter size={16} />
             </button>
@@ -608,6 +610,8 @@ Retorne APENAS o JSON, sem markdown.
                   : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
               }`}
               title="Buscar lançamentos"
+              aria-label="Buscar lançamentos"
+              aria-expanded={isSearchOpen}
             >
               <Search size={16} />
             </button>
@@ -1053,6 +1057,7 @@ Retorne APENAS o JSON, sem markdown.
                           onClick={() => handleOpenEditModal(transaction)}
                           className="text-muted hover:text-accent-primary p-2 transition-all rounded-interactive hover:bg-accent-primary/10"
                           title="Editar"
+                          aria-label={`Editar lançamento: ${transaction.description}`}
                         >
                           <Pencil size={16} />
                         </button>
@@ -1062,6 +1067,7 @@ Retorne APENAS o JSON, sem markdown.
                             onClick={() => deleteTransactionById(transaction.id)}
                             className="text-muted hover:text-accent-negative p-2 transition-all rounded-interactive hover:bg-accent-negative/10"
                             title="Excluir"
+                            aria-label={`Excluir lançamento: ${transaction.description}`}
                           >
                             <Trash2 size={16} />
                           </button>
@@ -1109,6 +1115,7 @@ Retorne APENAS o JSON, sem markdown.
                 type="button"
                 onClick={handleCloseEditModal}
                 className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
+                aria-label="Fechar modal de edição"
               >
                 <X size={20} />
               </button>
@@ -1188,6 +1195,7 @@ Retorne APENAS o JSON, sem markdown.
                 type="button"
                 onClick={handleCloseBulkEditModal}
                 className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
+                aria-label="Fechar modal de edição em massa"
               >
                 <X size={20} />
               </button>

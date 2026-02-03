@@ -18,7 +18,7 @@ module.exports = {
         // Text colors
         heading: "#FFFFFF",
         body: "#94A3B8",
-        muted: "#475569",
+        muted: "#64748B", // Updated from #475569 for WCAG AA compliance
         // Semantic accents
         accent: {
           primary: "#3B82F6",

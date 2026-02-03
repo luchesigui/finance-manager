@@ -66,6 +66,7 @@ export function AppHeader() {
             onClick={handleSignOut}
             className="p-2 text-muted hover:text-accent-negative transition-colors rounded-interactive hover:bg-accent-negative/10"
             title="Sair"
+            aria-label="Sair da conta"
           >
             <LogOut size={20} />
           </button>

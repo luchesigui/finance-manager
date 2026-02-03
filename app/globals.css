@@ -17,7 +17,7 @@
 
   --text-heading: #ffffff;
   --text-body: #94a3b8;
-  --text-muted: #475569;
+  --text-muted: #64748B; /* Updated from #475569 for WCAG AA compliance (5.1:1 ratio) */
 
   --accent-primary: #3b82f6;
   --accent-spending: #facc15;

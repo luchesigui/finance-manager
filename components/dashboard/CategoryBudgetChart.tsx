@@ -109,7 +109,7 @@ function CategoryBar({ category, totalIncome, isSavingsCategory }: CategoryBarPr
       </div>
 
       {/* Target indicator (subtle) */}
-      <div className="flex justify-between text-[10px] text-muted mt-1">
+      <div className="flex justify-between text-[11px] text-muted mt-1">
         <span>0</span>
         <span>Meta: {formatCurrency(targetAmount)}</span>
       </div>
