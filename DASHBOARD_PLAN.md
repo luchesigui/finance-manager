@@ -6,10 +6,13 @@ This document outlines the plan for a new **Dashboard Control Panel** that provi
 
 ## Design Philosophy
 
-The dashboard should answer one critical question: **"Are we doing well financially?"**
+The dashboard should answer one critical question: **"Are we building financial freedom?"**
+
+The core metric is whether we're meeting our **Liberdade Financeira** (Financial Freedom) savings goal. This is the primary indicator of financial health - not just having money left over, but consistently investing in our future.
 
 It should:
 - Provide immediate visual feedback (green = good, red = bad, yellow = warning)
+- Prioritize savings goal achievement as the main success metric
 - Surface important alerts and required actions
 - Show trends and historical context
 - Be scannable in under 5 seconds for the quick answer
@@ -35,11 +38,13 @@ A prominent visual indicator at the top of the dashboard showing overall financi
 **Score Calculation Factors:**
 | Factor | Weight | Criteria |
 |--------|--------|----------|
-| Free Balance | 40% | Positive = good, Negative = bad |
+| Liberdade Financeira (Savings Goal) | 40% | Meeting/exceeding savings target is THE priority |
 | Categories on Budget | 25% | % of categories within target |
 | Outliers | 15% | Number of unusual expenses flagged |
 | Settlement Status | 10% | Whether fair distribution is balanced |
-| Savings Goal (Liberdade Financeira) | 10% | Meeting savings target |
+| Free Balance | 10% | Positive = good, Negative = bad |
+
+> **Why Liberdade Financeira is #1:** The ultimate measure of financial health isn't having money left over at month's end - it's consistently building wealth through disciplined savings. Meeting the savings target means we're paying ourselves first and building toward financial independence.
 
 **Visual States:**
 - **Saudável (80-100)**: Green glow, checkmark icon
@@ -52,10 +57,12 @@ A prominent visual indicator at the top of the dashboard showing overall financi
 
 Four key metrics displayed prominently below the health score.
 
-#### Card A: Saldo Livre (Free Balance)
-- **Primary**: Current month free balance amount (colored green/red)
-- **Secondary**: Percentage of income remaining
-- **Trend**: Arrow up/down vs. previous month
+#### Card A: Liberdade Financeira (PRIMARY - highlighted)
+- **Primary**: Amount saved this month toward financial freedom
+- **Secondary**: Progress bar showing % of target achieved (e.g., "R$ 1.600 de R$ 2.000")
+- **Status Badge**: "Meta Atingida ✓" or "Faltam R$ X"
+- **Trend**: Arrow up/down vs. previous month average
+- **Visual**: This card should be visually distinct (accent border/glow when on target)
 
 #### Card B: Total Gasto vs Orçamento
 - **Primary**: Total expenses this month
@@ -67,10 +74,10 @@ Four key metrics displayed prominently below the health score.
 - **Secondary**: Income changes this month (increments/decrements)
 - **Icon**: Trending up/down indicator
 
-#### Card D: Próximo Acerto
-- **Primary**: Settlement amount (who owes whom)
-- **Secondary**: Person names and direction
-- **Status**: "Quitado" or amount to transfer
+#### Card D: Saldo Livre (Free Balance)
+- **Primary**: Current month free balance amount (colored green/red)
+- **Secondary**: Percentage of income remaining
+- **Trend**: Arrow up/down vs. previous month
 
 ---
 
@@ -82,12 +89,14 @@ A notification-style panel highlighting items requiring attention.
 
 | Priority | Type | Trigger | Action |
 |----------|------|---------|--------|
+| High | 🔴 Meta Lib. Financeira | Savings < 80% of target | Prioritize savings |
 | High | 🔴 Saldo Negativo | Free balance < 0 | Review expenses |
 | High | 🔴 Categoria Estourada | Category > 150% target | Check transactions |
+| Medium | 🟡 Lib. Financeira em Risco | Savings 80-99% of target | Monitor closely |
 | Medium | 🟡 Gastos Atípicos | Outliers detected | Review flagged items |
 | Medium | 🟡 Previsões Pendentes | Forecasts awaiting confirmation | Confirm or adjust |
-| Low | 🔵 Meta não Atingida | Savings below target | Adjust spending |
 | Info | ⚪ Acerto Pendente | Settlement needed | Transfer funds |
+| Success | ✅ Meta Atingida | Savings >= 100% target | Celebrate! |
 
 **Display Format:**
 ```
@@ -225,18 +234,26 @@ type HealthScoreResponse = {
   score: number; // 0-100
   status: 'healthy' | 'warning' | 'critical';
   factors: {
-    freeBalance: { score: number; value: number };
+    // PRIMARY FACTOR (40% weight)
+    liberdadeFinanceira: { 
+      score: number; 
+      actual: number; 
+      target: number; 
+      percentAchieved: number;
+      streak: number; // consecutive months meeting target
+    };
+    // SECONDARY FACTORS
     categoriesOnBudget: { score: number; onBudget: number; total: number };
     outliers: { score: number; count: number };
     settlement: { score: number; balanced: boolean };
-    savingsGoal: { score: number; actual: number; target: number };
+    freeBalance: { score: number; value: number };
   };
-  summary: string;
+  summary: string; // e.g., "Meta de poupança em 80%, faltam R$400"
 };
 ```
 
 #### 2. `/api/dashboard/trends`
-Returns historical data for trend visualization.
+Returns historical data for trend visualization, with emphasis on Liberdade Financeira tracking.
 
 ```typescript
 type TrendsResponse = {
@@ -245,12 +262,25 @@ type TrendsResponse = {
     income: number;
     expenses: number;
     freeBalance: number;
+    // Liberdade Financeira specific
+    liberdadeFinanceira: {
+      actual: number;
+      target: number;
+      metGoal: boolean;
+    };
     categoryBreakdown: Record<string, number>;
   }[];
   averages: {
     monthlyExpenses: number;
     monthlyIncome: number;
     monthlyBalance: number;
+    monthlySavings: number; // Liberdade Financeira average
+  };
+  liberdadeFinanceiraStats: {
+    currentStreak: number; // consecutive months meeting target
+    bestStreak: number;
+    totalSaved: number; // sum over period
+    averageAchievement: number; // avg % of target achieved
   };
 };
 ```
@@ -408,40 +438,42 @@ After implementation, measure:
 │   ╔═══════════════════════════════════════════════════════╗    │
 │   ║  SAÚDE FINANCEIRA                                     ║    │
 │   ║  ████████████████████░░░░░░░░  75/100                 ║    │
-│   ║  😊 ATENÇÃO - 2 categorias precisam de atenção        ║    │
+│   ║  😊 ATENÇÃO - Meta de poupança em 80%, faltam R$400   ║    │
 │   ╚═══════════════════════════════════════════════════════╝    │
 │                                                                 │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
-│  │ SALDO    │ │ GASTOS   │ │ RENDA    │ │ ACERTO   │          │
-│  │ LIVRE    │ │ DO MÊS   │ │ EFETIVA  │ │ PENDENTE │          │
-│  │          │ │          │ │          │ │          │          │
-│  │ +R$2.450 │ │ R$10.550 │ │ R$13.000 │ │ R$234,50 │          │
-│  │ ↑ 12%    │ │ 81% orcam│ │ +R$500   │ │ Amanda→  │          │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
+│  ┌══════════════╗ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+│  ║ 💎 LIBERDADE ║ │ GASTOS   │ │ RENDA    │ │ SALDO    │      │
+│  ║  FINANCEIRA  ║ │ DO MÊS   │ │ EFETIVA  │ │ LIVRE    │      │
+│  ║              ║ │          │ │          │ │          │      │
+│  ║  R$ 1.600    ║ │ R$10.550 │ │ R$13.000 │ │ +R$2.450 │      │
+│  ║  ████████░░  ║ │ 81% orcam│ │ +R$500   │ │ ↑ 12%    │      │
+│  ║  80% da meta ║ │          │ │          │ │          │      │
+│  ╚══════════════╝ └──────────┘ └──────────┘ └──────────┘      │
 │                                                                 │
 │  ┌─ ATENÇÃO NECESSÁRIA ─────────────────────────────────────┐  │
-│  │ 🔴 Alimentação acima do orçamento (130%)          [Ver] │  │
+│  │ 🔴 Meta Lib. Financeira em 80% - faltam R$400     [Ver] │  │
+│  │ 🟡 Alimentação acima do orçamento (130%)          [Ver] │  │
 │  │ 🟡 2 gastos fora do padrão detectados             [Ver] │  │
-│  │ 🟡 R$450 em previsões aguardando confirmação      [Ver] │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌─ CATEGORIAS ─────────────────────────────────────────────┐  │
-│  │ Moradia      [████████████████░░░░░░] 75%  R$2.250      │  │
-│  │ Alimentação  [██████████████████████████░] 130% ⚠️      │  │
-│  │ Transporte   [████████░░░░░░░░░░░░░░] 40%  R$520       │  │
-│  │ Lazer        [████████████░░░░░░░░░░] 60%  R$360       │  │
-│  │ Lib.Financ.  [████████████████░░░░░░] 80%  R$1.600 ✓   │  │
+│  │ ⭐ Lib.Financ. [████████████████░░░░░░] 80%  R$1.600    │  │
+│  │ Moradia       [████████████████░░░░░░] 75%  R$2.250     │  │
+│  │ Alimentação   [██████████████████████████░] 130% ⚠️     │  │
+│  │ Transporte    [████████░░░░░░░░░░░░░░] 40%  R$520      │  │
+│  │ Lazer         [████████████░░░░░░░░░░] 60%  R$360      │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
-│  ┌─ TENDÊNCIA (6 MESES) ────────────────────────────────────┐  │
-│  │        Renda ──── Gastos ---- Saldo                      │  │
-│  │  15k│ ──────────────────────                             │  │
-│  │     │    ──────         ──────                           │  │
-│  │  10k│ ------   --------      ------                      │  │
-│  │     │                                                    │  │
-│  │   5k│ ████████████████████████████████                   │  │
-│  │     └────────────────────────────────                    │  │
-│  │       Ago  Set  Out  Nov  Dez  Jan                       │  │
+│  ┌─ TENDÊNCIA LIBERDADE FINANCEIRA (6 MESES) ───────────────┐  │
+│  │        Meta ──── Realizado                               │  │
+│  │  2.5k│ ─────────────────────────                         │  │
+│  │      │         ████                                      │  │
+│  │    2k│ ████████    ████████████                          │  │
+│  │      │                                                   │  │
+│  │  1.5k│                                                   │  │
+│  │      └───────────────────────────                        │  │
+│  │        Ago  Set  Out  Nov  Dez  Jan                      │  │
+│  │  Média: R$1.850/mês | Sequência: 4 meses atingindo meta  │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -457,10 +489,13 @@ After implementation, measure:
 
 This dashboard plan provides a comprehensive control panel that leverages all existing features to give users immediate insight into their financial health. The phased approach allows for iterative development while delivering value early.
 
-Key differentiators:
-1. **Health Score**: Single metric that summarizes everything
-2. **Smart Alerts**: Proactive notifications prevent problems
-3. **Visual Budget Tracking**: Instant category status
-4. **Historical Context**: Trends inform decisions
+**Core Philosophy:** Financial health is measured primarily by **consistent savings toward financial freedom**, not by leftover money. The dashboard makes this clear by:
 
-The implementation should prioritize the Health Score and Quick Stats first, as these provide the most value with the least complexity.
+Key differentiators:
+1. **Liberdade Financeira First**: The savings goal is the hero metric, prominently displayed and weighted at 40% of the health score
+2. **Health Score**: Single metric that summarizes everything, led by savings achievement
+3. **Smart Alerts**: Proactive notifications with savings alerts as highest priority
+4. **Visual Budget Tracking**: Liberdade Financeira category shown first and highlighted
+5. **Savings Trend**: Dedicated trend chart showing savings consistency over time
+
+The implementation should prioritize the Health Score and Liberdade Financeira card first, as these communicate the core value proposition: **"Are we building wealth?"**
