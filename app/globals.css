@@ -42,7 +42,7 @@
   /* Text Colors - Good contrast for readability */
   --text-heading: #111827;
   --text-body: #374151;
-  --text-muted: #a0b1ca;
+  --text-muted: rgb(157 174 197 / var(--tw-text-opacity, 1));
 
   /* Accent Colors (darker for good contrast on white) */
   --accent-primary: #2563eb;
@@ -465,19 +465,19 @@ body {
 
 /* Reduce glow effects in light mode - use subtle shadows instead */
 [data-theme="light"] .shadow-glow-accent {
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 5px 3px rgba(37, 99, 235, 0.1);
 }
 
 [data-theme="light"] .shadow-glow-positive {
-  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
+  box-shadow: 0 0 5px 3px rgba(21, 128, 61, 0.1);
 }
 
 [data-theme="light"] .shadow-glow-negative {
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  box-shadow: 0 0 5px 3px rgba(220, 38, 38, 0.1);
 }
 
 [data-theme="light"] .shadow-glow-warning {
-  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.1);
+  box-shadow: 0 0 5px 3px rgba(194, 65, 12, 0.1);
 }
 
 /* Badge backgrounds need adjustment for light theme */
