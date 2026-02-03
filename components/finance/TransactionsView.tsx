@@ -994,35 +994,35 @@ Retorne APENAS o JSON, sem markdown.
                           <span
                             className={`${
                               isIncrement ? "noir-badge-positive" : "noir-badge-warning"
-                            } flex items-center gap-1`}
+                            } flex items-center gap-1.5`}
                           >
-                            {isIncrement ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                            {isIncrement ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                             {isIncrement ? "Renda" : "Dedução"}
                           </span>
                         )}
                         {isForecast && (
-                          <span className="noir-badge-warning flex items-center gap-1">
-                            <CrystalBallLine size={10} /> Previsão
+                          <span className="noir-badge-warning flex items-center gap-1.5">
+                            <CrystalBallLine size={12} /> Previsão
                           </span>
                         )}
                         {transaction.isRecurring && (
-                          <span className="noir-badge-accent flex items-center gap-1">
-                            <RefreshCw size={10} /> Recorrente
+                          <span className="noir-badge-accent flex items-center gap-1.5">
+                            <RefreshCw size={12} /> Recorrente
                           </span>
                         )}
                         {transaction.isCreditCard && (
-                          <span className="noir-badge-accent flex items-center gap-1">
-                            <CreditCard size={10} /> Cartão
+                          <span className="noir-badge-accent flex items-center gap-1.5">
+                            <CreditCard size={12} /> Cartão
                           </span>
                         )}
                         {transaction.excludeFromSplit && (
-                          <span className="noir-badge-muted flex items-center gap-1">
-                            <UserX size={10} /> Fora da divisão
+                          <span className="noir-badge-muted flex items-center gap-1.5">
+                            <UserX size={12} /> Fora da divisão
                           </span>
                         )}
                         {isOutlier(transaction) && (
-                          <span className="noir-badge-negative flex items-center gap-1">
-                            <AlertTriangle size={10} /> Fora do padrão
+                          <span className="noir-badge-negative flex items-center gap-1.5">
+                            <AlertTriangle size={12} /> Fora do padrão
                           </span>
                         )}
                       </h4>

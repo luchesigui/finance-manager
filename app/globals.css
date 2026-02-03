@@ -207,4 +207,15 @@ body {
   .text-glow-negative {
     text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
   }
+
+  /* Stripe pattern for color blindness accessibility - indicates over-budget/warning state */
+  .bg-stripes {
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      rgba(0, 0, 0, 0.2) 4px,
+      rgba(0, 0, 0, 0.2) 8px
+    );
+  }
 }

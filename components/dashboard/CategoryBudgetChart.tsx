@@ -101,9 +101,11 @@ function CategoryBar({ category, totalIncome, isSavingsCategory }: CategoryBarPr
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 bg-noir-active rounded-full overflow-hidden">
+      <div className="h-2 bg-noir-active rounded-full overflow-hidden relative">
         <div
-          className={`h-full ${barColor} transition-all duration-500 ease-out`}
+          className={`h-full ${barColor} transition-all duration-500 ease-out ${
+            showWarning ? "bg-stripes" : ""
+          }`}
           style={{ width: `${Math.min(percentOfTarget, 100)}%` }}
         />
       </div>
