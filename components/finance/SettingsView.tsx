@@ -2,12 +2,13 @@
 
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
-import { Monitor, Moon, PieChart, Plus, Save, Sun, Users } from "lucide-react";
+import { Monitor, Moon, PieChart, Plus, Save, Shield, Sun, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { PersonEditRow } from "@/components/finance/PersonEditRow";
 import { useCategories } from "@/components/finance/contexts/CategoriesContext";
 import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
+import { useEmergencyFund } from "@/components/finance/contexts/EmergencyFundContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { calculateTotalIncome } from "@/components/finance/hooks/useFinanceCalculations";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
@@ -63,6 +64,11 @@ export function SettingsView() {
     setDefaultPayerId,
     isUpdating: isUpdatingDefaultPayer,
   } = useDefaultPayer();
+  const {
+    emergencyFund,
+    updateEmergencyFund,
+    isUpdating: isUpdatingEmergencyFund,
+  } = useEmergencyFund();
 
   // Form state
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);
@@ -76,6 +82,26 @@ export function SettingsView() {
   // Edit states
   const [personEdits, setPersonEdits] = useState<PersonEdits>({});
   const [categoryEdits, setCategoryEdits] = useState<CategoryEdits>({});
+  const [emergencyFundEdit, setEmergencyFundEdit] = useState<number | null>(null);
+
+  // Track if emergency fund has been edited
+  const hasEmergencyFundChanged = emergencyFundEdit !== null && emergencyFundEdit !== emergencyFund;
+
+  // Initialize emergency fund edit when data loads
+  useEffect(() => {
+    setEmergencyFundEdit(emergencyFund);
+  }, [emergencyFund]);
+
+  // Handle emergency fund save
+  const handleSaveEmergencyFund = async () => {
+    if (emergencyFundEdit === null || !hasEmergencyFundChanged) return;
+    try {
+      await updateEmergencyFund(emergencyFundEdit);
+    } catch (error) {
+      console.error("Failed to save emergency fund:", error);
+      alert("Falha ao salvar reserva de emergência. Por favor, tente novamente.");
+    }
+  };
 
   // Fetch current user
   const { data: userData } = useQuery({
@@ -470,6 +496,46 @@ export function SettingsView() {
               </label>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Emergency Fund Section */}
+      <div className="noir-card p-card-padding">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+            <Shield size={20} className="text-accent-primary" />
+            Reserva de Emergência
+          </h2>
+          {hasEmergencyFundChanged && (
+            <button
+              type="button"
+              onClick={handleSaveEmergencyFund}
+              disabled={isUpdatingEmergencyFund}
+              className="noir-btn-primary flex items-center gap-2 text-sm"
+            >
+              <Save size={16} />
+              {isUpdatingEmergencyFund ? "Salvando..." : "Salvar"}
+            </button>
+          )}
+        </div>
+
+        <p className="text-sm text-muted mb-4">
+          Informe o valor total da reserva de emergência da sua família. Este valor será usado nas
+          simulações para calcular quanto tempo você consegue manter o padrão de vida em caso de
+          redução de renda.
+        </p>
+
+        <div className="max-w-xs">
+          <label htmlFor="emergency-fund" className="text-xs text-body font-medium mb-1 block">
+            Valor da Reserva
+          </label>
+          <CurrencyInput
+            id="emergency-fund"
+            value={emergencyFundEdit}
+            onValueChange={(value) => setEmergencyFundEdit(value ?? 0)}
+            className="noir-input w-full"
+            placeholder="R$ 0,00"
+          />
         </div>
       </div>
 

@@ -8,7 +8,6 @@ import {
   Area,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ReferenceLine,
   ResponsiveContainer,
@@ -23,6 +22,7 @@ import {
 
 type FutureProjectionChartProps = {
   data: ChartDataPoint[];
+  emergencyFund: number;
   isLoading?: boolean;
 };
 
@@ -41,44 +41,45 @@ type CustomTooltipProps = {
   active?: boolean;
   payload?: TooltipPayloadItem[];
   label?: string;
+  showFreedom: boolean;
+  hasEmergencyFund: boolean;
 };
 
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+  showFreedom,
+  hasEmergencyFund,
+}: CustomTooltipProps) {
   if (!active || !payload || payload.length === 0) {
     return null;
   }
 
-  const incomeItem = payload.find((p) => p.dataKey === "income");
-  const expensesItem = payload.find((p) => p.dataKey === "expenses");
   const freedomItem = payload.find((p) => p.dataKey === "cumulativeFreedom");
   const deficitItem = payload.find((p) => p.dataKey === "cumulativeDeficit");
+  const emergencyItem = payload.find((p) => p.dataKey === "emergencyFundRemaining");
 
   return (
     <div className="bg-noir-surface border border-noir-border rounded-card p-3 shadow-lg min-w-[200px]">
       <p className="text-heading font-semibold mb-2 border-b border-noir-border pb-2">{label}</p>
       <div className="space-y-1.5 text-sm">
-        {incomeItem && (
+        {showFreedom && freedomItem && freedomItem.value > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-accent-primary">Renda:</span>
-            <span className="text-heading tabular-nums">{formatCurrency(incomeItem.value)}</span>
-          </div>
-        )}
-        {expensesItem && (
-          <div className="flex justify-between gap-4">
-            <span className="text-accent-negative">Custo:</span>
-            <span className="text-heading tabular-nums">{formatCurrency(expensesItem.value)}</span>
-          </div>
-        )}
-        {freedomItem && freedomItem.value > 0 && (
-          <div className="flex justify-between gap-4">
-            <span className="text-accent-spending">Liberdade (acum.):</span>
+            <span className="text-accent-spending">Liberdade Financeira:</span>
             <span className="text-heading tabular-nums">{formatCurrency(freedomItem.value)}</span>
           </div>
         )}
-        {deficitItem && deficitItem.value < 0 && (
+        {!showFreedom && deficitItem && deficitItem.value < 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-accent-negative">Prejuízo (acum.):</span>
+            <span className="text-accent-negative">Prejuízo Acumulado:</span>
             <span className="text-heading tabular-nums">{formatCurrency(deficitItem.value)}</span>
+          </div>
+        )}
+        {hasEmergencyFund && emergencyItem && (
+          <div className="flex justify-between gap-4">
+            <span className="text-accent-primary">Reserva Restante:</span>
+            <span className="text-heading tabular-nums">{formatCurrency(emergencyItem.value)}</span>
           </div>
         )}
       </div>
@@ -90,25 +91,31 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 // Legend Component
 // ============================================================================
 
-function ChartLegend() {
+type ChartLegendProps = {
+  showFreedom: boolean;
+  hasEmergencyFund: boolean;
+};
+
+function ChartLegend({ showFreedom, hasEmergencyFund }: ChartLegendProps) {
   return (
     <div className="flex flex-wrap gap-4 justify-center mt-4 text-sm">
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-1 bg-accent-primary rounded" />
-        <span className="text-body">Renda (mensal)</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-1 bg-accent-negative rounded" />
-        <span className="text-body">Custo (mensal)</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-4 bg-accent-spending/40 rounded" />
-        <span className="text-body">Liberdade Financeira (acumulado)</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="w-4 h-4 bg-accent-negative/50 rounded bg-stripes" />
-        <span className="text-body">Prejuízo (acumulado)</span>
-      </div>
+      {showFreedom ? (
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-accent-spending/40 rounded" />
+          <span className="text-body">Liberdade Financeira (acumulado)</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-accent-negative/50 rounded bg-stripes" />
+          <span className="text-body">Prejuízo (acumulado)</span>
+        </div>
+      )}
+      {hasEmergencyFund && !showFreedom && (
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-1 bg-accent-primary rounded" />
+          <span className="text-body">Reserva de Emergência</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -117,7 +124,20 @@ function ChartLegend() {
 // Main Component
 // ============================================================================
 
-export function FutureProjectionChart({ data, isLoading }: FutureProjectionChartProps) {
+export function FutureProjectionChart({
+  data,
+  emergencyFund,
+  isLoading,
+}: FutureProjectionChartProps) {
+  // Determine if we're showing freedom or deficit
+  const showFreedom = useMemo(() => {
+    if (data.length === 0) return true;
+    const lastPoint = data[data.length - 1];
+    return lastPoint.cumulativeFreedom > 0 || lastPoint.cumulativeDeficit === 0;
+  }, [data]);
+
+  const hasEmergencyFund = emergencyFund > 0;
+
   // Calculate Y-axis domain
   const yDomain = useMemo(() => {
     if (data.length === 0) return [0, 10000];
@@ -126,17 +146,21 @@ export function FutureProjectionChart({ data, isLoading }: FutureProjectionChart
     let max = 0;
 
     for (const point of data) {
-      // Check fixed values
-      max = Math.max(max, point.income, point.expenses);
-      // Check cumulative values
-      max = Math.max(max, point.cumulativeFreedom);
-      min = Math.min(min, point.cumulativeDeficit);
+      if (showFreedom) {
+        max = Math.max(max, point.cumulativeFreedom);
+      } else {
+        min = Math.min(min, point.cumulativeDeficit);
+        if (hasEmergencyFund) {
+          max = Math.max(max, emergencyFund);
+        }
+      }
     }
 
     // Add some padding
-    const padding = (max - min) * 0.1;
+    const range = max - min;
+    const padding = range * 0.1 || 1000;
     return [Math.floor(min - padding), Math.ceil(max + padding)];
-  }, [data]);
+  }, [data, showFreedom, hasEmergencyFund, emergencyFund]);
 
   if (isLoading) {
     return (
@@ -218,7 +242,14 @@ export function FutureProjectionChart({ data, isLoading }: FutureProjectionChart
                 }}
               />
 
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip
+                content={
+                  <CustomTooltip
+                    showFreedom={showFreedom}
+                    hasEmergencyFund={hasEmergencyFund && !showFreedom}
+                  />
+                }
+              />
 
               {/* Reference line at zero */}
               <ReferenceLine y={0} stroke="#94A3B8" strokeDasharray="3 3" strokeOpacity={0.5} />
@@ -232,52 +263,51 @@ export function FutureProjectionChart({ data, isLoading }: FutureProjectionChart
                 label={{ value: "Hoje", fill: "#94A3B8", fontSize: 10, position: "top" }}
               />
 
-              {/* Freedom area (cumulative positive) */}
-              <Area
-                type="monotone"
-                dataKey="cumulativeFreedom"
-                name="Liberdade Financeira"
-                stroke="#FACC15"
-                strokeWidth={2}
-                fill="url(#freedomGradient)"
-              />
+              {/* Show Freedom area if positive balance */}
+              {showFreedom && (
+                <Area
+                  type="monotone"
+                  dataKey="cumulativeFreedom"
+                  name="Liberdade Financeira"
+                  stroke="#FACC15"
+                  strokeWidth={2}
+                  fill="url(#freedomGradient)"
+                />
+              )}
 
-              {/* Deficit area (cumulative negative) */}
-              <Area
-                type="monotone"
-                dataKey="cumulativeDeficit"
-                name="Prejuízo Acumulado"
-                stroke="#EF4444"
-                strokeWidth={2}
-                fill="url(#deficitPattern)"
-                fillOpacity={0.5}
-              />
+              {/* Show Deficit area if negative balance */}
+              {!showFreedom && (
+                <Area
+                  type="monotone"
+                  dataKey="cumulativeDeficit"
+                  name="Prejuízo Acumulado"
+                  stroke="#EF4444"
+                  strokeWidth={2}
+                  fill="url(#deficitPattern)"
+                  fillOpacity={0.5}
+                />
+              )}
 
-              {/* Income line (fixed monthly) */}
-              <Line
-                type="monotone"
-                dataKey="income"
-                name="Renda"
-                stroke="#3B82F6"
-                strokeWidth={2}
-                dot={false}
-              />
-
-              {/* Expenses line (fixed monthly) */}
-              <Line
-                type="monotone"
-                dataKey="expenses"
-                name="Custo"
-                stroke="#EF4444"
-                strokeWidth={2}
-                dot={false}
-              />
+              {/* Emergency fund line (only in deficit scenario) */}
+              {!showFreedom && hasEmergencyFund && (
+                <Line
+                  type="monotone"
+                  dataKey="emergencyFundRemaining"
+                  name="Reserva de Emergência"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
         {/* Custom legend */}
-        <ChartLegend />
+        <ChartLegend
+          showFreedom={showFreedom}
+          hasEmergencyFund={hasEmergencyFund && !showFreedom}
+        />
       </div>
     </div>
   );

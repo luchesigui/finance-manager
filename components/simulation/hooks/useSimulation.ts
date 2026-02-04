@@ -5,13 +5,12 @@ import type {
   ChartDataPoint,
   EditableExpense,
   ExpenseScenario,
-  ManualExpense,
   ProjectionResult,
   RecurringExpenseItem,
   SimulationParticipant,
   SimulationState,
 } from "@/lib/simulationTypes";
-import type { Person, Transaction } from "@/lib/types";
+import type { Category, Person, Transaction } from "@/lib/types";
 import { useCallback, useMemo, useState } from "react";
 
 // ============================================================================
@@ -19,7 +18,7 @@ import { useCallback, useMemo, useState } from "react";
 // ============================================================================
 
 const PROJECTION_MONTHS = 12;
-const DEBOUNCE_MS = 150;
+const LIBERDADE_FINANCEIRA_CATEGORY = "Liberdade Financeira";
 
 // ============================================================================
 // Types
@@ -28,6 +27,8 @@ const DEBOUNCE_MS = 150;
 type UseSimulationProps = {
   people: Person[];
   transactions: Transaction[];
+  categories: Category[];
+  emergencyFund: number;
 };
 
 type UseSimulationReturn = {
@@ -42,6 +43,7 @@ type UseSimulationReturn = {
   toggleExpenseInclusion: (expenseId: string) => void;
   addManualExpense: (description: string, amount: number) => void;
   removeManualExpense: (id: string) => void;
+  setCustomExpenses: (amount: number) => void;
   // Reset
   resetToBaseline: () => void;
   // Computed values
@@ -52,7 +54,10 @@ type UseSimulationReturn = {
   baselineExpenses: number;
   hasChanges: boolean;
   recurringExpenses: RecurringExpenseItem[];
+  currentMonthExpenses: number;
   averageExpenses: number;
+  customExpenses: number;
+  emergencyFund: number;
 };
 
 // ============================================================================
@@ -107,18 +112,35 @@ function calculateProjection(
   monthlyIncome: number,
   monthlyExpenses: number,
   startDate: Date,
+  emergencyFund: number,
 ): ChartDataPoint[] {
   const months = generateMonthLabels(startDate, PROJECTION_MONTHS);
   const monthlyBalance = monthlyIncome - monthlyExpenses;
 
   let cumulativeFreedom = 0;
   let cumulativeDeficit = 0;
+  let emergencyFundRemaining = emergencyFund;
 
   return months.map(({ period, periodKey }) => {
     if (monthlyBalance >= 0) {
       cumulativeFreedom += monthlyBalance;
     } else {
-      cumulativeDeficit += monthlyBalance;
+      // Deficit scenario: deduct from emergency fund first
+      if (emergencyFundRemaining > 0) {
+        const deficitThisMonth = Math.abs(monthlyBalance);
+        if (emergencyFundRemaining >= deficitThisMonth) {
+          emergencyFundRemaining -= deficitThisMonth;
+          // No deficit accumulated yet - covered by emergency fund
+        } else {
+          // Partial coverage - the rest becomes deficit
+          const uncoveredDeficit = deficitThisMonth - emergencyFundRemaining;
+          emergencyFundRemaining = 0;
+          cumulativeDeficit -= uncoveredDeficit;
+        }
+      } else {
+        // Emergency fund depleted, accumulate deficit
+        cumulativeDeficit += monthlyBalance;
+      }
     }
 
     return {
@@ -129,7 +151,32 @@ function calculateProjection(
       monthlyBalance,
       cumulativeFreedom,
       cumulativeDeficit,
+      emergencyFundRemaining,
     };
+  });
+}
+
+/**
+ * Filters transactions to exclude:
+ * - Transactions in "Liberdade Financeira" category
+ * - Transactions without any category
+ */
+function filterValidExpenseTransactions(
+  transactions: Transaction[],
+  categories: Category[],
+): Transaction[] {
+  // Find the Liberdade Financeira category ID
+  const liberdadeCategory = categories.find((cat) => cat.name === LIBERDADE_FINANCEIRA_CATEGORY);
+  const liberdadeCategoryId = liberdadeCategory?.id;
+
+  return transactions.filter((t) => {
+    // Only expense transactions
+    if (t.type === "income") return false;
+    // Must have a category
+    if (!t.categoryId) return false;
+    // Must not be Liberdade Financeira
+    if (liberdadeCategoryId && t.categoryId === liberdadeCategoryId) return false;
+    return true;
   });
 }
 
@@ -137,20 +184,39 @@ function calculateProjection(
 // Hook
 // ============================================================================
 
-export function useSimulation({ people, transactions }: UseSimulationProps): UseSimulationReturn {
+export function useSimulation({
+  people,
+  transactions,
+  categories,
+  emergencyFund,
+}: UseSimulationProps): UseSimulationReturn {
   // Initialize state
   const [state, setState] = useState<SimulationState>(() => ({
     participants: createInitialParticipants(people),
-    scenario: "realistic",
+    scenario: "currentMonth",
     expenseOverrides: {
       ignoredExpenseIds: [],
       manualExpenses: [],
     },
   }));
 
+  // Custom expenses value (for custom scenario)
+  const [customExpensesValue, setCustomExpensesValue] = useState(0);
+
+  // Filter valid expense transactions (exclude Liberdade Financeira and uncategorized)
+  const validExpenseTransactions = useMemo(
+    () => filterValidExpenseTransactions(transactions, categories),
+    [transactions, categories],
+  );
+
+  // Calculate current month expenses
+  const currentMonthExpenses = useMemo(() => {
+    return validExpenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+  }, [validExpenseTransactions]);
+
   // Calculate recurring expenses (for minimalist scenario)
   const recurringExpenses = useMemo((): RecurringExpenseItem[] => {
-    const expenseTransactions = transactions.filter((t) => t.type !== "income" && t.isRecurring);
+    const expenseTransactions = validExpenseTransactions.filter((t) => t.isRecurring);
 
     // Group by description and get average amount
     const grouped = new Map<
@@ -185,17 +251,13 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
     });
 
     return result.sort((a, b) => b.amount - a.amount);
-  }, [transactions]);
+  }, [validExpenseTransactions]);
 
-  // Calculate average expenses (for realistic scenario - 6 month average)
+  // Calculate average expenses (for realistic scenario - uses current data as approximation)
   const averageExpenses = useMemo(() => {
-    const expenseTransactions = transactions.filter((t) => t.type !== "income");
-    if (expenseTransactions.length === 0) return 0;
-
-    const total = expenseTransactions.reduce((sum, t) => sum + t.amount, 0);
-    // Assume we have data for current period, approximate 6 month average
-    return total;
-  }, [transactions]);
+    if (validExpenseTransactions.length === 0) return 0;
+    return validExpenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+  }, [validExpenseTransactions]);
 
   // Baseline calculations (actual values)
   const baselineIncome = useMemo(() => {
@@ -203,8 +265,8 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
   }, [people]);
 
   const baselineExpenses = useMemo(() => {
-    return transactions.filter((t) => t.type !== "income").reduce((sum, t) => sum + t.amount, 0);
-  }, [transactions]);
+    return validExpenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+  }, [validExpenseTransactions]);
 
   // Simulated income (from participants)
   const simulatedIncome = useMemo(() => {
@@ -214,13 +276,27 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
     }, 0);
   }, [state.participants]);
 
-  // Calculate base expenses for each scenario
-  const scenarioBaseExpenses = useMemo(() => {
-    if (state.scenario === "minimalist") {
-      return recurringExpenses.reduce((sum, e) => sum + e.amount, 0);
+  // Get base expenses based on scenario
+  const getScenarioBaseExpenses = useCallback(() => {
+    switch (state.scenario) {
+      case "currentMonth":
+        return currentMonthExpenses;
+      case "minimalist":
+        return recurringExpenses.reduce((sum, e) => sum + e.amount, 0);
+      case "realistic":
+        return averageExpenses;
+      case "custom":
+        return customExpensesValue;
+      default:
+        return currentMonthExpenses;
     }
-    return averageExpenses;
-  }, [state.scenario, recurringExpenses, averageExpenses]);
+  }, [
+    state.scenario,
+    currentMonthExpenses,
+    recurringExpenses,
+    averageExpenses,
+    customExpensesValue,
+  ]);
 
   // Editable expenses list
   const editableExpenses = useMemo((): EditableExpense[] => {
@@ -239,15 +315,34 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
           isManual: false,
         });
       }
-    } else {
-      // For realistic, we show a summary approach
-      // Could be expanded to show individual categories
+    } else if (state.scenario === "currentMonth") {
+      // Show current month as a single item
+      expenses.push({
+        id: "current-month",
+        description: "Gastos do mês atual",
+        amount: currentMonthExpenses,
+        isRecurring: false,
+        isIncluded: !ignoredExpenseIds.includes("current-month"),
+        isManual: false,
+      });
+    } else if (state.scenario === "realistic") {
+      // Show average as a single item
       expenses.push({
         id: "realistic-average",
         description: "Média de gastos (baseado no histórico)",
         amount: averageExpenses,
         isRecurring: false,
         isIncluded: !ignoredExpenseIds.includes("realistic-average"),
+        isManual: false,
+      });
+    } else if (state.scenario === "custom") {
+      // Show custom value
+      expenses.push({
+        id: "custom-value",
+        description: "Valor personalizado",
+        amount: customExpensesValue,
+        isRecurring: false,
+        isIncluded: true,
         isManual: false,
       });
     }
@@ -265,7 +360,14 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
     }
 
     return expenses;
-  }, [state.scenario, state.expenseOverrides, recurringExpenses, averageExpenses]);
+  }, [
+    state.scenario,
+    state.expenseOverrides,
+    recurringExpenses,
+    currentMonthExpenses,
+    averageExpenses,
+    customExpensesValue,
+  ]);
 
   // Total simulated expenses
   const totalSimulatedExpenses = useMemo(() => {
@@ -278,10 +380,16 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
           total += expense.amount;
         }
       }
-    } else {
+    } else if (state.scenario === "currentMonth") {
+      if (!ignoredExpenseIds.includes("current-month")) {
+        total += currentMonthExpenses;
+      }
+    } else if (state.scenario === "realistic") {
       if (!ignoredExpenseIds.includes("realistic-average")) {
         total += averageExpenses;
       }
+    } else if (state.scenario === "custom") {
+      total += customExpensesValue;
     }
 
     // Add manual expenses
@@ -290,22 +398,37 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
     }
 
     return total;
-  }, [state.scenario, state.expenseOverrides, recurringExpenses, averageExpenses]);
+  }, [
+    state.scenario,
+    state.expenseOverrides,
+    recurringExpenses,
+    currentMonthExpenses,
+    averageExpenses,
+    customExpensesValue,
+  ]);
 
   // Calculate projection
   const projection = useMemo((): ProjectionResult => {
     const startDate = new Date();
-    const chartData = calculateProjection(simulatedIncome, totalSimulatedExpenses, startDate);
+    const chartData = calculateProjection(
+      simulatedIncome,
+      totalSimulatedExpenses,
+      startDate,
+      emergencyFund,
+    );
 
     const monthlyBalance = simulatedIncome - totalSimulatedExpenses;
     const lastDataPoint = chartData[chartData.length - 1];
 
-    // Find first deficit month
+    // Find first deficit month (when emergency fund is depleted)
     let firstDeficitMonth: string | null = null;
+    let emergencyFundDepletedMonth: string | null = null;
     for (const point of chartData) {
-      if (point.monthlyBalance < 0) {
+      if (point.cumulativeDeficit < 0 && !firstDeficitMonth) {
         firstDeficitMonth = point.period;
-        break;
+      }
+      if (point.emergencyFundRemaining === 0 && emergencyFund > 0 && !emergencyFundDepletedMonth) {
+        emergencyFundDepletedMonth = point.period;
       }
     }
 
@@ -321,7 +444,7 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
         : 0;
 
     // Freedom target (simplified calculation)
-    const freedomTarget = 150000; // Example target
+    const freedomTarget = 150000;
     const monthsToFreedom =
       monthlyBalance > 0 ? Math.ceil(freedomTarget / monthlyBalance) : Number.POSITIVE_INFINITY;
 
@@ -339,6 +462,21 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
         ? 0
         : baselineMonthsToFreedom - monthsToFreedom;
 
+    // Calculate how many months the emergency fund will last
+    const emergencyFundMonths =
+      monthlyBalance < 0
+        ? Math.floor(emergencyFund / Math.abs(monthlyBalance))
+        : Number.POSITIVE_INFINITY;
+
+    // Calculate baseline total freedom for comparison
+    const baselineChartData = calculateProjection(
+      baselineIncome,
+      baselineExpenses,
+      startDate,
+      emergencyFund,
+    );
+    const baselineTotalFreedom = baselineChartData[baselineChartData.length - 1].cumulativeFreedom;
+
     return {
       chartData,
       summary: {
@@ -352,9 +490,14 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
         freedomAcceleration,
         incomeChangePercent,
         balanceChangePercent,
+        emergencyFundMonths,
+        emergencyFundDepleted: lastDataPoint.emergencyFundRemaining === 0 && emergencyFund > 0,
+        emergencyFundDepletedMonth,
+        baselineMonthlyBalance: baselineBalance,
+        baselineTotalFreedom,
       },
     };
-  }, [simulatedIncome, totalSimulatedExpenses, baselineIncome, baselineExpenses]);
+  }, [simulatedIncome, totalSimulatedExpenses, baselineIncome, baselineExpenses, emergencyFund]);
 
   // Check if there are changes from baseline
   const hasChanges = useMemo(() => {
@@ -365,7 +508,7 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
       state.expenseOverrides.ignoredExpenseIds.length > 0 ||
       state.expenseOverrides.manualExpenses.length > 0;
 
-    return hasParticipantChanges || hasExpenseChanges || state.scenario !== "realistic";
+    return hasParticipantChanges || hasExpenseChanges || state.scenario !== "currentMonth";
   }, [state]);
 
   // Actions
@@ -455,15 +598,20 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
     }));
   }, []);
 
+  const setCustomExpenses = useCallback((amount: number) => {
+    setCustomExpensesValue(amount);
+  }, []);
+
   const resetToBaseline = useCallback(() => {
     setState({
       participants: createInitialParticipants(people),
-      scenario: "realistic",
+      scenario: "currentMonth",
       expenseOverrides: {
         ignoredExpenseIds: [],
         manualExpenses: [],
       },
     });
+    setCustomExpensesValue(0);
   }, [people]);
 
   return {
@@ -474,6 +622,7 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
     toggleExpenseInclusion,
     addManualExpense,
     removeManualExpense,
+    setCustomExpenses,
     resetToBaseline,
     projection,
     editableExpenses,
@@ -482,6 +631,9 @@ export function useSimulation({ people, transactions }: UseSimulationProps): Use
     baselineExpenses,
     hasChanges,
     recurringExpenses,
+    currentMonthExpenses,
     averageExpenses,
+    customExpenses: customExpensesValue,
+    emergencyFund,
   };
 }

@@ -1,7 +1,8 @@
 "use client";
 
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { formatCurrency } from "@/lib/format";
-import type { EditableExpense } from "@/lib/simulationTypes";
+import type { EditableExpense, ExpenseScenario } from "@/lib/simulationTypes";
 import { ChevronDown, ClipboardList, Plus, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 
@@ -12,6 +13,7 @@ import { useCallback, useState } from "react";
 type EditableExpensesCardProps = {
   expenses: EditableExpense[];
   totalSimulatedExpenses: number;
+  scenario: ExpenseScenario;
   onToggleExpense: (expenseId: string) => void;
   onAddExpense: (description: string, amount: number) => void;
   onRemoveExpense: (expenseId: string) => void;
@@ -27,16 +29,15 @@ type AddExpenseFormProps = {
 
 function AddExpenseForm({ onAdd }: AddExpenseFormProps) {
   const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState<number | null>(null);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      const parsedAmount = Number.parseFloat(amount.replace(",", "."));
-      if (description.trim() && !Number.isNaN(parsedAmount) && parsedAmount > 0) {
-        onAdd(description.trim(), parsedAmount);
+      if (description.trim() && amount !== null && amount > 0) {
+        onAdd(description.trim(), amount);
         setDescription("");
-        setAmount("");
+        setAmount(null);
       }
     },
     [description, amount, onAdd],
@@ -56,16 +57,15 @@ function AddExpenseForm({ onAdd }: AddExpenseFormProps) {
           onChange={(e) => setDescription(e.target.value)}
           className="noir-input flex-1 text-sm"
         />
-        <input
-          type="text"
-          placeholder="R$ 0,00"
+        <CurrencyInput
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="noir-input w-full sm:w-28 text-sm"
+          onValueChange={setAmount}
+          placeholder="R$ 0,00"
+          className="noir-input w-full sm:w-32 text-sm"
         />
         <button
           type="submit"
-          disabled={!description.trim() || !amount}
+          disabled={!description.trim() || amount === null || amount <= 0}
           className="noir-btn-primary text-sm py-2 disabled:opacity-50"
         >
           Adicionar
@@ -81,31 +81,43 @@ function AddExpenseForm({ onAdd }: AddExpenseFormProps) {
 
 type ExpenseRowProps = {
   expense: EditableExpense;
+  canToggle: boolean;
+  canRemove: boolean;
   onToggle: () => void;
   onRemove?: () => void;
 };
 
-function ExpenseRow({ expense, onToggle, onRemove }: ExpenseRowProps) {
+function ExpenseRow({ expense, canToggle, canRemove, onToggle, onRemove }: ExpenseRowProps) {
+  const handleClick = () => {
+    if (canToggle && !expense.isManual) {
+      onToggle();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (canToggle && !expense.isManual && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      onToggle();
+    }
+  };
+
   return (
     <div
-      className={`flex items-center gap-3 p-2 rounded-interactive cursor-pointer transition-all hover:bg-noir-active ${
+      className={`flex items-center gap-3 p-2 rounded-interactive transition-all ${
+        canToggle ? "cursor-pointer hover:bg-noir-active" : ""
+      } ${
         expense.isManual
           ? "bg-accent-primary/10 border-l-2 border-accent-primary"
           : expense.isIncluded
             ? "bg-noir-surface"
             : "bg-noir-active/30 opacity-60"
       }`}
-      onClick={expense.isManual ? undefined : onToggle}
-      role={expense.isManual ? undefined : "button"}
-      tabIndex={expense.isManual ? undefined : 0}
-      onKeyDown={(e) => {
-        if (!expense.isManual && (e.key === "Enter" || e.key === " ")) {
-          e.preventDefault();
-          onToggle();
-        }
-      }}
+      onClick={handleClick}
+      role={canToggle && !expense.isManual ? "button" : undefined}
+      tabIndex={canToggle && !expense.isManual ? 0 : undefined}
+      onKeyDown={handleKeyDown}
     >
-      {!expense.isManual && (
+      {canToggle && !expense.isManual && (
         <input
           type="checkbox"
           checked={expense.isIncluded}
@@ -131,7 +143,7 @@ function ExpenseRow({ expense, onToggle, onRemove }: ExpenseRowProps) {
       >
         {formatCurrency(expense.amount)}
       </span>
-      {expense.isManual && onRemove && (
+      {canRemove && expense.isManual && onRemove && (
         <button
           type="button"
           onClick={(e) => {
@@ -155,14 +167,20 @@ function ExpenseRow({ expense, onToggle, onRemove }: ExpenseRowProps) {
 export function EditableExpensesCard({
   expenses,
   totalSimulatedExpenses,
+  scenario,
   onToggleExpense,
   onAddExpense,
   onRemoveExpense,
 }: EditableExpensesCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const recurringExpenses = expenses.filter((e) => !e.isManual);
+  const systemExpenses = expenses.filter((e) => !e.isManual);
   const manualExpenses = expenses.filter((e) => e.isManual);
+
+  // Determine if user can toggle/remove based on scenario
+  const canToggleSystemExpenses = scenario === "minimalist";
+  // In realistic scenario, can't remove the average expense
+  const canRemoveManualExpenses = true;
 
   return (
     <div className="noir-card overflow-hidden">
@@ -189,34 +207,38 @@ export function EditableExpensesCard({
         </div>
       </button>
 
-      {/* Collapsible content */}
+      {/* Collapsible content - using overflow-y-auto to enable scrolling */}
       <div
-        className={`transition-all duration-300 ease-out overflow-hidden ${
-          isExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+        className={`transition-all duration-300 ease-out ${
+          isExpanded
+            ? "max-h-[600px] opacity-100 overflow-y-auto"
+            : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >
         <div className="px-4 pb-4 border-t border-noir-border">
-          {/* Recurring/System expenses */}
-          {recurringExpenses.length > 0 && (
+          {/* System expenses */}
+          {systemExpenses.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-muted uppercase tracking-wide">
-                  Gastos do Sistema
+                  {scenario === "minimalist" ? "Gastos Recorrentes" : "Gastos Base"}
                 </span>
                 <span className="text-xs text-muted tabular-nums">
                   Total:{" "}
                   {formatCurrency(
-                    recurringExpenses
+                    systemExpenses
                       .filter((e) => e.isIncluded)
                       .reduce((sum, e) => sum + e.amount, 0),
                   )}
                 </span>
               </div>
               <div className="space-y-1">
-                {recurringExpenses.map((expense) => (
+                {systemExpenses.map((expense) => (
                   <ExpenseRow
                     key={expense.id}
                     expense={expense}
+                    canToggle={canToggleSystemExpenses}
+                    canRemove={false}
                     onToggle={() => onToggleExpense(expense.id)}
                   />
                 ))}
@@ -240,6 +262,8 @@ export function EditableExpensesCard({
                   <ExpenseRow
                     key={expense.id}
                     expense={expense}
+                    canToggle={false}
+                    canRemove={canRemoveManualExpenses}
                     onToggle={() => {}}
                     onRemove={() => onRemoveExpense(expense.id)}
                   />

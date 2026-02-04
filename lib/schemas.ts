@@ -117,6 +117,14 @@ export const updateDefaultPayerBodySchema = z.object({
 });
 
 // ============================================================================
+// Emergency Fund Schema
+// ============================================================================
+
+export const updateEmergencyFundBodySchema = z.object({
+  amount: z.number().nonnegative(),
+});
+
+// ============================================================================
 // Type Exports (inferred from schemas)
 // ============================================================================
 

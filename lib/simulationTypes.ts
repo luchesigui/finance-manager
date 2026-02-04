@@ -17,7 +17,7 @@ export type SimulationParticipant = {
 /**
  * Expense scenario type
  */
-export type ExpenseScenario = "minimalist" | "realistic";
+export type ExpenseScenario = "currentMonth" | "minimalist" | "realistic" | "custom";
 
 /**
  * Manual expense added by user
@@ -73,6 +73,8 @@ export type ChartDataPoint = {
   // Cumulative values
   cumulativeFreedom: number;
   cumulativeDeficit: number;
+  // Emergency fund remaining (for deficit scenarios)
+  emergencyFundRemaining: number;
   // Monthly balance (income - expenses)
   monthlyBalance: number;
 };
@@ -91,6 +93,13 @@ export type SimulationSummary = {
   freedomAcceleration: number;
   incomeChangePercent: number;
   balanceChangePercent: number;
+  // Emergency fund info
+  emergencyFundMonths: number; // How many months the emergency fund will last
+  emergencyFundDepleted: boolean;
+  emergencyFundDepletedMonth: string | null;
+  // Baseline values for comparison
+  baselineMonthlyBalance: number;
+  baselineTotalFreedom: number;
 };
 
 /**

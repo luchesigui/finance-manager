@@ -1,11 +1,12 @@
 "use client";
 
+import { useCategories } from "@/components/finance/contexts/CategoriesContext";
+import { useEmergencyFund } from "@/components/finance/contexts/EmergencyFundContext";
 import { usePeople } from "@/components/finance/contexts/PeopleContext";
 import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import {
   EditableExpensesCard,
   FutureProjectionChart,
-  MonthlyBreakdownTable,
   ParticipantSimulator,
   ScenarioSelector,
   SimulationAlerts,
@@ -21,8 +22,11 @@ import { FlaskConical, RefreshCw, Sparkles } from "lucide-react";
 export function SimulationView() {
   const { people, isPeopleLoading } = usePeople();
   const { transactionsForCalculations, isTransactionsLoading } = useTransactions();
+  const { categories, isCategoriesLoading } = useCategories();
+  const { emergencyFund, isEmergencyFundLoading } = useEmergencyFund();
 
-  const isLoading = isPeopleLoading || isTransactionsLoading;
+  const isLoading =
+    isPeopleLoading || isTransactionsLoading || isCategoriesLoading || isEmergencyFundLoading;
 
   const {
     state,
@@ -32,6 +36,7 @@ export function SimulationView() {
     toggleExpenseInclusion,
     addManualExpense,
     removeManualExpense,
+    setCustomExpenses,
     resetToBaseline,
     projection,
     editableExpenses,
@@ -40,15 +45,18 @@ export function SimulationView() {
     baselineExpenses,
     hasChanges,
     recurringExpenses,
+    currentMonthExpenses,
     averageExpenses,
+    customExpenses,
   } = useSimulation({
     people,
     transactions: transactionsForCalculations,
+    categories,
+    emergencyFund,
   });
 
   // Calculate scenario totals
   const minimalistTotal = recurringExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const realisticTotal = averageExpenses;
 
   if (isLoading) {
     return (
@@ -130,8 +138,11 @@ export function SimulationView() {
         <ScenarioSelector
           selectedScenario={state.scenario}
           onScenarioChange={setScenario}
+          currentMonthTotal={currentMonthExpenses}
           minimalistTotal={minimalistTotal}
-          realisticTotal={realisticTotal}
+          realisticTotal={averageExpenses}
+          customValue={customExpenses}
+          onCustomValueChange={setCustomExpenses}
         />
       </div>
 
@@ -139,6 +150,7 @@ export function SimulationView() {
       <EditableExpensesCard
         expenses={editableExpenses}
         totalSimulatedExpenses={totalSimulatedExpenses}
+        scenario={state.scenario}
         onToggleExpense={toggleExpenseInclusion}
         onAddExpense={addManualExpense}
         onRemoveExpense={removeManualExpense}
@@ -147,25 +159,16 @@ export function SimulationView() {
       {/* Summary Cards */}
       <SimulationSummaryCards summary={projection.summary} baselineIncome={baselineIncome} />
 
-      {/* Chart and Insights Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Main Chart */}
-        <div className="xl:col-span-2">
-          <FutureProjectionChart data={projection.chartData} />
-        </div>
+      {/* Chart - Full width */}
+      <FutureProjectionChart data={projection.chartData} emergencyFund={emergencyFund} />
 
-        {/* Alerts/Insights Panel */}
-        <div className="xl:col-span-1">
-          <SimulationAlerts
-            summary={projection.summary}
-            baselineIncome={baselineIncome}
-            baselineExpenses={baselineExpenses}
-          />
-        </div>
-      </div>
-
-      {/* Monthly Breakdown Table */}
-      <MonthlyBreakdownTable data={projection.chartData} />
+      {/* Alerts/Insights - Below chart, horizontally stacked */}
+      <SimulationAlerts
+        summary={projection.summary}
+        baselineIncome={baselineIncome}
+        baselineExpenses={baselineExpenses}
+        emergencyFund={emergencyFund}
+      />
 
       {/* Disclaimer */}
       <div className="noir-card p-4 bg-noir-active/30">
