@@ -24,9 +24,9 @@ A funcionalidade de **Simulação de Futuro** é um ambiente isolado onde o usu�
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │ SEÇÃO A: PAINEL DE CONTROLES (Inputs)                       │    │
 │  │ ┌─────────────────────┐  ┌─────────────────────────────┐    │    │
-│  │ │ Gestão de           │  │ Cenários de Gasto           │    │    │
-│  │ │ Participantes       │  │ • Minimalista (Custos Fixos)│    │    │
-│  │ │ • Toggle On/Off     │  │ • Realista (Média 6 meses)  │    │    │
+│  │ │ Gestão de           │  │ Cenários de Gasto              │    │    │
+│  │ │ Participantes       │  │ • Minimalista (Recorrentes)    │    │    │
+│  │ │ • Toggle On/Off     │  │ • Realista (Média 6 meses)     │    │    │
 │  │ │ • Slider de Renda   │  │ • Personalizado             │    │    │
 │  │ └─────────────────────┘  └─────────────────────────────┘    │    │
 │  └─────────────────────────────────────────────────────────────┘    │
@@ -34,7 +34,7 @@ A funcionalidade de **Simulação de Futuro** é um ambiente isolado onde o usu�
 │  ┌─────────────────────────────────────────────────────────────┐    │
 │  │ SEÇÃO B: RESUMO DE IMPACTO (Cards Rápidos)                  │    │
 │  │ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ │    │
-│  │ │ Renda      │ │ Saldo Livre│ │ Rombo      │ │ Liberdade  │ │    │
+│  │ │ Renda      │ │ Saldo Livre│ │ Prejuízo   │ │ Liberdade  │ │    │
 │  │ │ Simulada   │ │ Médio/Mês  │ │ Acumulado  │ │ Financeira │ │    │
 │  │ └────────────┘ └────────────┘ └────────────┘ └────────────┘ │    │
 │  └─────────────────────────────────────────────────────────────┘    │
@@ -49,7 +49,7 @@ A funcionalidade de **Simulação de Futuro** é um ambiente isolado onde o usu�
 │                                                                     │
 │  ┌──────────────────────────┐  ┌───────────────────────────────┐    │
 │  │ SEÇÃO D: Tabela Mensal   │  │ SEÇÃO E: Insights & Alertas   │    │
-│  │ Detalhamento mês a mês   │  │ • "Rombo" em X meses          │    │
+│  │ Detalhamento mês a mês   │  │ • Prejuízo em X meses         │    │
 │  │ Renda | Gasto | Saldo    │  │ • Liberdade em Y meses        │    │
 │  └──────────────────────────┘  └───────────────────────────────┘    │
 │                                                                     │
@@ -78,9 +78,9 @@ A funcionalidade de **Simulação de Futuro** é um ambiente isolado onde o usu�
    └─> Feedback instantâneo nos cards e gráfico
 
 3. Seleção de cenário de gastos
-   ├─> Minimalista → Apenas custos fixos
+   ├─> Minimalista → Apenas gastos recorrentes
    ├─> Realista → Média de 6 meses
-   └─> Personalizado → Edição manual por categoria
+   └─> Ambos incluem card colapsável para editar/ignorar gastos
 
 4. Análise dos resultados
    ├─> Visualização do gráfico de projeção
@@ -137,15 +137,15 @@ A funcionalidade de **Simulação de Futuro** é um ambiente isolado onde o usu�
 ┌────────────────────────────────────────────────────────────────┐
 │ Cenário de Gastos                                              │
 │                                                                │
-│ ┌──────────────────┐  ┌──────────────────┐  ┌────────────────┐ │
-│ │ 🏠 MINIMALISTA   │  │ 📊 REALISTA      │  │ ✏️ CUSTOM     │ │
-│ │                  │  │                  │  │                │ │
-│ │ Apenas Custos    │  │ Média dos        │  │ Definir        │ │
-│ │ Fixos            │  │ últimos 6 meses  │  │ manualmente    │ │
-│ │                  │  │                  │  │                │ │
-│ │ R$ 4.500/mês     │  │ R$ 8.200/mês     │  │ R$ ---/mês     │ │
-│ │ ○ Selecionar     │  │ ● Selecionado    │  │ ○ Selecionar   │ │
-│ └──────────────────┘  └──────────────────┘  └────────────────┘ │
+│ ┌─────────────────────────────┐  ┌─────────────────────────────┐│
+│ │ 🏠 MINIMALISTA              │  │ 📊 REALISTA                 ││
+│ │                             │  │                             ││
+│ │ Apenas Gastos               │  │ Média dos                   ││
+│ │ Recorrentes                 │  │ últimos 6 meses             ││
+│ │                             │  │                             ││
+│ │ R$ 4.500/mês                │  │ R$ 8.200/mês                ││
+│ │ ○ Selecionar                │  │ ● Selecionado               ││
+│ └─────────────────────────────┘  └─────────────────────────────┘│
 └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -153,9 +153,10 @@ A funcionalidade de **Simulação de Futuro** é um ambiente isolado onde o usu�
 
 | Cenário | Cálculo | Uso Recomendado |
 |---------|---------|-----------------|
-| Minimalista | Soma da categoria "Custos Fixos" | Emergência, perda de emprego |
+| Minimalista | Soma dos gastos recorrentes (isRecurring = true) | Emergência, perda de emprego |
 | Realista | Média dos gastos totais (6 meses) | Planejamento conservador |
-| Personalizado | Edição manual por categoria | Análise detalhada |
+
+> **Nota:** Ambos os cenários possuem um card colapsável para editar os gastos incluídos na simulação.
 
 **Visual do Card Selecionado:**
 ```css
@@ -168,18 +169,140 @@ border: 1px solid var(--noir-border);
 background: var(--noir-surface);
 ```
 
-### 2.3 Cards de Resumo Rápido
+### 2.3 Card de Gastos Editáveis (Colapsável)
+
+Para ambos os cenários (Minimalista e Realista), um card colapsável permite ao usuário visualizar, ignorar e adicionar gastos na simulação.
+
+```tsx
+// Componente: EditableExpensesCard
+┌────────────────────────────────────────────────────────────────┐
+│ 📋 Gastos Considerados na Simulação          [▼ Expandir]      │
+└────────────────────────────────────────────────────────────────┘
+
+// Estado Expandido:
+┌────────────────────────────────────────────────────────────────┐
+│ 📋 Gastos Considerados na Simulação          [▲ Recolher]      │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ GASTOS RECORRENTES                      Total: R$ 4.500  │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │ [✓] Aluguel                                   R$ 2.000   │  │
+│  │ [✓] Condomínio                                  R$ 450   │  │
+│  │ [✓] Internet                                    R$ 150   │  │
+│  │ [✓] Energia                                     R$ 280   │  │
+│  │ [✓] Água                                         R$ 80   │  │
+│  │ [✓] Plano de Saúde                              R$ 890   │  │
+│  │ [ ] Streaming (ignorado)                        R$ 150   │  │
+│  │ [ ] Academia (ignorado)                         R$ 120   │  │
+│  │ [✓] Escola                                      R$ 500   │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ ➕ ADICIONAR GASTO NA SIMULAÇÃO                          │  │
+│  ├──────────────────────────────────────────────────────────┤  │
+│  │                                                          │  │
+│  │  Descrição: [________________________]                   │  │
+│  │                                                          │  │
+│  │  Valor:     [R$ ___________]                             │  │
+│  │                                                          │  │
+│  │                              [Adicionar à simulação]     │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                │
+│  Gastos adicionados manualmente:                               │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ [✓] Novo carro (parcela)                        R$ 800   │ 🗑│
+│  │ [✓] Curso de inglês                             R$ 300   │ 🗑│
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                │
+│  ────────────────────────────────────────────────────────────  │
+│  TOTAL SIMULADO:                               R$ 5.600/mês   │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Especificações do Componente:**
+
+| Elemento | Tipo | Comportamento |
+|----------|------|---------------|
+| Checkbox de gasto | Toggle | Marca/desmarca gasto da simulação |
+| Linha de gasto | Clicável | Clicar na linha alterna inclusão |
+| Input Descrição | Text | Texto livre, obrigatório |
+| Input Valor | Currency | Apenas valor numérico, obrigatório |
+| Botão Adicionar | Button | Adiciona à lista de gastos manuais |
+| Botão Remover (🗑) | Icon Button | Remove gasto adicionado manualmente |
+
+**Estados Visuais:**
+
+```css
+/* Gasto incluído na simulação */
+.expense-row-included {
+  @apply bg-noir-surface text-heading;
+}
+
+/* Gasto ignorado */
+.expense-row-ignored {
+  @apply bg-noir-active/30 text-muted line-through opacity-60;
+}
+
+/* Gasto adicionado manualmente */
+.expense-row-manual {
+  @apply bg-accent-primary/10 border-l-2 border-accent-primary;
+}
+
+/* Hover state */
+.expense-row:hover {
+  @apply bg-noir-active cursor-pointer;
+}
+```
+
+**Comportamento do Collapse:**
+
+```tsx
+const EditableExpensesCard = ({ expenses, onToggle, onAdd, onRemove }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  return (
+    <div className="noir-card overflow-hidden">
+      {/* Header clicável */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-4 flex items-center justify-between hover:bg-noir-active/30"
+      >
+        <span className="flex items-center gap-2">
+          <ClipboardList size={18} className="text-accent-primary" />
+          <span className="font-semibold text-heading">
+            Gastos Considerados na Simulação
+          </span>
+        </span>
+        <ChevronDown 
+          className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+      
+      {/* Conteúdo colapsável com animação */}
+      <div className={`
+        transition-all duration-300 ease-out overflow-hidden
+        ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}
+      `}>
+        {/* Lista de gastos e formulário */}
+      </div>
+    </div>
+  );
+};
+```
+
+### 2.4 Cards de Resumo Rápido
 
 ```tsx
 // Componente: SimulationSummaryCards
 ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-│ 💰 RENDA       │ │ 💵 SALDO LIVRE │ │ 🔴 ROMBO       │ │ 💎 LIBERDADE   │
+│ 💰 RENDA       │ │ 💵 SALDO LIVRE │ │ 🔴 PREJUÍZO    │ │ 💎 LIBERDADE   │
 │    SIMULADA    │ │    MÉDIO/MÊS   │ │    ACUMULADO   │ │    FINANCEIRA  │
 │                │ │                │ │                │ │                │
 │ R$ 11.000      │ │ +R$ 2.800      │ │ -R$ 0          │ │ Meta em        │
 │                │ │                │ │                │ │ 18 meses       │
-│ vs R$ 18.000   │ │ 📈 +15.5%      │ │ ✅ Sem rombo   │ │ -3 meses       │
-│ (-38.9%)       │ │    da renda    │ │                │ │ antecipação    │
+│ vs R$ 18.000   │ │ 📈 +15.5%      │ │ ✅ Sem         │ │ -3 meses       │
+│ (-38.9%)       │ │    da renda    │ │    prejuízo    │ │ antecipação    │
 │                │ │                │ │                │ │                │
 │ [━━━━━━━━━━━]  │ │ [█████████░░]  │ │ [███████████]  │ │ [█████░░░░░░]  │
 │ 61.1%          │ │ Saudável       │ │ OK             │ │ 42%            │
@@ -192,100 +315,236 @@ background: var(--noir-surface);
 |------|-------------------|-------------------|
 | Renda Simulada | ≥ 80% da renda real | < 50% da renda real |
 | Saldo Livre | > 0 | ≤ 0 |
-| Rombo Acumulado | = 0 | > 0 |
+| Prejuízo Acumulado | = 0 | > 0 |
 | Liberdade Financeira | Adiantamento | Atraso |
 
-### 2.4 Gráfico de Projeção (Área Empilhada)
+### 2.5 Gráfico de Projeção (4 Vetores)
 
 ```tsx
 // Componente: FutureProjectionChart (usando Recharts)
 ```
 
+O gráfico exibe **4 vetores** com comportamentos distintos:
+
+| Vetor | Tipo | Comportamento |
+|-------|------|---------------|
+| 🔵 Renda | Linha fixa | Valor mensal constante (não acumula) |
+| 🔴 Custo | Linha fixa | Valor mensal constante (não acumula) |
+| 🟡 Prejuízo | Área acumulativa | Soma do déficit ao longo dos meses |
+| 💎 Liberdade Financeira | Área acumulativa | Soma da poupança ao longo dos meses |
+
 **Estrutura do Gráfico:**
 
 ```
  R$
- ↑
-20k│  ┌──────────────────────────────────────────
-   │  │  RENDA TOTAL ████████████████████████████
-   │  │  ████████████████████████████████████████
-15k│  ├──────────────────────────────────────────
-   │  │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  GASTOS
-   │  │  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
-10k│  ├──────────────────────────────────────────
-   │  │                                          
-   │  │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  SALDO ACUMULADO
- 5k│  │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-   │  │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↑                                                    CUMULATIVO
+50k│                                              ▲▲▲▲▲
+   │                                         ▲▲▲▲     💎 LIBERDADE
+   │                                    ▲▲▲▲          FINANCEIRA
+40k│                               ▲▲▲▲               (acumulado)
+   │                          ▲▲▲▲
+   │                     ▲▲▲▲
+30k│                ▲▲▲▲
+   │           ▲▲▲▲
+   │      ▲▲▲▲
+20k│ ▲▲▲▲
+   │  
+   │────────────────────────────────────────────────  🔵 RENDA (fixa)
+15k│  ████████████████████████████████████████████  R$ 11.000/mês
+   │  
+   │────────────────────────────────────────────────  🔴 CUSTO (fixo)
+10k│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  R$ 8.200/mês
+   │  
+ 5k│  
+   │  
  0 │──┼──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──→ Mês
       Fev Mar Abr Mai Jun Jul Ago Set Out Nov Dez Jan
       2026                                     2027
 ```
 
-**Elementos Visuais:**
+**Cenário com Prejuízo (Custo > Renda):**
 
-| Área | Cor | Opacidade |
-|------|-----|-----------|
-| Renda | `#3B82F6` (accent-primary) | 30% |
-| Gastos | `#EF4444` (accent-negative) | 50% |
-| Saldo Positivo | `#22C55E` (accent-positive) | 30% |
-| Saldo Negativo | `#EF4444` (accent-negative) | 60% + hachura |
-
-**Marcadores Especiais:**
-
-```tsx
-// Linha de referência para mês atual
-<ReferenceLine
-  x="Fev 2026"
-  stroke="#94A3B8"
-  strokeDasharray="3 3"
-  label="Hoje"
-/>
-
-// Área de projeção (futura)
-// Usar opacidade reduzida ou padrão pontilhado para indicar projeção
+```
+ R$
+ ↑
+   │────────────────────────────────────────────────  🔴 CUSTO (fixo)
+15k│  ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  R$ 12.000/mês
+   │  
+   │────────────────────────────────────────────────  🔵 RENDA (fixa)
+10k│  ████████████████████████████████████████████  R$ 8.000/mês
+   │  
+ 5k│  
+   │  
+ 0 │──────────────────────────────────────────────── LINHA ZERO
+   │                     ▼▼▼▼
+-10│                ▼▼▼▼      ▼▼▼▼
+   │           ▼▼▼▼                ▼▼▼▼              🟡 PREJUÍZO
+-20│      ▼▼▼▼                          ▼▼▼▼        ACUMULADO
+   │ ▼▼▼▼                                    ▼▼▼▼   (vermelho + hachura)
+-30│                                              ▼▼▼▼
+   │──┼──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──→ Mês
+      Fev Mar Abr Mai Jun Jul Ago Set Out Nov Dez Jan
 ```
 
-### 2.5 Tabela de Detalhamento Mensal
+**Elementos Visuais:**
+
+| Vetor | Cor | Estilo | Opacidade |
+|-------|-----|--------|-----------|
+| Renda (fixa) | `#3B82F6` (accent-primary) | Linha sólida | 100% |
+| Custo (fixo) | `#EF4444` (accent-negative) | Linha sólida | 100% |
+| Liberdade Financeira (acumulado) | `#FACC15` (accent-spending) | Área preenchida | 40% |
+| Prejuízo (acumulado) | `#EF4444` (accent-negative) | Área + hachura | 50% |
+
+**Configuração do Recharts:**
+
+```tsx
+<ComposedChart data={projectionData}>
+  <defs>
+    {/* Gradiente para Liberdade Financeira */}
+    <linearGradient id="freedomGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="5%" stopColor="#FACC15" stopOpacity={0.4} />
+      <stop offset="95%" stopColor="#FACC15" stopOpacity={0.1} />
+    </linearGradient>
+    
+    {/* Padrão de hachura para prejuízo */}
+    <pattern id="deficitPattern" patternUnits="userSpaceOnUse" width="4" height="4">
+      <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" 
+            stroke="#EF4444" strokeWidth="1" strokeOpacity="0.5"/>
+    </pattern>
+  </defs>
+  
+  {/* Área de Liberdade Financeira (cumulativo positivo) */}
+  <Area
+    type="monotone"
+    dataKey="cumulativeFreedom"
+    name="Liberdade Financeira"
+    stroke="#FACC15"
+    fill="url(#freedomGradient)"
+  />
+  
+  {/* Área de Prejuízo (cumulativo negativo) */}
+  <Area
+    type="monotone"
+    dataKey="cumulativeDeficit"
+    name="Prejuízo Acumulado"
+    stroke="#EF4444"
+    fill="url(#deficitPattern)"
+    fillOpacity={0.5}
+  />
+  
+  {/* Linha de Renda (fixa mensal) */}
+  <Line
+    type="monotone"
+    dataKey="income"
+    name="Renda"
+    stroke="#3B82F6"
+    strokeWidth={2}
+    dot={false}
+  />
+  
+  {/* Linha de Custo (fixa mensal) */}
+  <Line
+    type="monotone"
+    dataKey="expenses"
+    name="Custo"
+    stroke="#EF4444"
+    strokeWidth={2}
+    dot={false}
+  />
+  
+  {/* Linha de referência zero */}
+  <ReferenceLine y={0} stroke="#94A3B8" strokeDasharray="3 3" />
+  
+  {/* Linha de referência mês atual */}
+  <ReferenceLine x="Fev 2026" stroke="#94A3B8" strokeDasharray="3 3" label="Hoje" />
+</ComposedChart>
+```
+
+**Legenda do Gráfico:**
+
+```tsx
+<div className="flex flex-wrap gap-4 justify-center mt-4 text-sm">
+  <div className="flex items-center gap-2">
+    <div className="w-4 h-1 bg-accent-primary rounded" />
+    <span className="text-body">Renda (mensal)</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <div className="w-4 h-1 bg-accent-negative rounded" />
+    <span className="text-body">Custo (mensal)</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <div className="w-4 h-4 bg-accent-spending/40 rounded" />
+    <span className="text-body">Liberdade Financeira (acumulado)</span>
+  </div>
+  <div className="flex items-center gap-2">
+    <div className="w-4 h-4 bg-accent-negative/50 rounded bg-stripes" />
+    <span className="text-body">Prejuízo (acumulado)</span>
+  </div>
+</div>
+```
+
+### 2.6 Tabela de Detalhamento Mensal
 
 ```tsx
 // Componente: MonthlyBreakdownTable
-┌──────────┬─────────────┬─────────────┬─────────────┬─────────────┐
-│ Mês      │ Renda       │ Gastos      │ Saldo Mês   │ Acumulado   │
-├──────────┼─────────────┼─────────────┼─────────────┼─────────────┤
-│ Fev 2026 │ R$ 11.000   │ R$ 8.200    │ +R$ 2.800   │ R$ 2.800    │
-│ Mar 2026 │ R$ 11.000   │ R$ 8.200    │ +R$ 2.800   │ R$ 5.600    │
-│ Abr 2026 │ R$ 11.000   │ R$ 8.200    │ +R$ 2.800   │ R$ 8.400    │
-│ ...      │ ...         │ ...         │ ...         │ ...         │
-│ Jan 2027 │ R$ 11.000   │ R$ 8.200    │ +R$ 2.800   │ R$ 33.600   │
-├──────────┼─────────────┼─────────────┼─────────────┼─────────────┤
-│ TOTAL    │ R$ 132.000  │ R$ 98.400   │ +R$ 33.600  │ —           │
-└──────────┴─────────────┴─────────────┴─────────────┴─────────────┘
+┌──────────┬───────────┬───────────┬───────────┬──────────────┬──────────────┐
+│ Mês      │ Renda     │ Custo     │ Saldo/Mês │ 💎 Liberdade │ 🔴 Prejuízo  │
+│          │ (fixo)    │ (fixo)    │           │ (acumulado)  │ (acumulado)  │
+├──────────┼───────────┼───────────┼───────────┼──────────────┼──────────────┤
+│ Fev 2026 │ R$ 11.000 │ R$ 8.200  │ +R$ 2.800 │ R$ 2.800     │ —            │
+│ Mar 2026 │ R$ 11.000 │ R$ 8.200  │ +R$ 2.800 │ R$ 5.600     │ —            │
+│ Abr 2026 │ R$ 11.000 │ R$ 8.200  │ +R$ 2.800 │ R$ 8.400     │ —            │
+│ Mai 2026 │ R$ 11.000 │ R$ 8.200  │ +R$ 2.800 │ R$ 11.200    │ —            │
+│ ...      │ ...       │ ...       │ ...       │ ...          │ ...          │
+│ Jan 2027 │ R$ 11.000 │ R$ 8.200  │ +R$ 2.800 │ R$ 33.600    │ —            │
+├──────────┼───────────┼───────────┼───────────┼──────────────┼──────────────┤
+│ TOTAL    │ R$ 11.000 │ R$ 8.200  │ +R$ 2.800 │ R$ 33.600    │ R$ 0         │
+│          │ /mês      │ /mês      │ /mês      │ em 12 meses  │ em 12 meses  │
+└──────────┴───────────┴───────────┴───────────┴──────────────┴──────────────┘
+```
+
+**Exemplo com Prejuízo (Custo > Renda):**
+
+```tsx
+┌──────────┬───────────┬───────────┬───────────┬──────────────┬──────────────┐
+│ Mês      │ Renda     │ Custo     │ Saldo/Mês │ 💎 Liberdade │ 🔴 Prejuízo  │
+│          │ (fixo)    │ (fixo)    │           │ (acumulado)  │ (acumulado)  │
+├──────────┼───────────┼───────────┼───────────┼──────────────┼──────────────┤
+│ Fev 2026 │ R$ 8.000  │ R$ 11.000 │ -R$ 3.000 │ —            │ -R$ 3.000    │
+│ Mar 2026 │ R$ 8.000  │ R$ 11.000 │ -R$ 3.000 │ —            │ -R$ 6.000    │
+│ Abr 2026 │ R$ 8.000  │ R$ 11.000 │ -R$ 3.000 │ —            │ -R$ 9.000    │
+│ ...      │ ...       │ ...       │ ...       │ ...          │ ...          │
+│ Jan 2027 │ R$ 8.000  │ R$ 11.000 │ -R$ 3.000 │ —            │ -R$ 36.000   │
+├──────────┼───────────┼───────────┼───────────┼──────────────┼──────────────┤
+│ TOTAL    │ R$ 8.000  │ R$ 11.000 │ -R$ 3.000 │ R$ 0         │ -R$ 36.000   │
+│          │ /mês      │ /mês      │ /mês      │ em 12 meses  │ em 12 meses  │
+└──────────┴───────────┴───────────┴───────────┴──────────────┴──────────────┘
 ```
 
 **Formatação Condicional:**
 
-| Coluna | Verde | Vermelho |
-|--------|-------|----------|
-| Saldo Mês | Positivo | Negativo |
-| Acumulado | Positivo | Negativo |
-| Gastos | Abaixo do orçamento | Acima do orçamento |
+| Coluna | Verde | Vermelho | Amarelo |
+|--------|-------|----------|---------|
+| Saldo/Mês | Positivo | Negativo | — |
+| Liberdade (acumulado) | > 0 | — | — |
+| Prejuízo (acumulado) | — | < 0 | — |
+| Custo | Abaixo da renda | Acima da renda | — |
 
 ---
 
 ## 3. Visualização de Impacto Negativo
 
-### 3.1 Card de "Rombo" Financeiro
+### 3.1 Card de Prejuízo Financeiro
 
 Quando a simulação resulta em déficit, o sistema exibe um card de alerta proeminente:
 
 ```tsx
 // Componente: DeficitAlertCard
 ┌────────────────────────────────────────────────────────────────┐
-│  ⚠️  ALERTA: DÉFICIT PROJETADO                                 │
+│  ⚠️  ALERTA: PREJUÍZO PROJETADO                                │
 │                                                                │
 │  ┌────────────────────────┐  ┌────────────────────────────────┐│
-│  │ ROMBO MENSAL           │  │ ROMBO ACUMULADO (12 meses)     ││
+│  │ PREJUÍZO MENSAL        │  │ PREJUÍZO ACUMULADO (12 meses)  ││
 │  │                        │  │                                ││
 │  │    -R$ 3.200           │  │    -R$ 38.400                  ││
 │  │                        │  │                                ││
@@ -297,7 +556,7 @@ Quando a simulação resulta em déficit, o sistema exibe um card de alerta proe
 │  📉 Saldo zerado em: Maio 2026 (3 meses)                       │
 │                                                                │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │ TIMELINE DO DÉFICIT                                      │  │
+│  │ TIMELINE DO PREJUÍZO                                     │  │
 │  │ Fev    Mar     Abr     Mai     Jun     Jul      ...      │  │
 │  │ ✅     ⚠️      🔴      🔴      🔴      🔴              │  │
 │  │ +2.8k  -1.2k   -3.2k   -3.2k   -3.2k   -3.2k            │  │
@@ -327,44 +586,45 @@ Quando a simulação resulta em déficit, o sistema exibe um card de alerta proe
 }
 ```
 
-### 3.2 Gráfico com Zona de Déficit
+### 3.2 Área de Prejuízo Acumulado no Gráfico
 
-No gráfico principal, a área de déficit é destacada visualmente:
+No gráfico principal, o prejuízo acumulado é exibido como uma área que cresce abaixo da linha zero:
 
 ```
  R$
  ↑
- 5k│      ░░░░░
-   │    ░░░░░░░░░░
-   │  ░░░░░░░░░░░░░░░░
+   │────────────────────────────────────────  Custo (fixo mensal)
+   │────────────────────────────────────────  Renda (fixa mensal)
+   │  
  0 │──────────────────────────────────────────── LINHA ZERO
-   │                    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
--5k│                    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ ← ZONA DE DÉFICIT
-   │                    ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓   (vermelho + hachura)
--10│──┼──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──→
+   │      ▼▼▼
+   │           ▼▼▼▼▼▼
+   │                    ▼▼▼▼▼▼▼▼▼
+-10│                              ▼▼▼▼▼▼▼▼▼▼▼▼  PREJUÍZO ACUMULADO
+   │                                           (cresce a cada mês)
+-20│                                        ▼▼▼▼▼▼▼▼
+   │──┼──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──┬──→
       Fev Mar Abr Mai Jun Jul Ago Set Out Nov Dez Jan
 ```
 
-**Configuração do Recharts:**
+> **Importante:** O prejuízo é **acumulado** - se a cada mês há déficit de R$ 3.000, o gráfico mostra -3k no mês 1, -6k no mês 2, -9k no mês 3, etc.
 
-```tsx
-<Area
-  type="monotone"
-  dataKey="saldo"
-  stroke="#EF4444"
-  fill="url(#deficitPattern)"
-  fillOpacity={0.6}
-/>
+**Fórmula do Prejuízo Acumulado:**
 
-// Padrão de hachura para área negativa
-<defs>
-  <pattern id="deficitPattern" patternUnits="userSpaceOnUse" width="4" height="4">
-    <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" 
-          stroke="#EF4444" 
-          strokeWidth="1" 
-          strokeOpacity="0.5"/>
-  </pattern>
-</defs>
+```typescript
+const calculateCumulativeDeficit = (months: ProjectionMonth[]) => {
+  let cumulative = 0;
+  return months.map(month => {
+    const monthlyBalance = month.income - month.expenses;
+    if (monthlyBalance < 0) {
+      cumulative += monthlyBalance; // Adiciona o déficit ao acumulado
+    }
+    return {
+      ...month,
+      cumulativeDeficit: cumulative < 0 ? cumulative : 0
+    };
+  });
+};
 ```
 
 ### 3.3 Mensagens de Alerta Contextuais
@@ -853,7 +1113,7 @@ const useSimulationAnnouncer = () => {
       >
         {announcement}
       </div>
-      {/* Uso: announceChange("Déficit projetado de 3 mil reais por mês") */}
+      {/* Uso: announceChange("Prejuízo projetado de 3 mil reais por mês") */}
     </>
   );
 };
@@ -884,7 +1144,7 @@ const useSimulationAnnouncer = () => {
 │ │ R$ 11k      │ │ +R$ 2.8k    │ │
 │ └─────────────┘ └─────────────┘ │
 │ ┌─────────────┐ ┌─────────────┐ │
-│ │ Rombo       │ │ Liberdade   │ │
+│ │ Prejuízo    │ │ Liberdade   │ │
 │ │ R$ 0        │ │ 18 meses    │ │
 │ └─────────────┘ └─────────────┘ │
 │                                 │
@@ -1003,7 +1263,9 @@ const simulationEvents = {
   PARTICIPANT_TOGGLED: 'simulation_participant_toggled',
   INCOME_ADJUSTED: 'simulation_income_adjusted',
   SCENARIO_CHANGED: 'simulation_scenario_changed',
-  DEFICIT_SHOWN: 'simulation_deficit_shown',
+  EXPENSE_TOGGLED: 'simulation_expense_toggled',
+  EXPENSE_ADDED: 'simulation_expense_added',
+  PREJUIZO_SHOWN: 'simulation_prejuizo_shown',
   FREEDOM_ACCELERATED: 'simulation_freedom_accelerated',
   SESSION_COMPLETED: 'simulation_session_completed'
 };
@@ -1023,31 +1285,67 @@ const simulationEvents = {
 ### 10.2 Estrutura de Dados
 
 ```typescript
+// Estado da simulação
 interface SimulationState {
   participants: {
     id: string;
     isActive: boolean;
     incomeMultiplier: number; // 0 to 1.5
   }[];
-  scenario: 'minimalist' | 'realistic' | 'custom';
-  customExpenses?: Record<string, number>; // categoryId -> amount
+  scenario: 'minimalist' | 'realistic';
+  
+  // Gastos editáveis (para ambos os cenários)
+  expenseOverrides: {
+    // Gastos recorrentes do sistema que foram ignorados
+    ignoredExpenseIds: string[];
+    // Gastos adicionados manualmente pelo usuário
+    manualExpenses: {
+      id: string;
+      description: string;
+      amount: number;
+    }[];
+  };
 }
 
+// Dados para o gráfico (4 vetores)
+interface ChartDataPoint {
+  period: string;           // "Fev 2026"
+  
+  // Valores FIXOS (mensais)
+  income: number;           // Renda mensal simulada
+  expenses: number;         // Custo mensal simulado
+  
+  // Valores CUMULATIVOS
+  cumulativeFreedom: number;  // Liberdade Financeira acumulada (positivo)
+  cumulativeDeficit: number;  // Prejuízo acumulado (negativo)
+}
+
+// Resultado da projeção
 interface ProjectionResult {
-  months: {
-    period: string;
-    income: number;
-    expenses: number;
-    balance: number;
-    cumulativeBalance: number;
-  }[];
+  chartData: ChartDataPoint[];
+  
   summary: {
-    avgMonthlyBalance: number;
-    totalDeficit: number;
+    monthlyIncome: number;           // Renda mensal fixa
+    monthlyExpenses: number;         // Custo mensal fixo
+    monthlyBalance: number;          // Saldo mensal (income - expenses)
+    
+    totalFreedom: number;            // Liberdade Financeira total em 12 meses
+    totalDeficit: number;            // Prejuízo total em 12 meses
+    
     firstDeficitMonth: string | null;
     freedomTargetDate: string;
-    freedomAcceleration: number; // meses antecipados
+    freedomAcceleration: number;     // meses antecipados (+ ou -)
   };
+}
+
+// Gasto editável no card colapsável
+interface EditableExpense {
+  id: string;
+  description: string;
+  amount: number;
+  isRecurring: boolean;     // true = vem do sistema
+  isIncluded: boolean;      // false = ignorado na simulação
+  isManual: boolean;        // true = adicionado pelo usuário
 }
 ```
 
