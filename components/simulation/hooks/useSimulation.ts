@@ -11,7 +11,7 @@ import type {
   SimulationState,
 } from "@/lib/simulationTypes";
 import type { Category, Person, Transaction } from "@/lib/types";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // ============================================================================
 // Constants
@@ -19,6 +19,27 @@ import { useCallback, useMemo, useState } from "react";
 
 const PROJECTION_MONTHS = 12;
 const LIBERDADE_FINANCEIRA_CATEGORY = "Liberdade Financeira";
+const LOCAL_STORAGE_KEY = "simulation-config";
+
+// ============================================================================
+// Persisted State Type
+// ============================================================================
+
+type PersistedSimulationConfig = {
+  participants: {
+    id: string;
+    isActive: boolean;
+    incomeMultiplier: number;
+  }[];
+  scenario: ExpenseScenario;
+  ignoredExpenseIds: string[];
+  manualExpenses: {
+    id: string;
+    description: string;
+    amount: number;
+  }[];
+  customExpensesValue: number;
+};
 
 // ============================================================================
 // Types
@@ -73,6 +94,55 @@ function createInitialParticipants(people: Person[]): SimulationParticipant[] {
     incomeMultiplier: 1,
     simulatedIncome: person.income,
   }));
+}
+
+/**
+ * Loads persisted simulation config from local storage
+ */
+function loadPersistedConfig(): PersistedSimulationConfig | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as PersistedSimulationConfig;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Saves simulation config to local storage
+ */
+function savePersistedConfig(config: PersistedSimulationConfig): void {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    // Ignore storage errors (e.g., quota exceeded)
+  }
+}
+
+/**
+ * Creates initial participants, applying persisted config if available
+ */
+function createParticipantsWithConfig(
+  people: Person[],
+  persistedConfig: PersistedSimulationConfig | null,
+): SimulationParticipant[] {
+  return people.map((person) => {
+    const persisted = persistedConfig?.participants.find((p) => p.id === person.id);
+    return {
+      id: person.id,
+      name: person.name,
+      realIncome: person.income,
+      isActive: persisted?.isActive ?? true,
+      incomeMultiplier: persisted?.incomeMultiplier ?? 1,
+      simulatedIncome:
+        (persisted?.isActive ?? true) ? person.income * (persisted?.incomeMultiplier ?? 1) : 0,
+    };
+  });
 }
 
 function generateMonthLabels(
@@ -190,18 +260,39 @@ export function useSimulation({
   categories,
   emergencyFund,
 }: UseSimulationProps): UseSimulationReturn {
-  // Initialize state
+  // Load persisted config on mount
+  const [persistedConfig] = useState<PersistedSimulationConfig | null>(() => loadPersistedConfig());
+
+  // Initialize state with persisted values
   const [state, setState] = useState<SimulationState>(() => ({
-    participants: createInitialParticipants(people),
-    scenario: "currentMonth",
+    participants: createParticipantsWithConfig(people, persistedConfig),
+    scenario: persistedConfig?.scenario ?? "currentMonth",
     expenseOverrides: {
-      ignoredExpenseIds: [],
-      manualExpenses: [],
+      ignoredExpenseIds: persistedConfig?.ignoredExpenseIds ?? [],
+      manualExpenses: persistedConfig?.manualExpenses ?? [],
     },
   }));
 
   // Custom expenses value (for custom scenario)
-  const [customExpensesValue, setCustomExpensesValue] = useState(0);
+  const [customExpensesValue, setCustomExpensesValue] = useState(
+    persistedConfig?.customExpensesValue ?? 0,
+  );
+
+  // Persist state changes to local storage
+  useEffect(() => {
+    const config: PersistedSimulationConfig = {
+      participants: state.participants.map((p) => ({
+        id: p.id,
+        isActive: p.isActive,
+        incomeMultiplier: p.incomeMultiplier,
+      })),
+      scenario: state.scenario,
+      ignoredExpenseIds: state.expenseOverrides.ignoredExpenseIds,
+      manualExpenses: state.expenseOverrides.manualExpenses,
+      customExpensesValue,
+    };
+    savePersistedConfig(config);
+  }, [state, customExpensesValue]);
 
   // Filter valid expense transactions (exclude Liberdade Financeira and uncategorized)
   const validExpenseTransactions = useMemo(
@@ -612,6 +703,10 @@ export function useSimulation({
       },
     });
     setCustomExpensesValue(0);
+    // Clear persisted config
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    }
   }, [people]);
 
   return {

@@ -18,7 +18,7 @@
 
   --text-heading: #ffffff;
   --text-body: #94a3b8;
-  --text-muted: #9EB2CE;
+  --text-muted: #9eb2ce;
 
   --accent-primary: #3b82f6;
   --accent-spending: #facc15;
@@ -504,4 +504,80 @@ body {
 [data-theme="light"] .noir-badge-muted {
   background-color: #f3f4f6;
   color: var(--text-body);
+}
+
+/* Inner card backgrounds for light theme (used in simulation alerts, participant cards) */
+[data-theme="light"] .bg-noir-surface\/50 {
+  background-color: #f1f5f9;
+}
+
+/* Accent backgrounds with better contrast in light theme */
+[data-theme="light"] .bg-accent-primary\/10 {
+  background-color: rgba(37, 99, 235, 0.08);
+}
+
+[data-theme="light"] .bg-accent-primary\/20 {
+  background-color: rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="light"] .bg-accent-positive\/10 {
+  background-color: rgba(21, 128, 61, 0.08);
+}
+
+[data-theme="light"] .bg-accent-positive\/5 {
+  background-color: rgba(21, 128, 61, 0.04);
+}
+
+[data-theme="light"] .bg-accent-negative\/10 {
+  background-color: rgba(220, 38, 38, 0.08);
+}
+
+[data-theme="light"] .bg-accent-negative\/5 {
+  background-color: rgba(220, 38, 38, 0.04);
+}
+
+[data-theme="light"] .bg-accent-warning\/10 {
+  background-color: rgba(194, 65, 12, 0.08);
+}
+
+[data-theme="light"] .bg-accent-warning\/5 {
+  background-color: rgba(194, 65, 12, 0.04);
+}
+
+/* Gradient backgrounds for alert cards in light mode */
+[data-theme="light"] .from-accent-positive\/10 {
+  --tw-gradient-from: rgba(21, 128, 61, 0.06);
+}
+
+[data-theme="light"] .to-accent-positive\/5 {
+  --tw-gradient-to: rgba(21, 128, 61, 0.03);
+}
+
+[data-theme="light"] .from-accent-negative\/10 {
+  --tw-gradient-from: rgba(220, 38, 38, 0.06);
+}
+
+[data-theme="light"] .to-accent-negative\/5 {
+  --tw-gradient-to: rgba(220, 38, 38, 0.03);
+}
+
+[data-theme="light"] .from-accent-warning\/10 {
+  --tw-gradient-from: rgba(194, 65, 12, 0.06);
+}
+
+[data-theme="light"] .to-accent-warning\/5 {
+  --tw-gradient-to: rgba(194, 65, 12, 0.03);
+}
+
+[data-theme="light"] .from-accent-primary\/10 {
+  --tw-gradient-from: rgba(37, 99, 235, 0.06);
+}
+
+[data-theme="light"] .to-accent-primary\/5 {
+  --tw-gradient-to: rgba(37, 99, 235, 0.03);
+}
+
+/* Progress bar spending color for light theme */
+[data-theme="light"] .bg-accent-spending {
+  background-color: #ca8a04;
 }

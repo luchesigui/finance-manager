@@ -51,7 +51,7 @@ function ScenarioOption({
       className={`relative overflow-hidden p-4 rounded-card border-2 transition-all duration-300 ease-out ${
         isSelected
           ? "border-accent-primary bg-accent-primary/10"
-          : "border-noir-border bg-noir-surface hover:border-noir-border-light"
+          : "border-noir-border bg-noir-surface hover:border-noir-border-light hover:bg-noir-active/30"
       }`}
     >
       <button type="button" onClick={onSelect} className="w-full text-left">

@@ -44,7 +44,7 @@ function DeficitAlertCard({ monthlyDeficit, totalDeficit, incomePercent }: Defic
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-3 bg-noir-surface/50 rounded-card">
+        <div className="p-3 bg-noir-active/50 rounded-card">
           <p className="text-xs text-muted uppercase mb-1">Prejuízo Mensal</p>
           <p className="text-2xl font-bold text-accent-negative tabular-nums">
             {formatCurrency(monthlyDeficit)}
@@ -55,7 +55,7 @@ function DeficitAlertCard({ monthlyDeficit, totalDeficit, incomePercent }: Defic
           </div>
         </div>
 
-        <div className="p-3 bg-noir-surface/50 rounded-card">
+        <div className="p-3 bg-noir-active/50 rounded-card">
           <p className="text-xs text-muted uppercase mb-1">Prejuízo Acumulado (12 meses)</p>
           <p className="text-2xl font-bold text-accent-negative tabular-nums">
             {formatCurrency(totalDeficit)}
@@ -97,14 +97,14 @@ function EmergencyFundCard({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-3 bg-noir-surface/50 rounded-card">
+        <div className="p-3 bg-noir-active/50 rounded-card">
           <p className="text-xs text-muted uppercase mb-1">Valor da Reserva</p>
           <p className="text-2xl font-bold text-accent-primary tabular-nums">
             {formatCurrency(emergencyFund)}
           </p>
         </div>
 
-        <div className="p-3 bg-noir-surface/50 rounded-card">
+        <div className="p-3 bg-noir-active/50 rounded-card">
           <p className="text-xs text-muted uppercase mb-1">Duração Estimada</p>
           <p
             className={`text-2xl font-bold tabular-nums ${
@@ -159,7 +159,7 @@ function FreedomImpactCard({
         <h3 className="font-semibold text-heading">IMPACTO NA LIBERDADE FINANCEIRA</h3>
       </div>
 
-      <div className="flex items-center justify-center gap-6 mb-4 py-4 bg-noir-surface/50 rounded-card">
+      <div className="flex items-center justify-center gap-6 mb-4 py-4 bg-noir-active/50 rounded-card">
         <div className="text-center">
           <p className="text-xs text-muted uppercase mb-1">Cenário Atual</p>
           <p className="text-xl font-bold text-muted tabular-nums">

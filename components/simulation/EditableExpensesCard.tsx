@@ -104,12 +104,12 @@ function ExpenseRow({ expense, canToggle, canRemove, onToggle, onRemove }: Expen
   return (
     <div
       className={`flex items-center gap-3 p-2 rounded-interactive transition-all ${
-        canToggle ? "cursor-pointer hover:bg-noir-active" : ""
+        canToggle ? "cursor-pointer hover:bg-noir-active/50" : ""
       } ${
         expense.isManual
-          ? "bg-accent-primary/10 border-l-2 border-accent-primary"
+          ? "bg-accent-primary/5 border-l-2 border-accent-primary"
           : expense.isIncluded
-            ? "bg-noir-surface"
+            ? "bg-noir-active/20"
             : "bg-noir-active/30 opacity-60"
       }`}
       onClick={handleClick}
