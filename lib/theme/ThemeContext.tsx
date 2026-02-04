@@ -45,9 +45,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const resolveTheme = (): ResolvedTheme => {
       if (theme === "system") {
-        return window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light";
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       }
       return theme;
     };
