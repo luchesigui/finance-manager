@@ -183,7 +183,12 @@ export async function getCurrentUserId(): Promise<string> {
 
 export async function getPeople(): Promise<Person[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("people").select("*").order("name");
+  const householdId = await getPrimaryHouseholdId();
+  const { data, error } = await supabase
+    .from("people")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("name");
 
   if (error) throw error;
   return (data as PersonRow[]).map(mapPersonRow);
@@ -191,12 +196,14 @@ export async function getPeople(): Promise<Person[]> {
 
 export async function updatePerson(id: string, patch: PersonPatch): Promise<Person> {
   const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
   const dbPatch = toPersonDbPatch(patch);
 
   const { data, error } = await supabase
     .from("people")
     .update(dbPatch)
     .eq("id", id)
+    .eq("household_id", householdId)
     .select()
     .single();
 
@@ -232,7 +239,8 @@ export async function deletePerson(id: string): Promise<void> {
   const { data: transactions, error: checkError } = await supabase
     .from("transactions")
     .select("id")
-    .eq("paid_by", id);
+    .eq("paid_by", id)
+    .eq("household_id", householdId);
 
   if (checkError) throw checkError;
 
@@ -258,7 +266,11 @@ export async function deletePerson(id: string): Promise<void> {
   }
 
   // Now delete the person
-  const { error } = await supabase.from("people").delete().eq("id", id);
+  const { error } = await supabase
+    .from("people")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
   if (error) throw error;
 }
 
@@ -307,6 +319,7 @@ async function findReplacementPerson(
 
 export async function getCategories(): Promise<Category[]> {
   const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
 
   const { data, error } = await supabase
     .from("household_categories")
@@ -321,6 +334,7 @@ export async function getCategories(): Promise<Category[]> {
       )
     `,
     )
+    .eq("household_id", householdId)
     .order("categories(name)");
 
   if (error) throw error;
@@ -329,12 +343,14 @@ export async function getCategories(): Promise<Category[]> {
 
 export async function updateCategory(id: string, patch: CategoryPatch): Promise<Category> {
   const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
   const dbPatch = toCategoryDbPatch(patch);
 
   const { data, error } = await supabase
     .from("household_categories")
     .update(dbPatch)
     .eq("id", id) // Use PK, not FK
+    .eq("household_id", householdId)
     .select(
       `
       id,
@@ -358,7 +374,8 @@ export async function updateCategory(id: string, patch: CategoryPatch): Promise<
 
 export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
   const supabase = await createClient();
-  const query = supabase.from("transactions").select("*");
+  const householdId = await getPrimaryHouseholdId();
+  const query = supabase.from("transactions").select("*").eq("household_id", householdId);
 
   // Return all transactions if no date filter
   if (year === undefined || month === undefined) {
@@ -370,7 +387,7 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
   }
 
   // Filtered by month with credit card offset handling
-  return getTransactionsForMonth(supabase, year, month);
+  return getTransactionsForMonth(supabase, householdId, year, month);
 }
 
 /**
@@ -379,6 +396,7 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 async function getTransactionsForMonth(
   // biome-ignore lint/suspicious/noExplicitAny: Supabase client type
   supabase: any,
+  householdId: string,
   year: number,
   month: number,
 ): Promise<Transaction[]> {
@@ -391,6 +409,7 @@ async function getTransactionsForMonth(
   const { data: rawData, error: currentError } = await supabase
     .from("transactions")
     .select("*")
+    .eq("household_id", householdId)
     .gte("date", prevMonthStartDate)
     .lte("date", endDate)
     .order("created_at", { ascending: false });
@@ -403,6 +422,7 @@ async function getTransactionsForMonth(
   // Fetch and materialize recurring transactions
   const virtualTransactions = await materializeRecurringTransactions(
     supabase,
+    householdId,
     startDate,
     year,
     month,
@@ -445,6 +465,7 @@ function filterByAccountingMonth(
 async function materializeRecurringTransactions(
   // biome-ignore lint/suspicious/noExplicitAny: Supabase client type
   supabase: any,
+  householdId: string,
   startDate: string,
   year: number,
   month: number,
@@ -452,6 +473,7 @@ async function materializeRecurringTransactions(
   const { data: recurringData, error: recurringError } = await supabase
     .from("transactions")
     .select("*")
+    .eq("household_id", householdId)
     .eq("is_recurring", true)
     .lt("date", startDate)
     .order("created_at", { ascending: false });
@@ -492,7 +514,13 @@ async function materializeRecurringTransactions(
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("transactions").select("*").eq("id", id).single();
+  const householdId = await getPrimaryHouseholdId();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .eq("household_id", householdId)
+    .single();
 
   if (error) return null;
   return mapTransactionRow(data as TransactionRow);
@@ -528,12 +556,14 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
 
 export async function updateTransaction(id: number, patch: TransactionPatch): Promise<Transaction> {
   const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
   const dbPatch = toTransactionDbPatch(patch);
 
   const { data, error } = await supabase
     .from("transactions")
     .update(dbPatch)
     .eq("id", id)
+    .eq("household_id", householdId)
     .select()
     .single();
 
@@ -543,7 +573,12 @@ export async function updateTransaction(id: number, patch: TransactionPatch): Pr
 
 export async function deleteTransaction(id: number): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.from("transactions").delete().eq("id", id);
+  const householdId = await getPrimaryHouseholdId();
+  const { error } = await supabase
+    .from("transactions")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
   if (error) throw error;
 }
 
@@ -552,12 +587,14 @@ export async function bulkUpdateTransactions(
   patch: BulkTransactionPatch,
 ): Promise<Transaction[]> {
   const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
   const dbPatch = toBulkTransactionDbPatch(patch);
 
   const { data, error } = await supabase
     .from("transactions")
     .update(dbPatch)
     .in("id", ids)
+    .eq("household_id", householdId)
     .select();
 
   if (error) throw error;
@@ -566,7 +603,12 @@ export async function bulkUpdateTransactions(
 
 export async function bulkDeleteTransactions(ids: number[]): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.from("transactions").delete().in("id", ids);
+  const householdId = await getPrimaryHouseholdId();
+  const { error } = await supabase
+    .from("transactions")
+    .delete()
+    .in("id", ids)
+    .eq("household_id", householdId);
   if (error) throw error;
 }
 
