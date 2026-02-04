@@ -183,18 +183,18 @@ export function SimulationSummaryCards({
         mainValue={totalFreedom > 0 ? formatCurrency(totalFreedom) : "—"}
         subValue="em 12 meses"
         indicator={
-          freedomAcceleration > 0
-            ? `${freedomAcceleration} meses antecipados`
-            : freedomAcceleration < 0
-              ? `${Math.abs(freedomAcceleration)} meses atrasados`
-              : "Sem alteração"
+          !Number.isFinite(freedomAcceleration) || freedomAcceleration === 0
+            ? undefined
+            : freedomAcceleration > 0
+              ? `${freedomAcceleration} meses antecipados`
+              : `${Math.abs(freedomAcceleration)} meses atrasados`
         }
         indicatorClass={
-          freedomAcceleration > 0
-            ? "text-accent-positive"
-            : freedomAcceleration < 0
-              ? "text-accent-negative"
-              : "text-muted"
+          !Number.isFinite(freedomAcceleration) || freedomAcceleration === 0
+            ? "text-muted"
+            : freedomAcceleration > 0
+              ? "text-accent-positive"
+              : "text-accent-negative"
         }
         progressPercent={totalFreedom > 0 ? Math.min((totalFreedom / 150000) * 100, 100) : 0}
         progressColor="bg-accent-spending"
