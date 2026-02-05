@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   BrainCircuit,
   Check,
+  CheckCircle2,
   CreditCard,
   Filter,
   Loader2,
@@ -1056,6 +1057,19 @@ Retorne APENAS o JSON, sem markdown.
                     </span>
                     {!isSelectionMode && (
                       <>
+                        {isForecast && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateTransactionById(transaction.id, { isForecast: false })
+                            }
+                            className="text-muted hover:text-accent-positive p-2 transition-all rounded-interactive hover:bg-accent-positive/10"
+                            title="Marcar como acontecido"
+                            aria-label={`Marcar lançamento como acontecido: ${transaction.description}`}
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(transaction)}
