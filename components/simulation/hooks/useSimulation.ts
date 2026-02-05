@@ -11,7 +11,7 @@ import type {
   SimulationState,
 } from "@/lib/simulationTypes";
 import type { Category, Person, Transaction } from "@/lib/types";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // ============================================================================
 // Constants
@@ -202,6 +202,26 @@ export function useSimulation({
 
   // Custom expenses value (for custom scenario)
   const [customExpensesValue, setCustomExpensesValue] = useState(0);
+
+  // Sync participants when people data changes (e.g., after initial load)
+  useEffect(() => {
+    const currentIds = new Set(state.participants.map((p) => p.id));
+    const newIds = new Set(people.map((p) => p.id));
+
+    // Check if we need to sync: either participants is empty or IDs don't match
+    const needsSync =
+      (state.participants.length === 0 && people.length > 0) ||
+      people.length !== state.participants.length ||
+      people.some((p) => !currentIds.has(p.id)) ||
+      state.participants.some((p) => !newIds.has(p.id));
+
+    if (needsSync) {
+      setState((prev) => ({
+        ...prev,
+        participants: createInitialParticipants(people),
+      }));
+    }
+  }, [people, state.participants]);
 
   // Filter valid expense transactions (exclude Liberdade Financeira and uncategorized)
   const validExpenseTransactions = useMemo(
