@@ -143,7 +143,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
           </div>
           <div className="relative group">
             <Info size={16} className="text-muted cursor-help hover:text-body transition-colors" />
-            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-noir-hover border border-noir-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-noir-surface border border-noir-border-light rounded-lg shadow-card opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
               <p className="text-xs text-body leading-relaxed">
                 O orçamento é calculado como os rendimentos totais subtraídos do investimento
                 esperado para Liberdade Financeira.
