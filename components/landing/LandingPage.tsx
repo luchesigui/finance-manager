@@ -420,16 +420,10 @@ export function LandingPage() {
           </div>
 
           {/* Beta Notice */}
-          <div className="mt-12 text-center">
-            <div className="inline-flex items-center gap-3 px-6 py-4 rounded-card bg-accent-primary/10 border border-accent-primary/30">
-              <Sparkles size={20} className="text-accent-primary" />
-              <p className="text-body">
-                <span className="text-heading font-medium">Beta exclusivo:</span> Como o app ainda
-                está em beta, os early adopters poderão utilizar todas as funcionalidades premium
-                gratuitamente até o lançamento oficial.
-              </p>
-            </div>
-          </div>
+          <p className="mt-12 text-center text-muted text-sm max-w-md mx-auto">
+            Como o app ainda está em beta, os early adopters podem utilizar todas as funcionalidades
+            premium gratuitamente até o lançamento oficial.
+          </p>
         </div>
       </section>
 
