@@ -184,6 +184,8 @@ export async function getCurrentUserId(): Promise<string> {
 export async function getPeople(): Promise<Person[]> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
+
+  // Explicitly filter by household_id for defense in depth
   const { data, error } = await supabase
     .from("people")
     .select("*")
@@ -199,6 +201,7 @@ export async function updatePerson(id: string, patch: PersonPatch): Promise<Pers
   const householdId = await getPrimaryHouseholdId();
   const dbPatch = toPersonDbPatch(patch);
 
+  // Explicitly filter by household_id for defense in depth
   const { data, error } = await supabase
     .from("people")
     .update(dbPatch)
@@ -236,6 +239,7 @@ export async function deletePerson(id: string): Promise<void> {
   const householdId = await getPrimaryHouseholdId();
 
   // Check if there are any transactions referencing this person
+  // Explicitly filter by household_id for defense in depth
   const { data: transactions, error: checkError } = await supabase
     .from("transactions")
     .select("id")
@@ -257,15 +261,18 @@ export async function deletePerson(id: string): Promise<void> {
     }
 
     // Reassign all transactions to the replacement person
+    // Explicitly filter by household_id for defense in depth
     const { error: updateError } = await supabase
       .from("transactions")
       .update({ paid_by: replacementPersonId })
-      .eq("paid_by", id);
+      .eq("paid_by", id)
+      .eq("household_id", householdId);
 
     if (updateError) throw updateError;
   }
 
   // Now delete the person
+  // Explicitly filter by household_id for defense in depth
   const { error } = await supabase
     .from("people")
     .delete()
@@ -321,6 +328,7 @@ export async function getCategories(): Promise<Category[]> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
+  // Explicitly filter by household_id for defense in depth
   const { data, error } = await supabase
     .from("household_categories")
     .select(
@@ -346,6 +354,7 @@ export async function updateCategory(id: string, patch: CategoryPatch): Promise<
   const householdId = await getPrimaryHouseholdId();
   const dbPatch = toCategoryDbPatch(patch);
 
+  // Explicitly filter by household_id for defense in depth
   const { data, error } = await supabase
     .from("household_categories")
     .update(dbPatch)
@@ -406,6 +415,7 @@ async function getTransactionsForMonth(
 
   // Fetch transactions from previous month through current month
   // (needed because credit-card expenses from previous month appear in current month)
+  // Explicitly filter by household_id for defense in depth
   const { data: rawData, error: currentError } = await supabase
     .from("transactions")
     .select("*")
@@ -470,6 +480,7 @@ async function materializeRecurringTransactions(
   year: number,
   month: number,
 ): Promise<TransactionRow[]> {
+  // Explicitly filter by household_id for defense in depth
   const { data: recurringData, error: recurringError } = await supabase
     .from("transactions")
     .select("*")
@@ -515,6 +526,8 @@ async function materializeRecurringTransactions(
 export async function getTransaction(id: number): Promise<Transaction | null> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
+
+  // Explicitly filter by household_id for defense in depth
   const { data, error } = await supabase
     .from("transactions")
     .select("*")
@@ -559,6 +572,7 @@ export async function updateTransaction(id: number, patch: TransactionPatch): Pr
   const householdId = await getPrimaryHouseholdId();
   const dbPatch = toTransactionDbPatch(patch);
 
+  // Explicitly filter by household_id for defense in depth
   const { data, error } = await supabase
     .from("transactions")
     .update(dbPatch)
@@ -574,6 +588,8 @@ export async function updateTransaction(id: number, patch: TransactionPatch): Pr
 export async function deleteTransaction(id: number): Promise<void> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
+
+  // Explicitly filter by household_id for defense in depth
   const { error } = await supabase
     .from("transactions")
     .delete()
@@ -590,6 +606,7 @@ export async function bulkUpdateTransactions(
   const householdId = await getPrimaryHouseholdId();
   const dbPatch = toBulkTransactionDbPatch(patch);
 
+  // Explicitly filter by household_id for defense in depth
   const { data, error } = await supabase
     .from("transactions")
     .update(dbPatch)
@@ -604,6 +621,8 @@ export async function bulkUpdateTransactions(
 export async function bulkDeleteTransactions(ids: number[]): Promise<void> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
+
+  // Explicitly filter by household_id for defense in depth
   const { error } = await supabase
     .from("transactions")
     .delete()

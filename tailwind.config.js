@@ -44,10 +44,7 @@ module.exports = {
       fontSize: {
         // Dashboard typography
         "dashboard-title": ["22px", { lineHeight: "1.3", fontWeight: "700" }],
-        "dashboard-subtitle": [
-          "18px",
-          { lineHeight: "1.4", fontWeight: "600" },
-        ],
+        "dashboard-subtitle": ["18px", { lineHeight: "1.4", fontWeight: "600" }],
         "transaction-label": ["14px", { lineHeight: "1.5", fontWeight: "400" }],
         // Additional hierarchy tokens
         "hero-number": ["36px", { lineHeight: "1.1", fontWeight: "700" }],
@@ -76,8 +73,7 @@ module.exports = {
         "glow-negative": "0 0 20px rgba(239, 68, 68, 0.3)",
         "glow-warning": "0 0 20px rgba(250, 204, 21, 0.3)",
         card: "0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2)",
-        "card-hover":
-          "0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3)",
+        "card-hover": "0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3)",
       },
       backgroundImage: {
         // Glassmorphism gradient
