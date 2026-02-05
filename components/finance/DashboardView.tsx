@@ -212,15 +212,27 @@ export function DashboardView() {
     [categories],
   );
 
-  // Calculate total expenses (including Liberdade Financeira)
+  // Calculate total expenses
   const expenseTransactions = useMemo(
     () => getExpenseTransactions(transactionsForCalculations),
     [transactionsForCalculations],
   );
 
+  // All expenses (including Liberdade Financeira) - used for free balance calculation
   const totalExpensesAll = useMemo(
     () => calculateTotalExpenses(expenseTransactions),
     [expenseTransactions],
+  );
+
+  // Expenses excluding Liberdade Financeira (savings) - used for spending budget comparison
+  const totalExpensesExcludingSavings = useMemo(
+    () =>
+      calculateTotalExpenses(
+        expenseTransactions.filter(
+          (t) => t.categoryId === null || !excludedCategoryIds.has(t.categoryId),
+        ),
+      ),
+    [expenseTransactions, excludedCategoryIds],
   );
 
   // Find outlier transactions with historical data
@@ -290,7 +302,7 @@ export function DashboardView() {
       {/* Quick Stats Grid */}
       <QuickStatsGrid
         factors={healthScore.factors}
-        totalExpenses={totalExpensesAll}
+        totalExpenses={totalExpensesExcludingSavings}
         effectiveIncome={effectiveIncome}
       />
 
