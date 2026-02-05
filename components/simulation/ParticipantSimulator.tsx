@@ -54,7 +54,7 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
   }, []);
 
   return (
-    <div className="p-4 border border-noir-border rounded-card bg-noir-active/50">
+    <div className="p-4 border border-noir-border rounded-card bg-noir-surface">
       <div className="flex items-start justify-between gap-4">
         {/* Person info */}
         <div className="flex items-center gap-3">
