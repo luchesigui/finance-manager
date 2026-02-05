@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Brain,
   ChevronDown,
+  Clock,
   Compass,
   Gauge,
   Scale,
@@ -12,10 +13,10 @@ import {
   Sparkles,
   Target,
   TrendingUp,
-  Users,
   Wallet,
   Zap,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -23,10 +24,10 @@ const premiumFeatures = [
   {
     id: "proportional-finances",
     icon: Scale,
-    title: "Finanças Compartilhadas Proporcionais",
+    title: "Divisão Proporcional",
     description:
-      "Quem ganha mais, contribui mais — na mesma proporção. Elimine brigas e injustiças no casal com uma divisão matemática que respeita a realidade de cada um.",
-    highlight: "Divisão balanceada por renda",
+      "Inspirados nas metodologias de Gustavo Cerbasi, oferecemos uma forma justa e transparente de gerenciar as finanças em família. Quem ganha mais, paga mais. Assim, ambos têm o mesmo percentual de renda disponível para gastos pessoais.",
+    highlight: "Metodologia Cerbasi",
     color: "accent-primary",
   },
   {
@@ -34,17 +35,26 @@ const premiumFeatures = [
     icon: Compass,
     title: "Simulador de Cenários",
     description:
-      "Financiamento, faculdade, tratamentos médicos, ano sabático. Saiba exatamente quanto tempo sua reserva dura antes de tomar o próximo grande passo.",
-    highlight: "Calcule seu runway financeiro",
+      "Financiamento imobiliário, faculdade dos filhos, tratamentos de saúde, ano sabático. Visualize como cada compromisso de longo prazo impacta sua liberdade financeira antes de assumir qualquer decisão.",
+    highlight: "Impacto na liberdade financeira",
     color: "accent-positive",
+  },
+  {
+    id: "runway-calculator",
+    icon: Clock,
+    title: "Calculadora de Runway",
+    description:
+      "Saiba exatamente quanto tempo sua reserva de emergência dura em caso de diminuição ou perda de renda. Uma métrica essencial para quem quer tomar decisões com segurança e planejamento.",
+    highlight: "Tempo de autonomia financeira",
+    color: "accent-warning",
   },
   {
     id: "outlier-detector",
     icon: Brain,
     title: "Detector de Outliers",
     description:
-      "IA estatística que ignora o cafézinho mas te avisa quando um gasto foge dois desvios padrão da sua média — o verdadeiro ralo de dinheiro.",
-    highlight: "Vigia inteligente que importa",
+      "Um vigia inteligente que aprende seus padrões de consumo e ignora as pequenas variações do dia a dia. Quando algo realmente fora do comum acontece, você recebe um alerta. Descubra onde o dinheiro está escapando sem precisar analisar cada transação manualmente.",
+    highlight: "Vigia inteligente",
     color: "accent-spending",
   },
 ];
@@ -62,7 +72,7 @@ const philosophyPoints = [
     icon: Target,
     title: "Foco em Recorrências",
     description:
-      "Entender seus gastos fixos e aportes mensais é mais valioso que saber quanto gastou no último almoço. Estratégia supera controle.",
+      "Percebeu um padrão? Agrupe, arredonde e coloque como recorrência. Estratégia supera controle.",
   },
   {
     id: "macro-health",
@@ -107,34 +117,11 @@ const healthScoreBreakdown = [
   },
 ];
 
-function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    const duration = 2000;
-    const steps = 60;
-    const increment = value / steps;
-    let current = 0;
-
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setDisplayValue(value);
-        clearInterval(timer);
-      } else {
-        setDisplayValue(Math.floor(current));
-      }
-    }, duration / steps);
-
-    return () => clearInterval(timer);
-  }, [value]);
-
-  return (
-    <span className="tabular-nums">
-      {displayValue.toLocaleString("pt-BR")}
-      {suffix}
-    </span>
-  );
+function smoothScrollTo(elementId: string) {
+  const element = document.getElementById(elementId);
+  if (element) {
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 export function LandingPage() {
@@ -221,43 +208,22 @@ export function LandingPage() {
             Estratégia supera microgerenciamento.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Link
               href="/login"
               className="noir-btn-primary px-8 py-4 text-lg flex items-center gap-2 group"
             >
-              Começar Gratuitamente
+              Começar Agora
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <a
-              href="#philosophy"
+            <button
+              type="button"
+              onClick={() => smoothScrollTo("philosophy")}
               className="noir-btn-secondary px-8 py-4 text-lg flex items-center gap-2"
             >
               Entender a Filosofia
               <ChevronDown size={20} />
-            </a>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-heading mb-1">
-                <AnimatedNumber value={100} suffix="%" />
-              </div>
-              <div className="text-sm text-muted">Gratuito</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-accent-positive mb-1">
-                <AnimatedNumber value={0} suffix="" />
-              </div>
-              <div className="text-sm text-muted">Centavos contados</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-accent-spending mb-1">
-                <AnimatedNumber value={100} suffix="" />
-              </div>
-              <div className="text-sm text-muted">Score de Saúde</div>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -316,10 +282,11 @@ export function LandingPage() {
               </div>
               <div>
                 <p className="text-heading text-lg font-medium mb-2">
-                  "Se você entende o conceito da sua saúde financeira, não precisa de continha."
+                  "Quem entende o conceito, não precisa de continha. Quem faz continha, não entendeu
+                  o conceito."
                 </p>
                 <p className="text-muted">
-                  Eficiência é gastar menos tempo gerenciando e mais tempo vivendo — sem perder o
+                  Eficiência é gastar menos tempo gerenciando e mais tempo vivendo, sem perder o
                   controle estratégico.
                 </p>
               </div>
@@ -328,78 +295,29 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Premium Features Section */}
-      <section id="features" className="py-24 bg-noir-surface/50">
+      {/* App Screenshot Section */}
+      <section className="py-16 bg-noir-surface/30">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-heading mb-4">
-              Ferramentas de <span className="text-accent-primary">Estratégia Financeira</span>
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-heading mb-4">
+              Visão clara da sua <span className="text-accent-primary">saúde financeira</span>
             </h2>
             <p className="text-body text-lg max-w-2xl mx-auto">
-              Funcionalidades premium pensadas para quem quer eficiência, não microgerenciamento.
-              Cada recurso foi desenhado para liberar seu tempo e ampliar sua visão.
+              Dashboard intuitivo que mostra o que realmente importa: seu score, suas tendências e
+              seus alertas.
             </p>
           </div>
-
-          <div className="space-y-8">
-            {premiumFeatures.map((feature, index) => (
-              <div
-                key={feature.id}
-                className={`noir-card p-8 hover:border-noir-border-light transition-all ${
-                  index % 2 === 1 ? "md:ml-12" : "md:mr-12"
-                }`}
-              >
-                <div className="flex flex-col md:flex-row items-start gap-6">
-                  <div className={`bg-${feature.color}/20 p-4 rounded-card shrink-0`}>
-                    <feature.icon size={32} className={`text-${feature.color}`} />
-                  </div>
-                  <div className="flex-1">
-                    <div
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-pill bg-${feature.color}/10 border border-${feature.color}/30 text-${feature.color} text-xs font-medium mb-3`}
-                    >
-                      {feature.highlight}
-                    </div>
-                    <h3 className="text-2xl font-bold text-heading mb-3">{feature.title}</h3>
-                    <p className="text-body text-lg leading-relaxed">{feature.description}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Proportional Split Deep Dive */}
-          <div className="mt-16 grid md:grid-cols-2 gap-8 items-center">
-            <div>
-              <h3 className="text-2xl font-bold text-heading mb-4">
-                Divisão Proporcional: <span className="text-accent-primary">Matemática Justa</span>
-              </h3>
-              <p className="text-body text-lg leading-relaxed mb-6">
-                Quando um parceiro ganha R$ 8.000 e outro R$ 4.000, dividir 50/50 não é justo — é
-                injusto. No FinançasPro, quem ganha 67% contribui com 67% das despesas conjuntas.
-              </p>
-              <p className="text-body leading-relaxed">
-                O resultado? Ambos ficam com a{" "}
-                <span className="text-heading font-medium">mesma proporção de renda livre</span>{" "}
-                para gastos pessoais. Sem brigas. Sem ressentimentos. Apenas eficiência matemática.
-              </p>
-            </div>
-            <div className="noir-card p-6 bg-noir-surface">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center pb-3 border-b border-noir-border">
-                  <span className="text-muted">Parceiro A (67% da renda)</span>
-                  <span className="text-heading font-semibold">67% das despesas</span>
-                </div>
-                <div className="flex justify-between items-center pb-3 border-b border-noir-border">
-                  <span className="text-muted">Parceiro B (33% da renda)</span>
-                  <span className="text-heading font-semibold">33% das despesas</span>
-                </div>
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-accent-positive font-medium">Resultado</span>
-                  <span className="text-accent-positive font-semibold">
-                    Mesma % de renda livre ✓
-                  </span>
-                </div>
-              </div>
+          <div className="relative max-w-4xl mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-r from-accent-primary/20 via-accent-positive/20 to-accent-spending/20 rounded-2xl blur-xl" />
+            <div className="relative noir-card p-2 rounded-2xl overflow-hidden">
+              <Image
+                src="/screenshot-dashboard.png"
+                alt="Dashboard do FinançasPro mostrando Score de Saúde Financeira, gastos do mês e tendências"
+                width={1200}
+                height={675}
+                className="rounded-xl w-full h-auto"
+                priority
+              />
             </div>
           </div>
         </div>
@@ -422,7 +340,7 @@ export function LandingPage() {
               </h2>
               <p className="text-body text-lg leading-relaxed mb-6">
                 O Score de Saúde Financeira (0-100) resume a complexidade das suas finanças em uma
-                métrica acionável. Não é sobre quanto você tem — é sobre sua{" "}
+                métrica acionável. Não é sobre quanto você tem, é sobre sua{" "}
                 <span className="text-heading font-medium">trajetória</span>.
               </p>
               <p className="text-body text-lg leading-relaxed mb-6">
@@ -457,94 +375,59 @@ export function LandingPage() {
               ))}
             </div>
           </div>
-
-          {/* Runway concept */}
-          <div className="mt-16 noir-card p-8 bg-gradient-to-r from-noir-surface to-noir-sidebar border-accent-primary/20">
-            <div className="grid md:grid-cols-3 gap-8 items-center">
-              <div className="md:col-span-2">
-                <h3 className="text-2xl font-bold text-heading mb-4">
-                  Seu <span className="text-accent-primary">Runway</span> Financeiro
-                </h3>
-                <p className="text-body text-lg leading-relaxed">
-                  Quantos meses sua reserva de emergência cobre seus gastos atuais? Essa é a métrica
-                  que separa quem está vulnerável de quem tem liberdade para tomar decisões. O
-                  Simulador de Cenários calcula isso automaticamente para diferentes situações.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="text-5xl font-bold text-accent-primary mb-2">12+</div>
-                <div className="text-muted text-sm">meses de runway = tranquilidade</div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* How It's Different Section */}
-      <section className="py-24 bg-noir-surface/50">
+      {/* Premium Features Section */}
+      <section id="features" className="py-24 bg-noir-surface/50">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-heading mb-4">
-              Anti-Microgerenciamento
+              Ferramentas Premium de{" "}
+              <span className="text-accent-primary">Estratégia Financeira</span>
             </h2>
             <p className="text-body text-lg max-w-2xl mx-auto">
-              Apps tradicionais te fazem contar centavos. O FinançasPro te faz entender tendências.
+              Nosso plano premium oferece funcionalidades exclusivas, pensadas para quem quer
+              eficiência, não microgerenciamento. Cada recurso foi desenhado para liberar seu tempo
+              e ampliar sua visão.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="noir-card p-6 border-accent-negative/30">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-accent-negative/20 p-2 rounded-interactive">
-                  <span className="text-accent-negative text-xl">✕</span>
+          <div className="space-y-8">
+            {premiumFeatures.map((feature, index) => (
+              <div
+                key={feature.id}
+                className={`noir-card p-8 hover:border-noir-border-light transition-all ${
+                  index % 2 === 1 ? "md:ml-12" : "md:mr-12"
+                }`}
+              >
+                <div className="flex flex-col md:flex-row items-start gap-6">
+                  <div className={`bg-${feature.color}/20 p-4 rounded-card shrink-0`}>
+                    <feature.icon size={32} className={`text-${feature.color}`} />
+                  </div>
+                  <div className="flex-1">
+                    <div
+                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-pill bg-${feature.color}/10 border border-${feature.color}/30 text-${feature.color} text-xs font-medium mb-3`}
+                    >
+                      {feature.highlight}
+                    </div>
+                    <h3 className="text-2xl font-bold text-heading mb-3">{feature.title}</h3>
+                    <p className="text-body text-lg leading-relaxed">{feature.description}</p>
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-heading">Apps Tradicionais</h3>
               </div>
-              <ul className="space-y-3 text-body">
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-negative mt-1">•</span>
-                  Exigem categorização de cada café
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-negative mt-1">•</span>
-                  Notificações constantes gerando ansiedade
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-negative mt-1">•</span>
-                  Foco no saldo exato da conta
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-negative mt-1">•</span>
-                  Divisão 50/50 que ignora diferenças de renda
-                </li>
-              </ul>
-            </div>
+            ))}
+          </div>
 
-            <div className="noir-card p-6 border-accent-positive/30">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-accent-positive/20 p-2 rounded-interactive">
-                  <span className="text-accent-positive text-xl">✓</span>
-                </div>
-                <h3 className="text-xl font-semibold text-heading">FinançasPro</h3>
-              </div>
-              <ul className="space-y-3 text-body">
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-positive mt-1">•</span>
-                  Arredondamentos encorajados — foque no macro
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-positive mt-1">•</span>
-                  Alertas apenas para outliers estatísticos
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-positive mt-1">•</span>
-                  Foco no Score de Saúde e tendências
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-accent-positive mt-1">•</span>
-                  Divisão proporcional por renda real
-                </li>
-              </ul>
+          {/* Beta Notice */}
+          <div className="mt-12 text-center">
+            <div className="inline-flex items-center gap-3 px-6 py-4 rounded-card bg-accent-primary/10 border border-accent-primary/30">
+              <Sparkles size={20} className="text-accent-primary" />
+              <p className="text-body">
+                <span className="text-heading font-medium">Beta exclusivo:</span> Como o app ainda
+                está em beta, os early adopters poderão utilizar todas as funcionalidades premium
+                gratuitamente até o lançamento oficial.
+              </p>
             </div>
           </div>
         </div>
@@ -573,13 +456,11 @@ export function LandingPage() {
               href="/login"
               className="noir-btn-primary px-10 py-4 text-lg flex items-center gap-2 group"
             >
-              Começar Gratuitamente
+              Começar Agora
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
-          <p className="text-muted text-sm mt-6">
-            Sem necessidade de cartão • 100% gratuito • Sem ansiedade do centavo
-          </p>
+          <p className="text-muted text-sm mt-6">Sem necessidade de cartão de crédito</p>
         </div>
       </section>
 
