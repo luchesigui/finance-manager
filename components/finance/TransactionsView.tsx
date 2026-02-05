@@ -277,12 +277,16 @@ export function TransactionsView() {
   };
 
   const visibleTransactionsForSelectedMonth = transactionsForSelectedMonth.filter(matchesFilters);
-  const visibleTransactionsForCalculations = transactionsForCalculations.filter(matchesFilters);
+  const visibleTransactionsForCalculations = transactionsForCalculations
+    .filter(matchesFilters)
+    .filter((transaction) => transaction.type !== "income");
   const visibleCalculationIds = new Set(
     visibleTransactionsForCalculations.map((transaction) => transaction.id),
   );
-  const visibleExcludedForecastCount = visibleTransactionsForSelectedMonth.filter(
-    (transaction) => transaction.isForecast && !visibleCalculationIds.has(transaction.id),
+  const visibleExcludedForecastAndIncomeCount = visibleTransactionsForSelectedMonth.filter(
+    (transaction) =>
+      (transaction.isForecast || transaction.type === "income") &&
+      !visibleCalculationIds.has(transaction.id),
   ).length;
 
   const handleOpenEditModal = (transaction: Transaction) => {
@@ -1088,8 +1092,8 @@ Retorne APENAS o JSON, sem markdown.
           <div className="p-4 border-t border-noir-border bg-noir-active/50 flex items-center justify-between">
             <span className="font-semibold text-heading">
               Total ({visibleTransactionsForCalculations.length} lançamento(s)
-              {visibleExcludedForecastCount > 0
-                ? ` + ${visibleExcludedForecastCount} previsão não considerada`
+              {visibleExcludedForecastAndIncomeCount > 0
+                ? ` + ${visibleExcludedForecastAndIncomeCount} previsão não considerada`
                 : ""}
               )
             </span>
