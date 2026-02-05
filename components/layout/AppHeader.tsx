@@ -1,13 +1,14 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import { DollarSign, LogOut, Settings, TrendingUp, Wallet } from "lucide-react";
+import { DollarSign, FlaskConical, LogOut, Settings, TrendingUp, Wallet } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const tabs = [
   { href: "/dashboard", label: "Resumo", icon: TrendingUp },
   { href: "/transactions", label: "Lançamentos", icon: DollarSign },
+  { href: "/simulation", label: "Simulação", icon: FlaskConical },
   { href: "/settings", label: "Configurações", icon: Settings },
 ] as const;
 

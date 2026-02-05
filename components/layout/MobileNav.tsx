@@ -1,12 +1,13 @@
 "use client";
 
-import { Plus, Settings, TrendingUp } from "lucide-react";
+import { FlaskConical, Plus, Settings, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/dashboard", label: "Resumo", icon: TrendingUp },
   { href: "/transactions", label: "Lançamentos", icon: Plus },
+  { href: "/simulation", label: "Simulação", icon: FlaskConical },
   { href: "/settings", label: "Config", icon: Settings },
 ] as const;
 

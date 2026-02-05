@@ -679,6 +679,41 @@ export async function updateDefaultPayerId(personId: string): Promise<void> {
 }
 
 // ============================================================================
+// Emergency Fund Operations
+// ============================================================================
+
+export async function getEmergencyFund(): Promise<number> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const { data, error } = await supabase
+    .from("households")
+    .select("emergency_fund")
+    .eq("id", householdId)
+    .single();
+
+  if (error) throw error;
+  return Number(data?.emergency_fund ?? 0);
+}
+
+export async function updateEmergencyFund(amount: number): Promise<void> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const { data: updateData, error } = await supabase
+    .from("households")
+    .update({ emergency_fund: amount })
+    .eq("id", householdId)
+    .select();
+
+  if (error) throw error;
+
+  if (!updateData || updateData.length === 0) {
+    throw new Error("Failed to update emergency fund - no rows updated");
+  }
+}
+
+// ============================================================================
 // Outlier Statistics
 // ============================================================================
 

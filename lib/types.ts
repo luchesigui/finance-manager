@@ -164,6 +164,7 @@ export type ApiErrorResponse = { error: string };
 
 export type DefaultPayerResponse = { defaultPayerId: string | null };
 export type CurrentUserResponse = { userId: string };
+export type EmergencyFundResponse = { emergencyFund: number };
 
 // ============================================================================
 // Outlier Detection Types
