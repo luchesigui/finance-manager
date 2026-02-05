@@ -5,6 +5,7 @@ import {
   ArrowUp,
   CheckCircle2,
   Gem,
+  Info,
   Target,
   TrendingDown,
   TrendingUp,
@@ -131,11 +132,22 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
 
       {/* Card B: Total Gasto vs Orçamento */}
       <div className="noir-card p-6">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="p-2 rounded-interactive bg-accent-negative/20 text-accent-negative">
-            <TrendingDown size={18} />
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-interactive bg-accent-negative/20 text-accent-negative">
+              <TrendingDown size={18} />
+            </div>
+            <h3 className="text-sm font-semibold text-body">Gastos do Mês</h3>
           </div>
-          <h3 className="text-sm font-semibold text-body">Gastos do Mês</h3>
+          <div className="relative group">
+            <Info size={16} className="text-muted cursor-help hover:text-body transition-colors" />
+            <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-noir-hover border border-noir-border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+              <p className="text-xs text-body leading-relaxed">
+                O orçamento é calculado como os rendimentos totais subtraídos do investimento
+                esperado para Liberdade Financeira.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Primary value */}
