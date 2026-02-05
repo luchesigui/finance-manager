@@ -1084,22 +1084,79 @@ Retorne APENAS o JSON, sem markdown.
         </div>
 
         {/* Total row */}
-        {visibleTransactionsForSelectedMonth.length > 0 && (
-          <div className="p-4 border-t border-noir-border bg-noir-active/50 flex items-center justify-between">
-            <span className="font-semibold text-heading">
-              Total ({visibleTransactionsForCalculations.length} lançamento(s)
-              {visibleExcludedForecastCount > 0
-                ? ` + ${visibleExcludedForecastCount} previsão não considerada`
-                : ""}
-              )
-            </span>
-            <span className="font-bold text-lg text-heading tabular-nums">
-              {formatCurrency(
-                visibleTransactionsForCalculations.reduce((sum, t) => sum + t.amount, 0),
-              )}
-            </span>
-          </div>
-        )}
+        {visibleTransactionsForSelectedMonth.length > 0 &&
+          (() => {
+            // Calculate expense total (excluding income transactions)
+            const expenseTransactions = visibleTransactionsForCalculations.filter(
+              (t) => t.type !== "income",
+            );
+            const totalExpenses = expenseTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+            // Calculate income totals
+            const incomeTransactions = visibleTransactionsForCalculations.filter(
+              (t) => t.type === "income",
+            );
+            const totalIncomeIncrement = incomeTransactions
+              .filter((t) => t.isIncrement)
+              .reduce((sum, t) => sum + t.amount, 0);
+            const totalIncomeDecrement = incomeTransactions
+              .filter((t) => !t.isIncrement)
+              .reduce((sum, t) => sum + t.amount, 0);
+            const netIncome = totalIncomeIncrement - totalIncomeDecrement;
+
+            const hasExpenses = expenseTransactions.length > 0;
+            const hasIncome = incomeTransactions.length > 0;
+
+            return (
+              <div className="p-4 border-t border-noir-border bg-noir-active/50 flex flex-col gap-2">
+                {/* Expense total */}
+                {hasExpenses && (
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-heading">
+                      Total Despesas ({expenseTransactions.length} lançamento(s)
+                      {visibleExcludedForecastCount > 0
+                        ? ` + ${visibleExcludedForecastCount} previsão não considerada`
+                        : ""}
+                      )
+                    </span>
+                    <span className="font-bold text-lg text-heading tabular-nums">
+                      {formatCurrency(totalExpenses)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Income total */}
+                {hasIncome && (
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-accent-positive">
+                      Total Renda ({incomeTransactions.length} lançamento(s))
+                    </span>
+                    <span className="font-bold text-lg text-accent-positive tabular-nums">
+                      {netIncome >= 0 ? "+" : ""}
+                      {formatCurrency(netIncome)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Net balance when both exist */}
+                {hasExpenses && hasIncome && (
+                  <div className="flex items-center justify-between pt-2 border-t border-noir-border">
+                    <span className="font-semibold text-muted">Saldo Líquido</span>
+                    <span
+                      className={`font-bold text-lg tabular-nums ${
+                        netIncome - totalExpenses >= 0
+                          ? "text-accent-positive"
+                          : "text-accent-negative"
+                      }`}
+                    >
+                      {netIncome - totalExpenses >= 0 ? "+" : ""}
+                      {formatCurrency(netIncome - totalExpenses)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
       </div>
 
       {/* Edit Transaction Modal */}
