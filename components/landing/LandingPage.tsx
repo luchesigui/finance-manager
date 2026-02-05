@@ -311,7 +311,7 @@ export function LandingPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-accent-primary/20 via-accent-positive/20 to-accent-spending/20 rounded-2xl blur-xl" />
             <div className="relative noir-card p-2 rounded-2xl overflow-hidden">
               <Image
-                src="/screenshot-dashboard.png"
+                src="/images/screenshot-dashboard.png"
                 alt="Dashboard do FinançasPro mostrando Score de Saúde Financeira, gastos do mês e tendências"
                 width={1200}
                 height={675}
