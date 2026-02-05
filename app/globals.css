@@ -552,3 +552,20 @@ body {
 [data-theme="light"] .bg-accent-spending {
   background-color: #ca8a04;
 }
+
+/* Landing page screenshot scroll animation */
+@keyframes scroll-preview {
+  0% {
+    transform: translateY(0);
+  }
+  15% {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-173%);
+  }
+}
+
+.animate-scroll-preview {
+  animation: 6s cubic-bezier(0.4, 0, 0.2, 1) infinite scroll-preview alternate;
+}
