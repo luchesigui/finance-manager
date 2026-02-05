@@ -137,7 +137,9 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
             <div className="p-2 rounded-interactive bg-accent-negative/20 text-accent-negative">
               <TrendingDown size={18} />
             </div>
-            <h3 className="text-sm font-semibold text-body">Gastos do Mês</h3>
+            <h3 className="text-sm font-semibold text-heading uppercase tracking-wide">
+              Gastos do Mês
+            </h3>
           </div>
           <div className="relative group">
             <Info size={16} className="text-muted cursor-help hover:text-body transition-colors" />
@@ -217,7 +219,9 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
             >
               <Wallet size={18} />
             </div>
-            <h3 className="text-sm font-semibold text-body">Saldo Livre</h3>
+            <h3 className="text-sm font-semibold text-heading uppercase tracking-wide">
+              Saldo Livre
+            </h3>
           </div>
 
           {/* Primary value */}
