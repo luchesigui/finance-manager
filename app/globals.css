@@ -558,20 +558,14 @@ body {
   0% {
     transform: translateY(0);
   }
-  35% {
+  15% {
     transform: translateY(0);
   }
-  50% {
-    transform: translateY(-63.4%);
-  }
-  85% {
-    transform: translateY(-63.4%);
-  }
-  100% {
-    transform: translateY(0);
+  to {
+    transform: translateY(-173%);
   }
 }
 
 .animate-scroll-preview {
-  animation: scroll-preview 12s ease-in-out infinite;
+  animation: 6s cubic-bezier(0.4, 0, 0.2, 1) infinite scroll-preview alternate;
 }

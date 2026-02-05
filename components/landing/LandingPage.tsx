@@ -31,15 +31,6 @@ const premiumFeatures = [
     color: "accent-primary",
   },
   {
-    id: "scenario-simulator",
-    icon: Compass,
-    title: "Simulador de Cenários",
-    description:
-      "Financiamento imobiliário, faculdade dos filhos, tratamentos de saúde, ano sabático. Visualize como cada compromisso de longo prazo impacta sua liberdade financeira antes de assumir qualquer decisão.",
-    highlight: "Impacto na liberdade financeira",
-    color: "accent-positive",
-  },
-  {
     id: "runway-calculator",
     icon: Clock,
     title: "Calculadora de Runway",
@@ -56,6 +47,15 @@ const premiumFeatures = [
       "Um vigia inteligente que aprende seus padrões de consumo e ignora as pequenas variações do dia a dia. Quando algo realmente fora do comum acontece, você recebe um alerta. Descubra onde o dinheiro está escapando sem precisar analisar cada transação manualmente.",
     highlight: "Vigia inteligente",
     color: "accent-spending",
+  },
+  {
+    id: "scenario-simulator",
+    icon: Compass,
+    title: "Simulador de Cenários",
+    description:
+      "Financiamento imobiliário, faculdade dos filhos, tratamentos de saúde, ano sabático. Visualize como cada compromisso de longo prazo impacta sua liberdade financeira antes de assumir qualquer decisão.",
+    highlight: "Impacto na liberdade financeira",
+    color: "accent-positive",
   },
 ];
 
@@ -419,27 +419,8 @@ export function LandingPage() {
             ))}
           </div>
 
-          {/* Beta Notice */}
-          <p className="mt-12 text-center text-muted text-sm max-w-md mx-auto">
-            Como o app ainda está em beta, os early adopters podem utilizar todas as funcionalidades
-            premium gratuitamente até o lançamento oficial.
-          </p>
-        </div>
-      </section>
-
-      {/* Simulation Screenshot Section */}
-      <section className="py-16">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-heading mb-4">
-              Simule cenários e <span className="text-accent-positive">planeje seu futuro</span>
-            </h2>
-            <p className="text-body text-lg max-w-2xl mx-auto">
-              Visualize o impacto de grandes decisões financeiras antes de tomá-las. Quanto tempo
-              sua reserva dura? Como um financiamento afeta sua liberdade?
-            </p>
-          </div>
-          <div className="relative max-w-4xl mx-auto">
+          {/* Simulation Screenshot */}
+          <div className="mt-16 relative max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-gradient-to-r from-accent-positive/20 via-accent-primary/20 to-accent-warning/20 rounded-2xl blur-xl" />
             <div className="relative noir-card p-2 rounded-2xl overflow-hidden">
               {/* Container with fixed aspect ratio matching dashboard screenshot */}
@@ -460,6 +441,12 @@ export function LandingPage() {
               </div>
             </div>
           </div>
+
+          {/* Beta Notice */}
+          <p className="mt-12 text-center text-muted text-sm max-w-lg mx-auto">
+            Como o app ainda está em beta, os early adopters podem utilizar todas as funcionalidades
+            premium gratuitamente até o lançamento oficial.
+          </p>
         </div>
       </section>
 
