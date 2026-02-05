@@ -20,7 +20,7 @@ import { formatCurrency } from "@/lib/format";
 
 type QuickStatsGridProps = {
   factors: HealthScoreFactors;
-  /** Total expenses INCLUDING Liberdade Financeira */
+  /** Total expenses EXCLUDING Liberdade Financeira (savings) */
   totalExpenses: number;
   effectiveIncome: number;
 };
@@ -35,7 +35,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
   // Calculate spending budget: Income - Expected Savings
   const spendingBudget = effectiveIncome - liberdadeFinanceira.target;
 
-  // Calculate budget usage percentage based on ALL expenses (including savings)
+  // Calculate budget usage percentage based on expenses (excluding savings)
   const budgetUsagePercent = spendingBudget > 0 ? (totalExpenses / spendingBudget) * 100 : 0;
 
   // Determine if savings goal is achieved
