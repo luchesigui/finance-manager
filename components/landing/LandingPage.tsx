@@ -433,6 +433,42 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Simulation Screenshot Section */}
+      <section className="py-16">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-heading mb-4">
+              Simule cenários e <span className="text-accent-positive">planeje seu futuro</span>
+            </h2>
+            <p className="text-body text-lg max-w-2xl mx-auto">
+              Visualize o impacto de grandes decisões financeiras antes de tomá-las. Quanto tempo
+              sua reserva dura? Como um financiamento afeta sua liberdade?
+            </p>
+          </div>
+          <div className="relative max-w-4xl mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-r from-accent-positive/20 via-accent-primary/20 to-accent-warning/20 rounded-2xl blur-xl" />
+            <div className="relative noir-card p-2 rounded-2xl overflow-hidden">
+              {/* Container with fixed aspect ratio matching dashboard screenshot */}
+              <div
+                className="relative w-full overflow-hidden rounded-xl"
+                style={{ paddingBottom: "56.25%" }}
+              >
+                {/* Animated scrolling image */}
+                <div className="absolute inset-0 animate-scroll-preview">
+                  <Image
+                    src="/images/screenshot-previsao.png"
+                    alt="Simulador de Cenários do FinançasPro mostrando projeções financeiras e análise de runway"
+                    width={1200}
+                    height={1845}
+                    className="w-full h-auto"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
