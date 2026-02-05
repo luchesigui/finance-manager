@@ -1,6 +1,7 @@
 // Components
 export { AlertsPanel } from "./AlertsPanel";
 export { CategoryBudgetChart } from "./CategoryBudgetChart";
+export { ForecastSpotlight } from "./ForecastSpotlight";
 export { HealthScore } from "./HealthScore";
 export { HealthTrendChart, type HealthTrendDataPoint } from "./HealthTrendChart";
 export { OutlierSpotlight, type OutlierTransaction } from "./OutlierSpotlight";

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import {
   AlertsPanel,
   CategoryBudgetChart,
+  ForecastSpotlight,
   HealthScore,
   HealthTrendChart,
   type HealthTrendDataPoint,
@@ -150,7 +151,14 @@ export function DashboardView() {
   const { selectedMonthDate, selectedYear, selectedMonthNumber } = useCurrentMonth();
   const { people, isPeopleLoading } = usePeople();
   const { categories, isCategoriesLoading } = useCategories();
-  const { transactionsForCalculations, isTransactionsLoading } = useTransactions();
+  const {
+    transactionsForCalculations,
+    transactionsForSelectedMonth,
+    isTransactionsLoading,
+    updateTransactionById,
+    isForecastIncluded,
+    setForecastInclusionOverride,
+  } = useTransactions();
 
   // Combined loading state for health score calculation
   const isDataLoading = isPeopleLoading || isCategoriesLoading || isTransactionsLoading;
@@ -288,6 +296,12 @@ export function DashboardView() {
   // Format year-month for confetti cookie
   const yearMonth = `${selectedYear}-${String(selectedMonthNumber).padStart(2, "0")}`;
 
+  // Get forecast transactions for the selected month
+  const forecastTransactions = useMemo(
+    () => transactionsForSelectedMonth.filter((t) => t.isForecast && t.type !== "income"),
+    [transactionsForSelectedMonth],
+  );
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Savings Goal Celebration */}
@@ -309,6 +323,23 @@ export function DashboardView() {
       {/* Alerts Panel */}
       <AlertsPanel alerts={alerts} />
 
+      {/* Forecast Spotlight - right after alerts */}
+      <ForecastSpotlight
+        forecasts={forecastTransactions}
+        categories={categories}
+        totalExpenses={totalExpensesAll}
+        isForecastIncluded={isForecastIncluded}
+        setForecastInclusionOverride={setForecastInclusionOverride}
+        updateTransactionById={updateTransactionById}
+      />
+
+      {/* Outlier Spotlight - right after forecast */}
+      <OutlierSpotlight
+        outliers={outlierTransactions}
+        categories={categories}
+        totalExpenses={totalExpensesAll}
+      />
+
       {/* Two Column Layout for Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-grid-gap">
         {/* Category Budget Chart */}
@@ -321,13 +352,6 @@ export function DashboardView() {
           isLoading={isHealthScoreLoading}
         />
       </div>
-
-      {/* Outlier Spotlight */}
-      <OutlierSpotlight
-        outliers={outlierTransactions}
-        categories={categories}
-        totalExpenses={totalExpensesAll}
-      />
     </div>
   );
 }
