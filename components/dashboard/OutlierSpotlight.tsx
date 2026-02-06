@@ -78,14 +78,14 @@ export function OutlierSpotlight({ outliers, categories, totalExpenses }: Outlie
   const outlierPercentOfTotal = totalExpenses > 0 ? (totalOutlierAmount / totalExpenses) * 100 : 0;
 
   return (
-    <div className="noir-card overflow-hidden border border-accent-warning/30">
+    <div className="noir-card overflow-hidden">
       <button
         type="button"
         onClick={() => setCollapsed(!isCollapsed)}
-        className="w-full p-4 border-b border-noir-border bg-accent-warning/5 flex items-center gap-2 hover:bg-accent-warning/10 transition-colors"
+        className="w-full p-card-padding flex items-center gap-2 hover:bg-noir-active/30 transition-colors"
       >
-        <AlertOctagon size={18} className="text-accent-warning" />
-        <h2 className="font-semibold text-heading">Gastos Fora do Padrão</h2>
+        <AlertOctagon size={20} className="text-accent-warning" />
+        <h2 className="text-lg font-semibold text-heading">Gastos Fora do Padrão</h2>
         <span className="noir-badge-warning text-xs">
           {outliers.length} {outliers.length === 1 ? "item" : "itens"}
         </span>
@@ -95,7 +95,7 @@ export function OutlierSpotlight({ outliers, categories, totalExpenses }: Outlie
       </button>
 
       {!isCollapsed && (
-        <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+        <div className="px-card-padding pb-card-padding space-y-4 animate-in slide-in-from-top-2 duration-200">
           {/* Outlier list */}
           <div className="space-y-3">
             {outliers.slice(0, 5).map((outlier) => {

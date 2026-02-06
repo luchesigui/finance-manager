@@ -88,14 +88,14 @@ export function ForecastSpotlight({
     totalExpenses > 0 ? (totalForecastAmount / totalExpenses) * 100 : 0;
 
   return (
-    <div className="noir-card overflow-hidden border border-accent-spending/30">
+    <div className="noir-card overflow-hidden">
       <button
         type="button"
         onClick={() => setCollapsed(!isCollapsed)}
-        className="w-full p-4 border-b border-noir-border bg-accent-spending/5 flex items-center gap-2 hover:bg-accent-spending/10 transition-colors"
+        className="w-full p-card-padding flex items-center gap-2 hover:bg-noir-active/30 transition-colors"
       >
-        <CrystalBallLine size={18} className="text-accent-spending" />
-        <h2 className="font-semibold text-heading">Gastos Previstos</h2>
+        <CrystalBallLine size={20} className="text-accent-spending" />
+        <h2 className="text-lg font-semibold text-heading">Gastos Previstos</h2>
         <span className="noir-badge-muted text-xs">
           {forecasts.length} {forecasts.length === 1 ? "item" : "itens"}
         </span>
@@ -105,7 +105,7 @@ export function ForecastSpotlight({
       </button>
 
       {!isCollapsed && (
-        <div className="p-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
+        <div className="px-card-padding pb-card-padding space-y-4 animate-in slide-in-from-top-2 duration-200">
           {/* Forecast list */}
           <div className="space-y-3">
             {forecasts.slice(0, 5).map((forecast) => {

@@ -147,11 +147,14 @@ export function LandingPage() {
       >
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="bg-accent-primary p-2 rounded-interactive text-white shadow-glow-accent">
-              <Wallet size={24} />
+            <div className="bg-accent-primary/15 p-2 rounded-interactive text-accent-primary border border-accent-primary/20">
+              <Wallet size={22} />
             </div>
-            <span className="text-xl font-bold text-heading tracking-tight">
-              Finanças<span className="text-accent-primary">Pro</span>
+            <span className="text-xl text-heading tracking-tight">
+              <span className="font-display italic">Finanças</span>
+              <span className="text-accent-primary font-semibold text-sm ml-0.5 uppercase tracking-wider">
+                Pro
+              </span>
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -161,7 +164,7 @@ export function LandingPage() {
             >
               Entrar
             </Link>
-            <Link href="/login" className="noir-btn-primary">
+            <Link href="/login" className="hidden md:inline-flex noir-btn-primary">
               Começar Agora
             </Link>
           </div>
@@ -181,8 +184,8 @@ export function LandingPage() {
         <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(var(--chart-axis) 1px, transparent 1px),
+                            linear-gradient(90deg, var(--chart-axis) 1px, transparent 1px)`,
             backgroundSize: "50px 50px",
           }}
         />
@@ -193,10 +196,10 @@ export function LandingPage() {
             Gestão Financeira Sem Neura
           </div>
 
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-heading leading-tight mb-6">
-            Domine seu futuro.
+          <h1 className="text-4xl md:text-6xl lg:text-7xl text-heading leading-tight mb-6">
+            <span className="font-display italic">Domine seu futuro.</span>
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-primary via-accent-positive to-accent-spending">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-primary via-accent-positive to-accent-spending font-display italic">
               Não seu extrato bancário.
             </span>
           </h1>
@@ -211,26 +214,30 @@ export function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Link
               href="/login"
-              className="noir-btn-primary px-8 py-4 text-lg flex items-center gap-2 group"
+              className="noir-btn-primary px-6 py-3 text-base flex items-center gap-2 group"
             >
               Começar Agora
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <button
               type="button"
               onClick={() => smoothScrollTo("philosophy")}
-              className="noir-btn-secondary px-8 py-4 text-lg flex items-center gap-2"
+              className="hidden sm:flex noir-btn-secondary px-6 py-3 text-base items-center gap-2"
             >
               Entender a Filosofia
-              <ChevronDown size={20} />
+              <ChevronDown size={18} />
             </button>
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <ChevronDown size={32} className="text-muted" />
-        </div>
+        <button
+          type="button"
+          onClick={() => smoothScrollTo("philosophy")}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce cursor-pointer"
+        >
+          <ChevronDown size={32} className="text-muted hover:text-heading transition-colors" />
+        </button>
       </section>
 
       {/* Philosophy Section - A Filosofia do Arredondamento */}
@@ -241,9 +248,9 @@ export function LandingPage() {
               <Zap size={14} />
               Nossa Filosofia
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-heading mb-4">
-              A Filosofia do{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-primary to-accent-positive">
+            <h2 className="text-4xl md:text-5xl text-heading mb-4">
+              <span className="font-display italic">A Filosofia do</span>{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-primary to-accent-positive font-display italic">
                 Arredondamento
               </span>
             </h2>
@@ -263,7 +270,7 @@ export function LandingPage() {
                 className="noir-card p-6 hover:border-noir-border-light transition-all group"
               >
                 <div className="flex items-start gap-4">
-                  <div className="bg-accent-primary/20 p-3 rounded-card group-hover:scale-110 transition-transform">
+                  <div className="bg-accent-primary/15 p-3 rounded-card group-hover:scale-110 transition-transform border border-accent-primary/10">
                     <point.icon size={24} className="text-accent-primary" />
                   </div>
                   <div>
@@ -299,8 +306,9 @@ export function LandingPage() {
       <section className="py-16 bg-noir-surface/30">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-heading mb-4">
-              Visão clara da sua <span className="text-accent-primary">saúde financeira</span>
+            <h2 className="text-4xl md:text-5xl text-heading mb-4">
+              <span className="font-display italic">Visão clara da sua</span>{" "}
+              <span className="text-accent-primary font-display italic">saúde financeira</span>
             </h2>
             <p className="text-body text-lg max-w-2xl mx-auto">
               Dashboard intuitivo que mostra o que realmente importa: seu score, suas tendências e
@@ -332,9 +340,9 @@ export function LandingPage() {
                 <Gauge size={14} />
                 Score de Saúde Financeira
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-heading mb-6">
-                Sua vida financeira em{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-positive to-accent-primary">
+              <h2 className="text-4xl md:text-5xl text-heading mb-6">
+                <span className="font-display italic">Sua vida financeira em</span>{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-positive to-accent-primary font-display italic block">
                   um número
                 </span>
               </h2>
@@ -363,7 +371,7 @@ export function LandingPage() {
                   className="noir-card p-5 flex items-center gap-4 hover:border-noir-border-light transition-all"
                 >
                   <div
-                    className={`bg-${tier.color}/20 px-3 py-2 rounded-interactive min-w-[80px] text-center`}
+                    className={`${tier.color === "accent-primary" ? "bg-transparent" : `bg-${tier.color}/20`} border border-${tier.color}/30 px-4 py-2 rounded-pill min-w-[92px] text-center whitespace-nowrap`}
                   >
                     <span className={`text-${tier.color} font-bold`}>{tier.range}</span>
                   </div>
@@ -382,9 +390,9 @@ export function LandingPage() {
       <section id="features" className="py-24 bg-noir-surface/50">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-heading mb-4">
-              Ferramentas Premium de{" "}
-              <span className="text-accent-primary">Estratégia Financeira</span>
+            <h2 className="text-4xl md:text-5xl text-heading mb-4">
+              <span className="font-display italic">Ferramentas Premium de</span>{" "}
+              <span className="text-accent-primary font-display italic">Estratégia Financeira</span>
             </h2>
             <p className="text-body text-lg max-w-2xl mx-auto">
               Nosso plano premium oferece funcionalidades exclusivas, pensadas para quem quer
@@ -402,7 +410,9 @@ export function LandingPage() {
                 }`}
               >
                 <div className="flex flex-col md:flex-row items-start gap-6">
-                  <div className={`bg-${feature.color}/20 p-4 rounded-card shrink-0`}>
+                  <div
+                    className={`${feature.color === "accent-primary" ? "bg-transparent" : `bg-${feature.color}/20`} p-4 rounded-card shrink-0`}
+                  >
                     <feature.icon size={32} className={`text-${feature.color}`} />
                   </div>
                   <div className="flex-1">
@@ -411,7 +421,7 @@ export function LandingPage() {
                     >
                       {feature.highlight}
                     </div>
-                    <h3 className="text-2xl font-bold text-heading mb-3">{feature.title}</h3>
+                    <h3 className="text-3xl font-display text-heading mb-3">{feature.title}</h3>
                     <p className="text-body text-lg leading-relaxed">{feature.description}</p>
                   </div>
                 </div>
@@ -458,9 +468,9 @@ export function LandingPage() {
         </div>
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold text-heading mb-6">
-            Liberdade financeira começa com{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-primary to-accent-positive">
+          <h2 className="text-4xl md:text-6xl text-heading mb-6">
+            <span className="font-display italic">Liberdade financeira com</span>{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-primary to-accent-positive font-display italic">
               estratégia
             </span>
           </h2>
@@ -471,7 +481,7 @@ export function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/login"
-              className="noir-btn-primary px-10 py-4 text-lg flex items-center gap-2 group"
+              className="noir-btn-primary px-8 py-3 text-base flex items-center gap-2 group"
             >
               Começar Agora
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -482,15 +492,18 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-noir-border">
+      <footer className="py-6 md:py-12 border-t border-noir-border">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
-              <div className="bg-accent-primary p-2 rounded-interactive text-white">
+              <div className="bg-accent-primary/15 p-2 rounded-interactive text-accent-primary border border-accent-primary/20">
                 <Wallet size={20} />
               </div>
-              <span className="text-lg font-bold text-heading">
-                Finanças<span className="text-accent-primary">Pro</span>
+              <span className="text-lg text-heading">
+                <span className="font-display italic">Finanças</span>
+                <span className="text-accent-primary font-semibold text-sm ml-0.5 uppercase tracking-wider">
+                  Pro
+                </span>
               </span>
             </div>
             <div className="text-center md:text-right">

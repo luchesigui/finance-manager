@@ -931,14 +931,14 @@ Retorne APENAS o JSON, sem markdown.
                   key={transaction.id}
                   role={isSelectionMode && canSelect ? "button" : undefined}
                   tabIndex={isSelectionMode && canSelect ? 0 : undefined}
-                  className={`p-5 hover:bg-noir-active/30 transition-colors flex items-center justify-between group ${
+                  className={`p-4 md:p-5 hover:bg-noir-active/30 transition-colors group cursor-pointer ${
                     isSelected ? "bg-accent-primary/10" : ""
-                  } ${isIncome ? "border-l-2 border-l-accent-positive" : ""} ${
-                    isSelectionMode && canSelect ? "cursor-pointer" : ""
-                  }`}
+                  } ${isIncome ? "border-l-2 border-l-accent-positive" : ""}`}
                   onClick={() => {
                     if (isSelectionMode && canSelect) {
                       toggleTransactionSelection(transaction.id);
+                    } else if (!isSelectionMode) {
+                      handleOpenEditModal(transaction);
                     }
                   }}
                   onKeyDown={(e) => {
@@ -948,7 +948,7 @@ Retorne APENAS o JSON, sem markdown.
                     }
                   }}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start gap-3 md:items-center md:gap-4">
                     {isSelectionMode && (
                       <button
                         type="button"
@@ -957,7 +957,7 @@ Retorne APENAS o JSON, sem markdown.
                           if (canSelect) toggleTransactionSelection(transaction.id);
                         }}
                         disabled={!canSelect}
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200 ${
+                        className={`w-5 h-5 mt-0.5 md:mt-0 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
                           isSelected
                             ? "bg-accent-primary border-accent-primary text-white"
                             : canSelect
@@ -971,8 +971,9 @@ Retorne APENAS o JSON, sem markdown.
                         {isSelected && <Check size={12} strokeWidth={3} />}
                       </button>
                     )}
+                    {/* Avatar - hidden on mobile */}
                     <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xs ${
+                      className={`hidden md:flex w-10 h-10 min-w-[40px] rounded-full items-center justify-center text-white font-bold text-xs flex-shrink-0 ${
                         isIncome
                           ? isIncrement
                             ? "bg-accent-positive/80"
@@ -992,108 +993,127 @@ Retorne APENAS o JSON, sem markdown.
                         </span>
                       )}
                     </div>
-                    <div>
-                      <h4 className="font-medium text-heading flex items-center gap-2 flex-wrap">
-                        {transaction.description}
-                        {isIncome && (
-                          <span
-                            className={`${
-                              isIncrement ? "noir-badge-positive" : "noir-badge-warning"
-                            } flex items-center gap-1.5`}
-                          >
-                            {isIncrement ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                            {isIncrement ? "Renda" : "Dedução"}
-                          </span>
-                        )}
-                        {isForecast && (
-                          <span className="noir-badge-warning flex items-center gap-1.5">
-                            <CrystalBallLine size={12} /> Previsão
-                          </span>
-                        )}
-                        {transaction.isRecurring && (
-                          <span className="noir-badge-accent flex items-center gap-1.5">
-                            <RefreshCw size={12} /> Recorrente
-                          </span>
-                        )}
-                        {transaction.isCreditCard && (
-                          <span className="noir-badge-accent flex items-center gap-1.5">
-                            <CreditCard size={12} /> Cartão
-                          </span>
-                        )}
-                        {transaction.excludeFromSplit && (
-                          <span className="noir-badge-muted flex items-center gap-1.5">
-                            <UserX size={12} /> Fora da divisão
-                          </span>
-                        )}
-                        {isOutlier(transaction) && (
-                          <span className="noir-badge-negative flex items-center gap-1.5">
-                            <AlertTriangle size={12} /> Fora do padrão
-                          </span>
-                        )}
-                      </h4>
-                      <p className="text-xs text-muted flex gap-2">
-                        {selectedCategory?.name && (
-                          <>
-                            <span>{selectedCategory.name}</span>
-                            <span>•</span>
-                          </>
-                        )}
-                        <span>{formatDateString(transaction.date)}</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`font-bold tabular-nums ${
-                        isIncome
-                          ? isIncrement
-                            ? "text-accent-positive"
-                            : "text-accent-warning"
-                          : "text-heading"
-                      }`}
-                    >
-                      {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
-                      {formatCurrency(transaction.amount)}
-                    </span>
-                    {!isSelectionMode && (
-                      <>
-                        {isForecast && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateTransactionById(transaction.id, { isForecast: false })
-                            }
-                            className="text-muted hover:text-accent-positive p-2 transition-all rounded-interactive hover:bg-accent-positive/10"
-                            title="Marcar como acontecido"
-                            aria-label={`Marcar lançamento como acontecido: ${transaction.description}`}
-                          >
-                            <CheckCircle2 size={16} />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditModal(transaction)}
-                          className="text-muted hover:text-accent-primary p-2 transition-all rounded-interactive hover:bg-accent-primary/10"
-                          title="Editar"
-                          aria-label={`Editar lançamento: ${transaction.description}`}
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Row 1: Description + Amount */}
+                      <div className="flex items-start justify-between gap-3">
+                        <h4 className="font-medium text-heading truncate">
+                          {transaction.description}
+                        </h4>
+                        <span
+                          className={`font-bold tabular-nums flex-shrink-0 ${
+                            isIncome
+                              ? isIncrement
+                                ? "text-accent-positive"
+                                : "text-accent-warning"
+                              : "text-heading"
+                          }`}
                         >
-                          <Pencil size={16} />
-                        </button>
-                        {!transaction.isRecurring ? (
-                          <button
-                            type="button"
-                            onClick={() => deleteTransactionById(transaction.id)}
-                            className="text-muted hover:text-accent-negative p-2 transition-all rounded-interactive hover:bg-accent-negative/10"
-                            title="Excluir"
-                            aria-label={`Excluir lançamento: ${transaction.description}`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        ) : (
-                          <div className="w-8" />
+                          {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
+                          {formatCurrency(transaction.amount)}
+                        </span>
+                      </div>
+                      {/* Row 2: Metadata + Badges */}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                          <p className="text-xs text-muted flex gap-1.5 flex-shrink-0">
+                            {selectedCategory?.name && (
+                              <>
+                                <span>{selectedCategory.name}</span>
+                                <span>•</span>
+                              </>
+                            )}
+                            <span>{formatDateString(transaction.date)}</span>
+                          </p>
+                          {/* Badges - icon only on mobile, with label on desktop */}
+                          {isIncome && (
+                            <span
+                              className={`${
+                                isIncrement ? "noir-badge-positive" : "noir-badge-warning"
+                              } flex items-center gap-1`}
+                            >
+                              {isIncrement ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                              <span className="hidden md:inline">{isIncrement ? "Renda" : "Dedução"}</span>
+                            </span>
+                          )}
+                          {isForecast && (
+                            <span className="noir-badge-warning flex items-center gap-1">
+                              <CrystalBallLine size={13} />
+                              <span className="hidden md:inline">Previsão</span>
+                            </span>
+                          )}
+                          {transaction.isRecurring && (
+                            <span className="noir-badge-accent flex items-center gap-1">
+                              <RefreshCw size={13} />
+                              <span className="hidden md:inline">Recorrente</span>
+                            </span>
+                          )}
+                          {transaction.isCreditCard && (
+                            <span className="noir-badge-accent flex items-center gap-1">
+                              <CreditCard size={13} />
+                              <span className="hidden md:inline">Cartão</span>
+                            </span>
+                          )}
+                          {transaction.excludeFromSplit && (
+                            <span className="noir-badge-muted flex items-center gap-1">
+                              <UserX size={13} />
+                              <span className="hidden md:inline">Fora da divisão</span>
+                            </span>
+                          )}
+                          {isOutlier(transaction) && (
+                            <span className="noir-badge-negative flex items-center gap-1">
+                              <AlertTriangle size={13} />
+                              <span className="hidden md:inline">Fora do padrão</span>
+                            </span>
+                          )}
+                        </div>
+                        {/* Action buttons - hidden on mobile, always visible on desktop */}
+                        {!isSelectionMode && (
+                          <div className="hidden md:flex items-center gap-1 mt-1 flex-shrink-0">
+                            {isForecast && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateTransactionById(transaction.id, { isForecast: false });
+                                }}
+                                className="text-muted hover:text-accent-positive p-1.5 transition-all rounded-interactive hover:bg-accent-positive/10"
+                                title="Marcar como acontecido"
+                                aria-label={`Marcar lançamento como acontecido: ${transaction.description}`}
+                              >
+                                <CheckCircle2 size={15} />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditModal(transaction);
+                              }}
+                              className="text-muted hover:text-accent-primary p-1.5 transition-all rounded-interactive hover:bg-accent-primary/10"
+                              title="Editar"
+                              aria-label={`Editar lançamento: ${transaction.description}`}
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            {!transaction.isRecurring && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteTransactionById(transaction.id);
+                                }}
+                                className="text-muted hover:text-accent-negative p-1.5 transition-all rounded-interactive hover:bg-accent-negative/10"
+                                title="Excluir"
+                                aria-label={`Excluir lançamento: ${transaction.description}`}
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </div>
                         )}
-                      </>
-                    )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );

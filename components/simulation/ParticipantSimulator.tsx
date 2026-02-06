@@ -87,8 +87,8 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
           aria-checked={participant.isActive}
         >
           <div
-            className={`absolute top-0.5 w-6 h-6 rounded-full bg-white flex items-center justify-center transition-all duration-300 ease-out ${
-              participant.isActive ? "left-7" : "left-0.5"
+            className={`absolute top-[3px] w-[22px] h-[22px] rounded-full bg-white flex items-center justify-center transition-all duration-300 ease-out ${
+              participant.isActive ? "left-[31px]" : "left-[3px]"
             }`}
           >
             {participant.isActive ? (
@@ -152,8 +152,8 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
           }`}
           style={{
             background: participant.isActive
-              ? "linear-gradient(to right, #ef4444 0%, #f97316 33%, #22c55e 66%, #3b82f6 100%)"
-              : "#1a2430",
+              ? "linear-gradient(to right, rgb(var(--accent-negative)) 0%, rgb(var(--accent-warning)) 33%, rgb(var(--accent-positive)) 66%, rgb(var(--accent-primary)) 100%)"
+              : "rgb(var(--noir-active))",
           }}
           aria-valuemin={0}
           aria-valuemax={150}
@@ -183,11 +183,13 @@ export function ParticipantSimulator({
   onMultiplierChange,
 }: ParticipantSimulatorProps) {
   return (
-    <div className="noir-card p-4">
-      <h2 className="text-lg font-semibold text-heading mb-4 flex items-center gap-2">
-        <User size={20} className="text-accent-primary" />
-        Gestão de Participantes
-      </h2>
+    <div className="noir-card p-card-padding">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+          <User size={20} className="text-accent-primary" />
+          Gestão de Participantes
+        </h2>
+      </div>
       <div className="space-y-3">
         {participants.map((participant) => (
           <ParticipantRow

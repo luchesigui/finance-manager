@@ -319,6 +319,14 @@ export function SettingsView() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Page Title */}
+      <div className="text-center p-5 mb-2">
+        <h1 className="text-4xl font-display text-heading tracking-tight">Configurações</h1>
+        <span className="text-[11px] text-muted font-medium tracking-wider uppercase mt-1 block">
+          Participantes, categorias e preferências
+        </span>
+      </div>
+
       {/* Participants Section */}
       <div className="noir-card p-card-padding">
         <div className="flex items-center justify-between mb-4">
@@ -603,15 +611,20 @@ export function SettingsView() {
       </div>
 
       {/* Appearance Section */}
-      <div className="noir-card overflow-hidden">
-        <div className="p-4 border-b border-noir-border bg-noir-active/50">
-          <h2 className="font-semibold text-heading">Aparência</h2>
-          <p className="text-xs text-muted mt-1">
-            Personalize como o FinançasPro aparece no seu dispositivo
-          </p>
+      <div className="noir-card p-card-padding">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+              <Monitor size={20} className="text-accent-primary" />
+              Aparência
+            </h2>
+            <p className="text-xs text-muted mt-1">
+              Personalize como o FinançasPro aparece no seu dispositivo
+            </p>
+          </div>
         </div>
 
-        <div className="p-4">
+        <div>
           <fieldset>
             <legend className="sr-only">Escolha o tema</legend>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

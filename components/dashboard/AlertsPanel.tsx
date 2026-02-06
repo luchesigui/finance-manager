@@ -135,10 +135,10 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
       <button
         type="button"
         onClick={() => setCollapsed(!isCollapsed)}
-        className="w-full p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2 hover:bg-noir-active/70 transition-colors"
+        className="w-full p-card-padding flex items-center gap-2 hover:bg-noir-active/30 transition-colors"
       >
-        <Bell size={18} className="text-accent-primary" />
-        <h2 className="font-semibold text-heading">Atenção Necessária</h2>
+        <Bell size={20} className="text-accent-primary" />
+        <h2 className="text-lg font-semibold text-heading">Atenção Necessária</h2>
         <span className={`ml-2 ${badgeClass}`}>{alerts.length}</span>
         <span className="ml-auto text-muted">
           {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
@@ -146,7 +146,7 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
       </button>
 
       {!isCollapsed && (
-        <div className="p-4 divide-y divide-noir-border animate-in slide-in-from-top-2 duration-200">
+        <div className="px-card-padding pb-card-padding divide-y divide-noir-border animate-in slide-in-from-top-2 duration-200">
           {/* Success alerts first (if any) */}
           {successAlerts.map((alert) => (
             <AlertItem key={alert.id} alert={alert} />

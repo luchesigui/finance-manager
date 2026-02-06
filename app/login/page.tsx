@@ -84,32 +84,36 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8 bg-noir-primary">
-      {/* Decorative background elements */}
+    <div className="flex min-h-screen flex-col items-center justify-center py-12 sm:px-6 lg:px-8 bg-noir-primary relative">
+      {/* Atmospheric background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-accent-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-accent-positive/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-accent-primary/[0.06] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[500px] h-[400px] bg-accent-positive/[0.04] rounded-full blur-[100px]" />
+        <div className="absolute top-1/3 right-0 w-[300px] h-[300px] bg-accent-primary/[0.03] rounded-full blur-[80px]" />
       </div>
 
-      <div className="relative sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="relative sm:mx-auto sm:w-full sm:max-w-md animate-slide-up">
         {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-accent-primary p-3 rounded-card shadow-glow-accent">
-            <Wallet size={32} className="text-white" />
+        <div className="flex justify-center mb-8">
+          <div className="bg-accent-primary/15 p-4 rounded-card border border-accent-primary/20 shadow-glow-accent">
+            <Wallet size={32} className="text-accent-primary" />
           </div>
         </div>
 
-        <h2 className="text-center text-3xl font-bold tracking-tight text-heading">
+        <h2 className="text-center text-3xl font-display text-heading tracking-tight">
           {view === "sign-in" ? "Entrar na sua conta" : "Criar nova conta"}
         </h2>
-        <p className="mt-2 text-center text-sm text-body">
-          Finanças<span className="text-accent-primary font-semibold">Pro</span> - Controle
-          financeiro familiar
+        <p className="mt-3 text-center text-sm text-body">
+          <span className="font-display italic">Finanças</span>
+          <span className="text-accent-primary font-semibold text-xs ml-0.5 uppercase tracking-wider">
+            Pro
+          </span>{" "}
+          <span className="text-muted">—</span> Controle financeiro familiar
         </p>
       </div>
 
-      <div className="relative mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="noir-card py-8 px-6 sm:px-10">
+      <div className="relative mt-8 w-full px-4 sm:mx-auto sm:w-full sm:max-w-md animate-slide-up stagger-2">
+        <div className="noir-card py-8 px-5 sm:px-10 card-accent-top">
           <form
             className="space-y-6"
             onSubmit={(e) => {

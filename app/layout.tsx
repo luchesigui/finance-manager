@@ -40,7 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: Inline script to prevent theme flash */}
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="bg-noir-primary text-body font-sans antialiased">
+      <body className="bg-noir-primary text-body font-sans antialiased min-h-screen">
         {/* Skip link for keyboard navigation - accessibility */}
         <a
           href="#main-content"

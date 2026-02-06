@@ -303,45 +303,57 @@ export function DashboardView() {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6">
       {/* Savings Goal Celebration */}
       <SavingsConfetti savingsGoalAchieved={savingsGoalAchieved} yearMonth={yearMonth} />
 
       {/* Month Navigator */}
-      <MonthNavigator />
+      <div className="animate-slide-up stagger-1">
+        <MonthNavigator />
+      </div>
 
       {/* Health Score Hero */}
-      <HealthScore healthScore={healthScore} isLoading={isDataLoading} />
+      <div className="animate-slide-up stagger-2">
+        <HealthScore healthScore={healthScore} isLoading={isDataLoading} />
+      </div>
 
       {/* Quick Stats Grid */}
-      <QuickStatsGrid
-        factors={healthScore.factors}
-        totalExpenses={totalExpensesExcludingSavings}
-        effectiveIncome={effectiveIncome}
-      />
+      <div className="animate-slide-up stagger-3">
+        <QuickStatsGrid
+          factors={healthScore.factors}
+          totalExpenses={totalExpensesExcludingSavings}
+          effectiveIncome={effectiveIncome}
+        />
+      </div>
 
       {/* Alerts Panel */}
-      <AlertsPanel alerts={alerts} />
+      <div className="animate-slide-up stagger-4">
+        <AlertsPanel alerts={alerts} />
+      </div>
 
       {/* Forecast Spotlight - right after alerts */}
-      <ForecastSpotlight
-        forecasts={forecastTransactions}
-        categories={categories}
-        totalExpenses={totalExpensesAll}
-        isForecastIncluded={isForecastIncluded}
-        setForecastInclusionOverride={setForecastInclusionOverride}
-        updateTransactionById={updateTransactionById}
-      />
+      <div className="animate-slide-up stagger-5">
+        <ForecastSpotlight
+          forecasts={forecastTransactions}
+          categories={categories}
+          totalExpenses={totalExpensesAll}
+          isForecastIncluded={isForecastIncluded}
+          setForecastInclusionOverride={setForecastInclusionOverride}
+          updateTransactionById={updateTransactionById}
+        />
+      </div>
 
       {/* Outlier Spotlight - right after forecast */}
-      <OutlierSpotlight
-        outliers={outlierTransactions}
-        categories={categories}
-        totalExpenses={totalExpensesAll}
-      />
+      <div className="animate-slide-up stagger-6">
+        <OutlierSpotlight
+          outliers={outlierTransactions}
+          categories={categories}
+          totalExpenses={totalExpensesAll}
+        />
+      </div>
 
       {/* Two Column Layout for Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-grid-gap">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-grid-gap animate-slide-up stagger-6">
         {/* Category Budget Chart */}
         <CategoryBudgetChart categorySummary={categorySummary} totalIncome={effectiveIncome} />
 

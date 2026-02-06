@@ -13,7 +13,7 @@ import {
   SimulationSummaryCards,
   useSimulation,
 } from "@/components/simulation";
-import { FlaskConical, RefreshCw, Sparkles } from "lucide-react";
+import { RefreshCw, Sparkles } from "lucide-react";
 
 // ============================================================================
 // Main Component
@@ -85,22 +85,18 @@ export function SimulationView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-heading">Simulação de Futuro</h1>
-            <span className="noir-badge-accent flex items-center gap-1">
-              <FlaskConical size={14} />
-              Sandbox
-            </span>
-          </div>
-          <p className="text-muted mt-1">Simule cenários sem afetar seus dados reais</p>
-        </div>
+      <div className="text-center p-5 mb-2">
+        <h1 className="text-4xl font-display text-heading tracking-tight">Simulação de Futuro</h1>
+        <span className="text-[11px] text-muted font-medium tracking-wider uppercase mt-1 block">
+          Simule cenários sem afetar seus dados reais
+        </span>
+      </div>
 
-        {/* Reset button */}
-        {hasChanges && (
+      {/* Reset button */}
+      {hasChanges && (
+        <div className="flex justify-center">
           <button
             type="button"
             onClick={resetToBaseline}
@@ -109,8 +105,8 @@ export function SimulationView() {
             <RefreshCw size={16} />
             Resetar para valores reais
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Status indicator */}
       {hasChanges && (
@@ -159,16 +155,16 @@ export function SimulationView() {
       {/* Summary Cards */}
       <SimulationSummaryCards summary={projection.summary} baselineIncome={baselineIncome} />
 
-      {/* Chart - Full width */}
-      <FutureProjectionChart data={projection.chartData} emergencyFund={emergencyFund} />
-
-      {/* Alerts/Insights - Below chart, horizontally stacked */}
+      {/* Alerts/Insights */}
       <SimulationAlerts
         summary={projection.summary}
         baselineIncome={baselineIncome}
         baselineExpenses={baselineExpenses}
         emergencyFund={emergencyFund}
       />
+
+      {/* Chart - Full width */}
+      <FutureProjectionChart data={projection.chartData} emergencyFund={emergencyFund} />
 
       {/* Disclaimer */}
       <div className="noir-card p-4 bg-noir-active/30">

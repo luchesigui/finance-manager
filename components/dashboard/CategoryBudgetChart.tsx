@@ -124,13 +124,15 @@ export function CategoryBudgetChart({ categorySummary, totalIncome }: CategoryBu
   const sortedCategories = [...categorySummary].sort((a, b) => b.totalSpent - a.totalSpent);
 
   return (
-    <div className="noir-card overflow-hidden">
-      <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
-        <BarChart3 size={18} className="text-accent-primary" />
-        <h2 className="font-semibold text-heading">Categorias vs Orçamento</h2>
+    <div className="noir-card p-card-padding">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+          <BarChart3 size={20} className="text-accent-primary" />
+          Categorias vs Orçamento
+        </h2>
       </div>
 
-      <div className="p-4 space-y-1">
+      <div className="space-y-1">
         {sortedCategories.map((category) => (
           <CategoryBar
             key={category.id}

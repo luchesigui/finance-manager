@@ -48,10 +48,10 @@ function ScenarioOption({
 }: ScenarioOptionProps) {
   return (
     <div
-      className={`relative overflow-hidden p-4 rounded-card border-2 transition-all duration-300 ease-out ${
+      className={`relative overflow-hidden p-4 rounded-interactive border transition-all duration-300 ease-out ${
         isSelected
-          ? "border-accent-primary bg-accent-primary/5"
-          : "border-noir-border bg-noir-surface hover:border-accent-primary hover:bg-accent-primary/5"
+          ? "border-accent-primary/40 bg-accent-primary/5"
+          : "border-noir-border bg-noir-surface hover:border-accent-primary/30 hover:bg-accent-primary/[0.02]"
       }`}
     >
       <button type="button" onClick={onSelect} className="w-full text-left">
@@ -128,11 +128,13 @@ export function ScenarioSelector({
   onCustomValueChange,
 }: ScenarioSelectorProps) {
   return (
-    <div className="noir-card p-4">
-      <h2 className="text-lg font-semibold text-heading mb-4 flex items-center gap-2">
-        <BarChart3 size={20} className="text-accent-primary" />
-        Cenário de Gastos
-      </h2>
+    <div className="noir-card p-card-padding">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+          <BarChart3 size={20} className="text-accent-primary" />
+          Cenário de Gastos
+        </h2>
+      </div>
       <div className="flex flex-col gap-3">
         <ScenarioOption
           title="Mês Atual"

@@ -188,11 +188,11 @@ export function EditableExpensesCard({
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-4 flex items-center justify-between hover:bg-noir-active/30 transition-colors"
+        className="w-full p-card-padding flex items-center justify-between hover:bg-noir-active/30 transition-colors"
       >
         <span className="flex items-center gap-2">
-          <ClipboardList size={18} className="text-accent-primary" />
-          <span className="font-semibold text-heading">Gastos Considerados na Simulação</span>
+          <ClipboardList size={20} className="text-accent-primary" />
+          <span className="text-lg font-semibold text-heading">Gastos na Simulação</span>
         </span>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted tabular-nums">
@@ -215,7 +215,7 @@ export function EditableExpensesCard({
             : "max-h-0 opacity-0 overflow-hidden"
         }`}
       >
-        <div className="px-4 pb-4 border-t border-noir-border">
+        <div className="px-card-padding pb-card-padding">
           {/* System expenses */}
           {systemExpenses.length > 0 && (
             <div className="mt-4">

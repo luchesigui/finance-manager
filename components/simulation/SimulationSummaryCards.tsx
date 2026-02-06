@@ -2,7 +2,7 @@
 
 import { formatCurrency, formatPercent } from "@/lib/format";
 import type { SimulationSummary } from "@/lib/simulationTypes";
-import { AlertCircle, Gem, TrendingUp, Wallet } from "lucide-react";
+import { AlertCircle, Gem, Info, TrendingUp, Wallet } from "lucide-react";
 
 // ============================================================================
 // Types
@@ -24,6 +24,7 @@ type SummaryCardProps = {
   progressPercent?: number;
   progressColor?: string;
   glowClass?: string;
+  footnote?: string;
 };
 
 // ============================================================================
@@ -40,27 +41,38 @@ function SummaryCard({
   progressPercent,
   progressColor = "bg-accent-primary",
   glowClass,
+  footnote,
 }: SummaryCardProps) {
   return (
     <div className={`noir-card p-4 ${glowClass || ""}`}>
       <div className="flex items-center gap-2 mb-3">
-        <Icon size={18} className="text-accent-primary" />
-        <span className="text-xs font-medium text-muted uppercase tracking-wide">{title}</span>
+        <Icon size={16} className="text-accent-primary" />
+        <span className="text-section-label text-muted uppercase tracking-widest">{title}</span>
       </div>
       <div className="mb-2">
-        <span className="text-2xl font-bold text-heading tabular-nums">{mainValue}</span>
+        <span className="text-2xl font-mono-nums font-semibold text-heading tabular-nums">
+          {mainValue}
+        </span>
       </div>
-      {subValue && <p className="text-sm text-muted mb-2">{subValue}</p>}
-      {indicator && <div className={`text-sm font-medium ${indicatorClass}`}>{indicator}</div>}
+      {subValue && <p className="text-xs text-muted mb-2">{subValue}</p>}
+      {indicator && <div className={`text-xs font-medium ${indicatorClass}`}>{indicator}</div>}
       {progressPercent !== undefined && (
         <div className="mt-3">
-          <div className="h-2 bg-noir-active rounded-full overflow-hidden">
+          <div className="h-1.5 bg-noir-active rounded-full overflow-hidden">
             <div
-              className={`h-full ${progressColor} transition-all duration-500 ease-out`}
+              className={`h-full ${progressColor} transition-all duration-500 ease-out rounded-full`}
               style={{ width: `${Math.min(Math.max(progressPercent, 0), 100)}%` }}
             />
           </div>
-          <span className="text-xs text-muted mt-1 block">{Math.round(progressPercent)}%</span>
+          <span className="text-[10px] text-muted mt-1 block tabular-nums">
+            {Math.round(progressPercent)}%
+          </span>
+        </div>
+      )}
+      {footnote && (
+        <div className="flex items-center gap-1.5 mt-3 text-[10px] text-muted">
+          <Info size={11} className="flex-shrink-0" />
+          <span>{footnote}</span>
         </div>
       )}
     </div>
@@ -131,7 +143,6 @@ export function SimulationSummaryCards({
         title="Renda Simulada"
         icon={Wallet}
         mainValue={formatCurrency(monthlyIncome)}
-        subValue={`vs ${formatCurrency(baselineIncome)}`}
         indicator={`${incomeChangePercent >= 0 ? "" : ""}${formatPercent(incomeChangePercent)}`}
         indicatorClass={
           incomeChangePercent >= 0
@@ -174,6 +185,7 @@ export function SimulationSummaryCards({
         progressPercent={hasDeficit ? 100 : 100}
         progressColor={hasDeficit ? "bg-accent-negative bg-stripes" : "bg-accent-positive"}
         glowClass={hasDeficit ? "border-accent-negative/30" : ""}
+        footnote="Considerando 12 meses"
       />
 
       {/* Financial Freedom */}
@@ -182,20 +194,6 @@ export function SimulationSummaryCards({
         icon={Gem}
         mainValue={totalFreedom > 0 ? formatCurrency(totalFreedom) : "—"}
         subValue="em 12 meses"
-        indicator={
-          !Number.isFinite(freedomAcceleration) || freedomAcceleration === 0
-            ? undefined
-            : freedomAcceleration > 0
-              ? `${freedomAcceleration} meses antecipados`
-              : `${Math.abs(freedomAcceleration)} meses atrasados`
-        }
-        indicatorClass={
-          !Number.isFinite(freedomAcceleration) || freedomAcceleration === 0
-            ? "text-muted"
-            : freedomAcceleration > 0
-              ? "text-accent-positive"
-              : "text-accent-negative"
-        }
         progressPercent={totalFreedom > 0 ? Math.min((totalFreedom / 150000) * 100, 100) : 0}
         progressColor="bg-accent-spending"
         glowClass={totalFreedom > 0 ? "border-accent-spending/30" : ""}

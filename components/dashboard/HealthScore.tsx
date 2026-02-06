@@ -69,9 +69,7 @@ export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           {/* Header skeleton */}
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-card bg-noir-active">
-              <div className="w-7 h-7" />
-            </div>
+            <div className="w-7 h-7 bg-noir-active rounded" />
             <div>
               <div className="h-4 w-28 bg-noir-active rounded mb-2" />
               <div className="h-6 w-20 bg-noir-active rounded" />
@@ -88,7 +86,7 @@ export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
         </div>
 
         {/* Summary skeleton */}
-        <div className="mt-4 pt-4 border-t border-noir-border">
+        <div className="mt-4 pt-4">
           <div className="h-4 w-3/4 bg-noir-active rounded" />
         </div>
       </div>
@@ -108,9 +106,7 @@ export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
       <div className="flex flex-col md:flex-row md:items-center gap-4">
         {/* Header with icon and title */}
         <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-card ${config.bgColor} ${config.textColor}`}>
-            <Activity size={28} />
-          </div>
+          <Activity size={28} className={config.textColor} />
           <div>
             <h2 className="text-sm font-medium text-body uppercase tracking-wide">
               Saúde Financeira
@@ -140,7 +136,7 @@ export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
       </div>
 
       {/* Summary message */}
-      <div className="mt-4 pt-4 border-t border-noir-border">
+      <div className="mt-4 pt-4">
         <p className="text-body text-sm">{summary}</p>
       </div>
     </div>

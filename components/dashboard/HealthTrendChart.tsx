@@ -85,7 +85,6 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 // ============================================================================
 
 export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendChartProps) {
-  // Calculate insights from actual data (not projected)
   const insights = useMemo(() => {
     const actualData = data.filter((d) => !d.isProjected);
 
@@ -99,7 +98,6 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
 
     const avgScore = actualData.reduce((sum, d) => sum + d.score, 0) / actualData.length;
 
-    // Calculate trend: compare first half to second half
     let trend: "improving" | "declining" | "stable" = "stable";
     let trendDelta = 0;
 
@@ -118,14 +116,27 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
     return { avgScore, trend, trendDelta };
   }, [data, currentScore]);
 
+  // Theme-aware chart colors via CSS variables
+  const chartColors = {
+    grid: "var(--chart-grid)",
+    axis: "var(--chart-axis)",
+    text: "rgb(var(--chart-text))",
+    primary: "rgb(var(--accent-primary))",
+    positive: "rgb(var(--accent-positive))",
+    warning: "rgb(var(--accent-warning))",
+    muted: "rgb(var(--text-muted))",
+  };
+
   if (isLoading) {
     return (
-      <div className="noir-card overflow-hidden">
-        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
-          <Activity size={18} className="text-accent-primary" />
-          <h2 className="font-semibold text-heading">Tendência de Saúde Financeira</h2>
+      <div className="noir-card p-card-padding">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+            <Activity size={20} className="text-accent-primary" />
+            Tendência de Saúde Financeira
+          </h2>
         </div>
-        <div className="p-8 flex items-center justify-center">
+        <div className="flex items-center justify-center py-8">
           <div className="animate-pulse flex flex-col items-center gap-2">
             <div className="h-[350px] w-full bg-noir-active rounded" />
             <span className="text-sm text-muted">Carregando dados...</span>
@@ -137,26 +148,25 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
 
   if (data.length === 0) {
     return (
-      <div className="noir-card overflow-hidden">
-        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
-          <Activity size={18} className="text-accent-primary" />
-          <h2 className="font-semibold text-heading">Tendência de Saúde Financeira</h2>
+      <div className="noir-card p-card-padding">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+            <Activity size={20} className="text-accent-primary" />
+            Tendência de Saúde Financeira
+          </h2>
         </div>
-        <div className="p-8 text-center text-muted">Dados históricos não disponíveis</div>
+        <div className="py-8 text-center text-muted">Dados históricos não disponíveis</div>
       </div>
     );
   }
 
-  // Find the index where projection starts
-  const projectionStartIndex = data.findIndex((d) => d.isProjected);
-
   return (
-    <div className="noir-card overflow-hidden">
-      <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Activity size={18} className="text-accent-primary" />
-          <h2 className="font-semibold text-heading">Tendência de Saúde Financeira</h2>
-        </div>
+    <div className="noir-card p-card-padding">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+          <Activity size={20} className="text-accent-primary" />
+          Tendência de Saúde Financeira
+        </h2>
         <div className="flex items-center gap-2">
           {insights.trend === "improving" ? (
             <TrendingUp size={16} className="text-accent-positive" />
@@ -181,52 +191,61 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
         </div>
       </div>
 
-      <div className="p-4">
-        {/* Chart */}
+      <div>
         <div className="h-[350px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                  <stop offset="5%" stopColor={chartColors.primary} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={chartColors.primary} stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorProjected" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#94A3B8" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#94A3B8" stopOpacity={0} />
+                  <stop offset="5%" stopColor={chartColors.muted} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={chartColors.muted} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
               <XAxis
                 dataKey="month"
-                tick={{ fill: "#94A3B8", fontSize: 11 }}
-                tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                tick={{ fill: chartColors.text, fontSize: 11 }}
+                tickLine={{ stroke: chartColors.axis }}
+                axisLine={{ stroke: chartColors.axis }}
               />
               <YAxis
                 domain={[0, 100]}
                 ticks={[0, 25, 50, 75, 100]}
-                tick={{ fill: "#94A3B8", fontSize: 11 }}
-                tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                tick={{ fill: chartColors.text, fontSize: 11 }}
+                tickLine={{ stroke: chartColors.axis }}
+                axisLine={{ stroke: chartColors.axis }}
               />
               <Tooltip content={<CustomTooltip />} />
 
               {/* Reference lines for health zones */}
-              <ReferenceLine y={80} stroke="#22C55E" strokeDasharray="3 3" strokeOpacity={0.5} />
-              <ReferenceLine y={50} stroke="#F97316" strokeDasharray="3 3" strokeOpacity={0.5} />
+              <ReferenceLine
+                y={80}
+                stroke={chartColors.positive}
+                strokeDasharray="3 3"
+                strokeOpacity={0.5}
+              />
+              <ReferenceLine
+                y={50}
+                stroke={chartColors.warning}
+                strokeDasharray="3 3"
+                strokeOpacity={0.5}
+              />
 
               <Legend
                 wrapperStyle={{ paddingTop: "10px" }}
                 formatter={(value) => <span className="text-body text-xs">{value}</span>}
               />
 
-              {/* Actual score area */}
+              {/* Score area */}
               <Area
                 type="monotone"
                 dataKey="score"
                 name="Score"
-                stroke="#3B82F6"
+                stroke={chartColors.primary}
                 strokeWidth={2}
                 fill="url(#colorScore)"
                 dot={(props) => {
@@ -237,8 +256,8 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
                         cx={cx}
                         cy={cy}
                         r={4}
-                        fill="#94A3B8"
-                        stroke="#94A3B8"
+                        fill={chartColors.muted}
+                        stroke={chartColors.muted}
                         strokeWidth={2}
                         strokeDasharray="2 2"
                       />
@@ -246,10 +265,17 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
                   }
                   if (payload.isCurrent) {
                     return (
-                      <circle cx={cx} cy={cy} r={6} fill="#3B82F6" stroke="#fff" strokeWidth={2} />
+                      <circle
+                        cx={cx}
+                        cy={cy}
+                        r={6}
+                        fill={chartColors.primary}
+                        stroke="rgb(var(--noir-surface))"
+                        strokeWidth={2}
+                      />
                     );
                   }
-                  return <circle cx={cx} cy={cy} r={4} fill="#3B82F6" />;
+                  return <circle cx={cx} cy={cy} r={4} fill={chartColors.primary} />;
                 }}
               />
             </AreaChart>

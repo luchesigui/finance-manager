@@ -69,15 +69,12 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
         <div className="relative">
           {/* Header */}
           <div className="flex items-center gap-2 mb-3">
-            <div
-              className={`p-2 rounded-interactive ${
-                savingsGoalAchieved
-                  ? "bg-accent-positive/20 text-accent-positive"
-                  : "bg-accent-spending/20 text-accent-spending"
-              }`}
-            >
-              <Gem size={18} />
-            </div>
+            <Gem
+              size={20}
+              className={
+                savingsGoalAchieved ? "text-accent-positive" : "text-accent-spending"
+              }
+            />
             <h3 className="text-sm font-semibold text-heading uppercase tracking-wide">
               Liberdade Financeira
             </h3>
@@ -134,9 +131,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
       <div className="noir-card p-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-interactive bg-accent-negative/20 text-accent-negative">
-              <TrendingDown size={18} />
-            </div>
+            <TrendingDown size={20} className="text-accent-negative" />
             <h3 className="text-sm font-semibold text-heading uppercase tracking-wide">
               Gastos do Mês
             </h3>
@@ -210,15 +205,12 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
 
         <div className="relative">
           <div className="flex items-center gap-2 mb-3">
-            <div
-              className={`p-2 rounded-interactive ${
-                isPositiveBalance
-                  ? "bg-accent-positive/20 text-accent-positive"
-                  : "bg-accent-negative/20 text-accent-negative"
-              }`}
-            >
-              <Wallet size={18} />
-            </div>
+            <Wallet
+              size={20}
+              className={
+                isPositiveBalance ? "text-accent-positive" : "text-accent-negative"
+              }
+            />
             <h3 className="text-sm font-semibold text-heading uppercase tracking-wide">
               Saldo Livre
             </h3>

@@ -129,7 +129,6 @@ export function FutureProjectionChart({
   emergencyFund,
   isLoading,
 }: FutureProjectionChartProps) {
-  // Determine if we're showing freedom or deficit
   const showFreedom = useMemo(() => {
     if (data.length === 0) return true;
     const lastPoint = data[data.length - 1];
@@ -138,7 +137,6 @@ export function FutureProjectionChart({
 
   const hasEmergencyFund = emergencyFund > 0;
 
-  // Calculate Y-axis domain
   const yDomain = useMemo(() => {
     if (data.length === 0) return [0, 10000];
 
@@ -156,20 +154,36 @@ export function FutureProjectionChart({
       }
     }
 
-    // Add some padding
     const range = max - min;
     const padding = range * 0.1 || 1000;
     return [Math.floor(min - padding), Math.ceil(max + padding)];
   }, [data, showFreedom, hasEmergencyFund, emergencyFund]);
 
+  // Theme-aware chart colors
+  const chartColors = {
+    grid: "var(--chart-grid)",
+    axis: "var(--chart-axis)",
+    text: "rgb(var(--chart-text))",
+    primary: "rgb(var(--accent-primary))",
+    spending: "rgb(var(--accent-spending))",
+    negative: "rgb(var(--accent-negative))",
+    muted: "rgb(var(--text-muted))",
+  };
+
+  const headerContent = (
+    <div className="flex items-center justify-between mb-4">
+      <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+        <Activity size={20} className="text-accent-primary" />
+        Projeção 12 Meses
+      </h2>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="noir-card overflow-hidden">
-        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
-          <Activity size={18} className="text-accent-primary" />
-          <h2 className="font-semibold text-heading">Projeção 12 Meses</h2>
-        </div>
-        <div className="p-8 flex items-center justify-center h-[400px]">
+      <div className="noir-card p-card-padding">
+        {headerContent}
+        <div className="flex items-center justify-center h-[400px]">
           <div className="flex flex-col items-center gap-2 text-muted">
             <div className="w-8 h-8 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
             <span className="text-sm">Calculando projeção...</span>
@@ -181,12 +195,9 @@ export function FutureProjectionChart({
 
   if (data.length === 0) {
     return (
-      <div className="noir-card overflow-hidden">
-        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
-          <Activity size={18} className="text-accent-primary" />
-          <h2 className="font-semibold text-heading">Projeção 12 Meses</h2>
-        </div>
-        <div className="p-8 text-center text-muted">Dados insuficientes para projeção</div>
+      <div className="noir-card p-card-padding">
+        {headerContent}
+        <div className="py-8 text-center text-muted">Dados insuficientes para projeção</div>
       </div>
     );
   }
@@ -194,46 +205,41 @@ export function FutureProjectionChart({
   const currentMonth = data[0]?.period || "Hoje";
 
   return (
-    <div className="noir-card overflow-hidden">
-      <div className="p-4 border-b border-noir-border bg-noir-active/50 flex items-center gap-2">
-        <Activity size={18} className="text-accent-primary" />
-        <h2 className="font-semibold text-heading">Projeção 12 Meses</h2>
-      </div>
-      <div className="p-4">
+    <div className="noir-card p-card-padding">
+      {headerContent}
+      <div>
         <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 20, right: 20, left: 10, bottom: 0 }}>
               <defs>
-                {/* Gradient for Freedom area */}
                 <linearGradient id="freedomGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#FACC15" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#FACC15" stopOpacity={0.1} />
+                  <stop offset="5%" stopColor={chartColors.spending} stopOpacity={0.4} />
+                  <stop offset="95%" stopColor={chartColors.spending} stopOpacity={0.1} />
                 </linearGradient>
-                {/* Pattern for deficit area */}
                 <pattern id="deficitPattern" patternUnits="userSpaceOnUse" width="4" height="4">
                   <path
                     d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2"
-                    stroke="#EF4444"
+                    stroke={chartColors.negative}
                     strokeWidth="1"
                     strokeOpacity="0.5"
                   />
                 </pattern>
               </defs>
 
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
 
               <XAxis
                 dataKey="period"
-                tick={{ fill: "#94A3B8", fontSize: 11 }}
-                tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                tick={{ fill: chartColors.text, fontSize: 11 }}
+                tickLine={{ stroke: chartColors.axis }}
+                axisLine={{ stroke: chartColors.axis }}
               />
 
               <YAxis
                 domain={yDomain}
-                tick={{ fill: "#94A3B8", fontSize: 11 }}
-                tickLine={{ stroke: "rgba(255,255,255,0.1)" }}
-                axisLine={{ stroke: "rgba(255,255,255,0.1)" }}
+                tick={{ fill: chartColors.text, fontSize: 11 }}
+                tickLine={{ stroke: chartColors.axis }}
+                axisLine={{ stroke: chartColors.axis }}
                 tickFormatter={(value) => {
                   if (Math.abs(value) >= 1000) {
                     return `${(value / 1000).toFixed(0)}k`;
@@ -251,50 +257,50 @@ export function FutureProjectionChart({
                 }
               />
 
-              {/* Reference line at zero */}
-              <ReferenceLine y={0} stroke="#94A3B8" strokeDasharray="3 3" strokeOpacity={0.5} />
-
-              {/* Reference line for current month */}
               <ReferenceLine
-                x={currentMonth}
-                stroke="#94A3B8"
+                y={0}
+                stroke={chartColors.muted}
                 strokeDasharray="3 3"
                 strokeOpacity={0.5}
-                label={{ value: "Hoje", fill: "#94A3B8", fontSize: 10, position: "top" }}
               />
 
-              {/* Show Freedom area if positive balance */}
+              <ReferenceLine
+                x={currentMonth}
+                stroke={chartColors.muted}
+                strokeDasharray="3 3"
+                strokeOpacity={0.5}
+                label={{ value: "Hoje", fill: chartColors.text, fontSize: 10, position: "top" }}
+              />
+
               {showFreedom && (
                 <Area
                   type="monotone"
                   dataKey="cumulativeFreedom"
                   name="Liberdade Financeira"
-                  stroke="#FACC15"
+                  stroke={chartColors.spending}
                   strokeWidth={2}
                   fill="url(#freedomGradient)"
                 />
               )}
 
-              {/* Show Deficit area if negative balance */}
               {!showFreedom && (
                 <Area
                   type="monotone"
                   dataKey="cumulativeDeficit"
                   name="Prejuízo Acumulado"
-                  stroke="#EF4444"
+                  stroke={chartColors.negative}
                   strokeWidth={2}
                   fill="url(#deficitPattern)"
                   fillOpacity={0.5}
                 />
               )}
 
-              {/* Emergency fund line (only in deficit scenario) */}
               {!showFreedom && hasEmergencyFund && (
                 <Line
                   type="monotone"
                   dataKey="emergencyFundRemaining"
                   name="Reserva de Emergência"
-                  stroke="#3B82F6"
+                  stroke={chartColors.primary}
                   strokeWidth={2}
                   dot={false}
                 />
@@ -303,7 +309,6 @@ export function FutureProjectionChart({
           </ResponsiveContainer>
         </div>
 
-        {/* Custom legend */}
         <ChartLegend
           showFreedom={showFreedom}
           hasEmergencyFund={hasEmergencyFund && !showFreedom}

@@ -3,11 +3,10 @@
 import { formatCurrency } from "@/lib/format";
 import type { SimulationSummary } from "@/lib/simulationTypes";
 import {
-  AlertCircle,
   AlertTriangle,
   Clock,
-  Gem,
   HeartCrack,
+  Info,
   Shield,
   Target,
   TrendingDown,
@@ -37,32 +36,38 @@ type DeficitAlertCardProps = {
 
 function DeficitAlertCard({ monthlyDeficit, totalDeficit, incomePercent }: DeficitAlertCardProps) {
   return (
-    <div className="noir-card p-4 bg-gradient-to-br from-accent-negative/10 to-accent-negative/5 border-2 border-accent-negative border-l-4 shadow-glow-negative">
-      <div className="flex items-center gap-2 mb-4">
-        <AlertTriangle size={20} className="text-accent-negative" />
-        <h3 className="font-semibold text-heading">PREJUÍZO PROJETADO</h3>
+    <div className="noir-card p-card-padding h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-heading flex items-center gap-2">
+          <AlertTriangle size={20} className="text-accent-negative" />
+          Prejuízo Projetado
+        </h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-3 bg-noir-surface border border-noir-border rounded-card">
-          <p className="text-xs text-muted uppercase mb-1">Prejuízo Mensal</p>
-          <p className="text-2xl font-bold text-accent-negative tabular-nums">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+        <div className="p-4 bg-noir-active/60 rounded-interactive">
+          <p className="text-section-label text-muted uppercase tracking-widest mb-2">
+            Prejuízo Mensal
+          </p>
+          <p className="text-xl font-mono-nums font-semibold text-accent-negative tabular-nums">
             {formatCurrency(monthlyDeficit)}
           </p>
-          <div className="flex items-center gap-1 mt-1 text-sm text-muted">
-            <HeartCrack size={14} className="text-accent-negative" />
+          <div className="flex items-center gap-1.5 mt-2 text-xs text-muted">
+            <HeartCrack size={12} className="text-accent-negative" />
             <span>{Math.abs(incomePercent).toFixed(0)}% da renda necessária falta</span>
           </div>
         </div>
 
-        <div className="p-3 bg-noir-surface border border-noir-border rounded-card">
-          <p className="text-xs text-muted uppercase mb-1">Prejuízo Acumulado (12 meses)</p>
-          <p className="text-2xl font-bold text-accent-negative tabular-nums">
+        <div className="p-4 bg-noir-active/60 rounded-interactive">
+          <p className="text-section-label text-muted uppercase tracking-widest mb-2">
+            Prejuízo Acumulado
+          </p>
+          <p className="text-xl font-mono-nums font-semibold text-accent-negative tabular-nums">
             {formatCurrency(totalDeficit)}
           </p>
-          <div className="flex items-center gap-1 mt-1 text-sm text-muted">
-            <AlertCircle size={14} className="text-accent-negative" />
-            <span>Sem considerar reserva de emergência</span>
+          <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted">
+            <Info size={11} className="flex-shrink-0" />
+            <span>Considerando 12 meses</span>
           </div>
         </div>
       </div>
@@ -90,32 +95,38 @@ function EmergencyFundCard({
   if (emergencyFund <= 0) return null;
 
   return (
-    <div className="noir-card p-4 bg-gradient-to-br from-accent-primary/10 to-accent-primary/5 border-l-4 border-accent-primary">
-      <div className="flex items-center gap-2 mb-4">
-        <Shield size={20} className="text-accent-primary" />
-        <h3 className="font-semibold text-heading">RESERVA DE EMERGÊNCIA</h3>
+    <div className="noir-card p-card-padding h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-heading flex items-center gap-2">
+          <Shield size={20} className="text-accent-primary" />
+          Reserva de Emergência
+        </h3>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-3 bg-noir-surface border border-noir-border rounded-card">
-          <p className="text-xs text-muted uppercase mb-1">Valor da Reserva</p>
-          <p className="text-2xl font-bold text-accent-primary tabular-nums">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+        <div className="p-4 bg-noir-active/60 rounded-interactive">
+          <p className="text-section-label text-muted uppercase tracking-widest mb-2">
+            Valor da Reserva
+          </p>
+          <p className="text-xl font-mono-nums font-semibold text-accent-primary tabular-nums">
             {formatCurrency(emergencyFund)}
           </p>
         </div>
 
-        <div className="p-3 bg-noir-surface border border-noir-border rounded-card">
-          <p className="text-xs text-muted uppercase mb-1">Duração Estimada</p>
+        <div className="p-4 bg-noir-active/60 rounded-interactive">
+          <p className="text-section-label text-muted uppercase tracking-widest mb-2">
+            Duração Estimada
+          </p>
           <p
-            className={`text-2xl font-bold tabular-nums ${
+            className={`text-xl font-mono-nums font-semibold tabular-nums ${
               isDepleted ? "text-accent-negative" : "text-accent-primary"
             }`}
           >
             {monthsToDepletion === Number.POSITIVE_INFINITY ? "∞" : `${monthsToDepletion} meses`}
           </p>
           {isDepleted && depletedMonth && (
-            <div className="flex items-center gap-1 mt-1 text-sm text-muted">
-              <Clock size={14} className="text-accent-warning" />
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-muted">
+              <Clock size={12} className="text-accent-warning" />
               <span>Esgota em {depletedMonth}</span>
             </div>
           )}
@@ -126,7 +137,7 @@ function EmergencyFundCard({
 }
 
 // ============================================================================
-// Freedom Impact Card (similar to balance card with current vs simulated)
+// Freedom Impact Card
 // ============================================================================
 
 type FreedomImpactCardProps = {
@@ -144,44 +155,44 @@ function FreedomImpactCard({
   const changeAmount = simulatedFreedom - currentFreedom;
 
   return (
-    <div
-      className={`noir-card p-4 bg-gradient-to-br ${
-        isImprovement
-          ? "from-accent-positive/10 to-accent-positive/5 border-l-4 border-accent-positive"
-          : "from-accent-warning/10 to-accent-warning/5 border-l-4 border-accent-warning"
-      }`}
-    >
-      <div className="flex items-center gap-2 mb-4">
-        <Target
-          size={20}
-          className={isImprovement ? "text-accent-positive" : "text-accent-warning"}
-        />
-        <h3 className="font-semibold text-heading">IMPACTO NA LIBERDADE FINANCEIRA</h3>
+    <div className="noir-card p-card-padding h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-heading flex items-center gap-2">
+          <Target
+            size={20}
+            className={isImprovement ? "text-accent-positive" : "text-accent-warning"}
+          />
+          Impacto na Liberdade Financeira
+        </h3>
       </div>
 
-      <div className="flex items-center justify-center gap-6 mb-4 py-4 bg-noir-surface border border-noir-border rounded-card">
+      <div className="flex items-center justify-center gap-6 mb-4 py-5 bg-noir-active/60 rounded-interactive flex-1">
         <div className="text-center">
-          <p className="text-xs text-muted uppercase mb-1">Cenário Atual</p>
-          <p className="text-xl font-bold text-muted tabular-nums">
+          <p className="text-section-label text-muted uppercase tracking-widest mb-2">
+            Cenário Atual
+          </p>
+          <p className="text-xl font-mono-nums font-semibold text-muted tabular-nums">
             {formatCurrency(currentFreedom)}
           </p>
-          <p className="text-xs text-muted">em 12 meses</p>
+          <p className="text-xs text-muted mt-1">em 12 meses</p>
         </div>
 
-        <div className="text-center px-4">
+        <div className="text-center px-2">
           <span
-            className={`text-lg font-bold ${isImprovement ? "text-accent-positive" : "text-accent-warning"}`}
+            className={`text-lg ${isImprovement ? "text-accent-positive" : "text-accent-warning"}`}
           >
             →
           </span>
         </div>
 
         <div className="text-center">
-          <p className="text-xs text-muted uppercase mb-1">Cenário Simulado</p>
-          <p className="text-xl font-bold text-heading tabular-nums">
+          <p className="text-section-label text-muted uppercase tracking-widest mb-2">
+            Cenário Simulado
+          </p>
+          <p className="text-xl font-mono-nums font-semibold text-heading tabular-nums">
             {formatCurrency(simulatedFreedom)}
           </p>
-          <p className="text-xs text-muted">em 12 meses</p>
+          <p className="text-xs text-muted mt-1">em 12 meses</p>
         </div>
       </div>
 
@@ -225,23 +236,20 @@ export function SimulationAlerts({
 
   const hasDeficit = totalDeficit < 0 || monthlyBalance < 0;
 
-  // Calculate income percent for deficit
   const incomePercent =
     summary.monthlyIncome > 0
       ? ((summary.monthlyExpenses - summary.monthlyIncome) / summary.monthlyIncome) * 100
       : 0;
 
-  // Calculate change percent for freedom
   const freedomChangePercent =
     baselineTotalFreedom !== 0
       ? ((totalFreedom - baselineTotalFreedom) / Math.abs(baselineTotalFreedom)) * 100
       : 0;
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      {/* Show deficit alert if there's a deficit */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {hasDeficit && (
-        <div className="flex-1">
+        <div className={!(emergencyFund > 0) ? "md:col-span-2" : ""}>
           <DeficitAlertCard
             monthlyDeficit={monthlyBalance}
             totalDeficit={totalDeficit}
@@ -250,9 +258,8 @@ export function SimulationAlerts({
         </div>
       )}
 
-      {/* Show emergency fund card in deficit scenario */}
       {hasDeficit && emergencyFund > 0 && (
-        <div className="flex-1">
+        <div>
           <EmergencyFundCard
             emergencyFund={emergencyFund}
             monthsToDepletion={emergencyFundMonths}
@@ -262,9 +269,8 @@ export function SimulationAlerts({
         </div>
       )}
 
-      {/* Show freedom impact if positive balance */}
       {!hasDeficit && (
-        <div className="flex-1">
+        <div className="md:col-span-2">
           <FreedomImpactCard
             currentFreedom={baselineTotalFreedom}
             simulatedFreedom={totalFreedom}
