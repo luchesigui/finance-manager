@@ -30,7 +30,7 @@ export function AppHeader() {
 
   return (
     <header className="bg-noir-sidebar/95 border-b border-noir-border sticky top-0 z-10 backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto py-4 flex justify-between items-center">
+      <div className="max-w-5xl mx-auto py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="bg-accent-primary/15 p-2 rounded-interactive text-accent-primary border border-accent-primary/20">
             <Wallet size={22} />

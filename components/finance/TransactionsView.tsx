@@ -1033,7 +1033,9 @@ Retorne APENAS o JSON, sem markdown.
                               } flex items-center gap-1`}
                             >
                               {isIncrement ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                              <span className="hidden md:inline">{isIncrement ? "Renda" : "Dedução"}</span>
+                              <span className="hidden md:inline">
+                                {isIncrement ? "Renda" : "Dedução"}
+                              </span>
                             </span>
                           )}
                           {isForecast && (

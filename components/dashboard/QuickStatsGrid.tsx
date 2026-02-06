@@ -71,9 +71,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
           <div className="flex items-center gap-2 mb-3">
             <Gem
               size={20}
-              className={
-                savingsGoalAchieved ? "text-accent-positive" : "text-accent-spending"
-              }
+              className={savingsGoalAchieved ? "text-accent-positive" : "text-accent-spending"}
             />
             <h3 className="text-sm font-semibold text-heading uppercase tracking-wide">
               Liberdade Financeira
@@ -207,9 +205,7 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
           <div className="flex items-center gap-2 mb-3">
             <Wallet
               size={20}
-              className={
-                isPositiveBalance ? "text-accent-positive" : "text-accent-negative"
-              }
+              className={isPositiveBalance ? "text-accent-positive" : "text-accent-negative"}
             />
             <h3 className="text-sm font-semibold text-heading uppercase tracking-wide">
               Saldo Livre
