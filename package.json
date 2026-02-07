@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "predev": "npm run db:start",
     "dev": "next dev",
+    "postdev": "npm run db:stop",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -13,7 +15,16 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "verify": "npm run lint && npm run typecheck && npm run build",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:start": "npx supabase start --workdir infra",
+    "db:stop": "npx supabase stop --workdir infra",
+    "db:reset": "npx supabase db reset --workdir infra",
+    "db:push": "npx supabase db push --workdir infra",
+    "db:push:dry": "npx supabase db push --dry-run --workdir infra",
+    "db:diff": "npx supabase db diff --workdir infra",
+    "db:new": "npx supabase migration new --workdir infra",
+    "db:link": "npx supabase link --workdir infra",
+    "db:status": "npx supabase status --workdir infra"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
@@ -54,6 +65,7 @@
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.6.3",
+    "supabase": "^2.19.7",
     "vitest": "^4.0.18"
   },
   "lint-staged": {
