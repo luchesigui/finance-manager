@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type React from "react";
 import { useState } from "react";
 
-import { FinanceProviders } from "@/components/finance/FinanceProviders";
+import { FinanceProviders } from "@/features/transactions/components/FinanceProviders";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(

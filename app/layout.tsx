@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 import { Providers } from "@/app/providers";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { MainContent } from "@/components/layout/MainContent";
-import { MobileNav } from "@/components/layout/MobileNav";
 import { LazyToaster } from "@/components/ui/LazyToaster";
+import { AppHeader } from "@/features/layout/components/AppHeader";
+import { MainContent } from "@/features/layout/components/MainContent";
+import { MobileNav } from "@/features/layout/components/MobileNav";
 import { ThemeProvider } from "@/lib/theme/ThemeContext";
 import { Analytics } from "@vercel/analytics/next";
 

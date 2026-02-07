@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getOutlierStatistics } from "@/lib/server/financeStore";
+import { getOutlierStatistics } from "@/features/transactions/server/store";
 import { requireAuth } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";

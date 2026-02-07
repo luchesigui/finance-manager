@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { deleteSimulation, updateSimulation } from "@/features/simulation/server/store";
 import { updateSimulationBodySchema } from "@/lib/schemas";
-import { deleteSimulation, updateSimulation } from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 type RouteParams = { params: Promise<{ id: string }> };

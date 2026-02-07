@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { getCategories } from "@/features/categories/server/store";
+import { getPeople } from "@/features/people/server/store";
+import { getOutlierStatistics, getTransactions } from "@/features/transactions/server/store";
 import {
   calculateCategorySummary,
   calculateIncomeBreakdown,
   calculateTotalIncome,
   getExpenseTransactions,
-} from "@/components/finance/hooks/useFinanceCalculations";
-import {
-  getCategories,
-  getOutlierStatistics,
-  getPeople,
-  getTransactions,
-} from "@/lib/server/financeStore";
+} from "@/lib/server/calculations";
 import { requireAuth } from "@/lib/server/requestBodyValidation";
 import type { CategoryStatistics } from "@/lib/types";
 

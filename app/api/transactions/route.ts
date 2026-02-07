@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { createTransactionsBodySchema } from "@/lib/schemas";
 import {
   createTransaction,
   getRecurringTransactions,
   getTransactions,
-} from "@/lib/server/financeStore";
+} from "@/features/transactions/server/store";
+import { createTransactionsBodySchema } from "@/lib/schemas";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";

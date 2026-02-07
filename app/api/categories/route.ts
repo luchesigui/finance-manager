@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getCategories, updateCategory } from "@/features/categories/server/store";
 import { updateCategoryBodySchema } from "@/lib/schemas";
-import { getCategories, updateCategory } from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 import type { CategoryPatch } from "@/lib/types";
 

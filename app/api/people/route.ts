@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
+import {
+  createPerson,
+  deletePerson,
+  getPeople,
+  updatePerson,
+} from "@/features/people/server/store";
 import { createPersonBodySchema, updatePersonBodySchema } from "@/lib/schemas";
-import { createPerson, deletePerson, getPeople, updatePerson } from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 import type { PersonPatch } from "@/lib/types";
 

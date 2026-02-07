@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+  bulkDeleteTransactions,
+  bulkUpdateTransactions,
+} from "@/features/transactions/server/store";
 import { bulkDeleteBodySchema, bulkUpdateBodySchema } from "@/lib/schemas";
-import { bulkDeleteTransactions, bulkUpdateTransactions } from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 /**

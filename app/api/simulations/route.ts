@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { createSimulation, getSimulations } from "@/features/simulation/server/store";
 import { createSimulationBodySchema } from "@/lib/schemas";
-import { createSimulation, getSimulations } from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";

@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 import {
   buildEditableExpenses,
   calculateTotalSimulatedExpenses,
-} from "@/components/simulation/calculations/editableExpenses";
+} from "@/features/simulation/server/editableExpenses";
 import {
   buildRecurringExpenses,
   filterValidExpenseTransactions,
-} from "@/components/simulation/calculations/expenseFilters";
-import { buildProjectionResult } from "@/components/simulation/calculations/projectionCalculator";
+} from "@/features/simulation/server/expenseFilters";
+import { buildProjectionResult } from "@/features/simulation/server/projectionCalculator";
 import { simulationProjectBodySchema } from "@/lib/schemas";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 import type { Category, Person, Transaction } from "@/lib/types";

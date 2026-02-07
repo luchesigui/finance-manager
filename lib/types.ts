@@ -173,7 +173,7 @@ export type EmergencyFundResponse = { emergencyFund: number };
 export type SavedSimulation = {
   readonly id: string;
   name: string;
-  state: import("@/lib/simulationTypes").SimulationState;
+  state: import("@/features/simulation/types").SimulationState;
   createdAt: string;
   updatedAt: string;
   householdId: string;

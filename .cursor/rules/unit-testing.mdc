@@ -1,0 +1,99 @@
+---
+description: Unit testing standards and workflow for this project. Apply when writing or modifying unit tests, test utilities, or test-driven implementations.
+globs: ["**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}", "**/__tests__/**"]
+alwaysApply: false
+---
+
+# Unit Testing Rules
+
+## Unit Testing Rules for AI Agent
+
+### General Behavior
+- The purpose of a unit test is to validate that code behaves correctly, not just to make the test pass.
+- Do not write placeholder tests that assert `expect(true).toBe(true)` or equivalent. These are not valid tests.
+- Only consider a test complete when it verifies meaningful behavior of the target code.
+
+### Test Workflow
+- First, (unless prompted to otherwise) list out the required test cases based on the function's expected behavior and edge cases.
+- Then implement one test case at a time, ensuring it fails before the feature is implemented (if test-driven) or passes only when the feature works correctly.
+- Do not skip test cases or stub them unless instructed to do so.
+
+### Writing Tests
+- Focus on observable behavior. Do not assert internal implementation details unless testing internal utilities.
+- Test both success and failure paths where applicable.
+- Use clear and descriptive test names that explain the scenario being tested.
+- Avoid over-mocking or mocking code under test.
+
+### Maintainability
+- Keep test logic minimal and readable.
+- Group related tests using `describe` blocks when appropriate.
+- Use setup/teardown (`beforeEach`, `afterEach`) only when necessary to reduce duplication.
+
+### Test Output
+- Do not suppress or ignore test output or errors.
+- Fail loudly and clearly when assertions fail—this is expected during test development.
+
+## Framework Selection
+- Use the testing framework configured in this project (e.g. Vitest or Jest). Do not mix testing frameworks.
+- For Next.js/React: prefer Vitest for speed and ESM compatibility unless the project explicitly uses Jest.
+
+## Test Organization
+- Create a `__tests__` directory in the same directory as the files being tested.
+- Place test files in the `__tests__` directory adjacent to the files they test with `.test.ts(x)` or `.spec.ts(x)` naming.
+- Mock external dependencies and services.
+
+## Test Coverage
+- Aim for minimum 80% coverage on business logic.
+- Test all user-facing components.
+- Focus on testing behavior rather than implementation details.
+
+## Testing Utilities
+- Use @testing-library/react for component testing.
+- Use msw for API mocking.
+- Use @testing-library/user-event for testing user interactions.
+- Create reusable test utilities and fixtures in a `test-utils` directory.
+
+## Component Testing
+- Test component rendering.
+- Test user interactions.
+- Test edge cases and error states.
+- Don't test styles unless they're critical for functionality.
+
+## Unit Test Structure
+- Follow the AAA pattern: Arrange, Act, Assert.
+- Keep tests simple and focused on a single behavior.
+- Use descriptive test names that explain the expected behavior.
+
+## Mocking Best Practices for Unit Tests
+
+### When to Mock
+- Only mock external dependencies (e.g., network calls, databases, third-party libraries).
+- Do not mock internal application logic unless unavoidable.
+- Mock time, randomness, or other non-deterministic behavior only if it affects test performance or reliability.
+
+### What Not to Mock
+- Avoid mocking business logic or pure functions from the same codebase.
+- Do not mock framework behavior unless testing integrations.
+- Do not mock simple utility functions unless strictly necessary.
+
+### Guidelines
+- Only mock methods actually used in the test.
+- Do not assert on internal implementation details unless required.
+- Use mock factories to reduce duplication.
+- Reset or clear mocks between tests.
+
+### Spies vs Mocks (Jest/Vitest)
+- Use `vi.spyOn()` (or `jest.spyOn()`) when testing real implementations but verifying calls, arguments, or side effects.
+- Use `vi.fn()` (or `jest.fn()`) to replace behavior entirely, especially for stubbing external dependencies.
+- Prefer spies for methods on real objects where you want to preserve behavior and just observe usage.
+- Prefer mocks for injected or standalone dependencies where behavior should be overridden.
+
+### Code Hygiene
+- Keep mocks readable and minimal.
+- Extract complex mocks into helpers or factories.
+- Use real implementations if they are lightweight and deterministic.
+
+### Anti-patterns
+- Do not mock the unit under test.
+- Avoid mocking all dependencies by default.
+- Avoid stale or unused mocks.

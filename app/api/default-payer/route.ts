@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getDefaultPayerId, updateDefaultPayerId } from "@/features/people/server/store";
 import { updateDefaultPayerBodySchema } from "@/lib/schemas";
-import { getDefaultPayerId, updateDefaultPayerId } from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";

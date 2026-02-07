@@ -1,15 +1,12 @@
 import { NextResponse } from "next/server";
 
-import {
-  getCategories,
-  getOutlierStatistics,
-  getPeople,
-  getTransactions,
-} from "@/lib/server/financeStore";
+import { getCategories } from "@/features/categories/server/store";
 import {
   type HealthScoreResponse,
   calculateHealthScore,
-} from "@/lib/server/healthScoreCalculation";
+} from "@/features/dashboard/server/healthScoreCalculation";
+import { getPeople } from "@/features/people/server/store";
+import { getOutlierStatistics, getTransactions } from "@/features/transactions/server/store";
 import { requireAuth } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";

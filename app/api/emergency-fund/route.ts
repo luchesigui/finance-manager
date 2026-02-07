@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { getEmergencyFund, updateEmergencyFund } from "@/features/people/server/store";
 import { updateEmergencyFundBodySchema } from "@/lib/schemas";
-import { getEmergencyFund, updateEmergencyFund } from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
