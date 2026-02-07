@@ -1,8 +1,7 @@
 "use client";
 
-import { useCategories } from "@/components/finance/contexts/CategoriesContext";
-import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
-import { usePeople } from "@/components/finance/contexts/PeopleContext";
+import { useCategoriesData } from "@/components/finance/hooks/useCategoriesData";
+import { usePeopleData } from "@/components/finance/hooks/usePeopleData";
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { FieldError } from "@/components/ui/FieldError";
@@ -10,6 +9,7 @@ import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/con
 import { toYearMonthString } from "@/lib/dateUtils";
 import { zodValidator } from "@/lib/form";
 import { amountSchema, descriptionSchema } from "@/lib/formSchemas";
+import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import type { NewTransactionFormState } from "@/lib/types";
 import {
   CreditCard,
@@ -90,8 +90,8 @@ export function TransactionFormFields({
   showDescription = true,
   idPrefix = "",
 }: TransactionFormFieldsProps) {
-  const { categories } = useCategories();
-  const { people } = usePeople();
+  const { categories } = useCategoriesData();
+  const { people } = usePeopleData();
   const { selectedMonthDate } = useCurrentMonth();
 
   const monthOptions = generateMonthOptions(selectedMonthDate);

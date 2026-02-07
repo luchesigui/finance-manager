@@ -2,23 +2,24 @@
 
 import { useMemo } from "react";
 
+import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
+import { CategoryBudgetChart } from "@/components/dashboard/CategoryBudgetChart";
+import { ForecastSpotlight } from "@/components/dashboard/ForecastSpotlight";
+import { HealthScore } from "@/components/dashboard/HealthScore";
 import {
-  AlertsPanel,
-  CategoryBudgetChart,
-  ForecastSpotlight,
-  HealthScore,
   HealthTrendChart,
   type HealthTrendDataPoint,
-  OutlierSpotlight,
-  type OutlierTransaction,
-  QuickStatsGrid,
-  SavingsConfetti,
+} from "@/components/dashboard/HealthTrendChart";
+import { OutlierSpotlight, type OutlierTransaction } from "@/components/dashboard/OutlierSpotlight";
+import { QuickStatsGrid } from "@/components/dashboard/QuickStatsGrid";
+import { SavingsConfetti } from "@/components/dashboard/SavingsConfetti";
+import { useDashboardAlerts } from "@/components/dashboard/hooks/useDashboardAlerts";
+import { useHealthScore } from "@/components/dashboard/hooks/useHealthScore";
+import {
   formatPeriod,
   generatePeriodRange,
-  useDashboardAlerts,
-  useHealthScore,
   useHealthScoreQuery,
-} from "@/components/dashboard";
+} from "@/components/dashboard/hooks/useHealthScoreQuery";
 import {
   calculateCategorySummary,
   calculateIncomeBreakdown,
@@ -29,11 +30,11 @@ import {
 import { useOutlierDetection } from "@/components/finance/hooks/useOutlierDetection";
 import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 
+import { useCategoriesData } from "@/components/finance/hooks/useCategoriesData";
+import { usePeopleData } from "@/components/finance/hooks/usePeopleData";
+import { useTransactionsData } from "@/components/finance/hooks/useTransactionsData";
+import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import { MonthNavigator } from "./MonthNavigator";
-import { useCategories } from "./contexts/CategoriesContext";
-import { useCurrentMonth } from "./contexts/CurrentMonthContext";
-import { usePeople } from "./contexts/PeopleContext";
-import { useTransactions } from "./contexts/TransactionsContext";
 
 // ============================================================================
 // Constants
@@ -149,8 +150,8 @@ function convertToChartData(
 
 export function DashboardView() {
   const { selectedMonthDate, selectedYear, selectedMonthNumber } = useCurrentMonth();
-  const { people, isPeopleLoading } = usePeople();
-  const { categories, isCategoriesLoading } = useCategories();
+  const { people, isPeopleLoading } = usePeopleData();
+  const { categories, isCategoriesLoading } = useCategoriesData();
   const {
     transactionsForCalculations,
     transactionsForSelectedMonth,
@@ -158,7 +159,7 @@ export function DashboardView() {
     updateTransactionById,
     isForecastIncluded,
     setForecastInclusionOverride,
-  } = useTransactions();
+  } = useTransactionsData();
 
   // Combined loading state for health score calculation
   const isDataLoading = isPeopleLoading || isCategoriesLoading || isTransactionsLoading;

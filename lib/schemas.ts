@@ -165,6 +165,49 @@ export const updateSimulationBodySchema = z.object({
 });
 
 // ============================================================================
+// Simulation Project Schema (for POST /api/simulations/project)
+// ============================================================================
+
+const personSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  income: z.number(),
+  householdId: z.string().optional(),
+  linkedUserId: z.string().optional(),
+});
+
+const categorySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  targetPercent: z.number(),
+  householdId: z.string().optional(),
+});
+
+const transactionSchema = z.object({
+  id: z.number(),
+  description: z.string(),
+  amount: z.number(),
+  categoryId: z.string().nullable(),
+  paidBy: z.string(),
+  isRecurring: z.boolean(),
+  isCreditCard: z.boolean().optional(),
+  excludeFromSplit: z.boolean().optional(),
+  isForecast: z.boolean().optional(),
+  date: z.string(),
+  type: z.enum(["expense", "income"]).optional(),
+  isIncrement: z.boolean().optional(),
+});
+
+export const simulationProjectBodySchema = z.object({
+  people: z.array(personSchema).min(1),
+  transactions: z.array(transactionSchema),
+  categories: z.array(categorySchema),
+  emergencyFund: z.number().nonnegative(),
+  state: simulationStateSchema,
+  customExpensesValue: z.number().nonnegative().default(0),
+});
+
+// ============================================================================
 // Type Exports (inferred from schemas)
 // ============================================================================
 

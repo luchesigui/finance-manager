@@ -1,12 +1,12 @@
 "use client";
 
-import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
 import {
   calculateIncomeBreakdown,
   calculateTotalExpenses,
   calculateTotalIncome,
   getExpenseTransactions,
 } from "@/components/finance/hooks/useFinanceCalculations";
+import { useTransactionsData } from "@/components/finance/hooks/useTransactionsData";
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
 import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
@@ -31,7 +31,7 @@ export function SummaryCards({
     setForecastInclusionOverride,
     isForecastIncluded,
     transactionsForCalculations,
-  } = useTransactions();
+  } = useTransactionsData();
 
   const forecastExpenses = transactionsForSelectedMonth.filter(
     (transaction) => transaction.isForecast && transaction.type !== "income",

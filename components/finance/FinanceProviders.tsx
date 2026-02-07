@@ -3,32 +3,19 @@
 import { usePathname } from "next/navigation";
 import type React from "react";
 
-import { CategoriesProvider } from "@/components/finance/contexts/CategoriesContext";
-import { CurrentMonthProvider } from "@/components/finance/contexts/CurrentMonthContext";
-import { DefaultPayerProvider } from "@/components/finance/contexts/DefaultPayerContext";
-import { EmergencyFundProvider } from "@/components/finance/contexts/EmergencyFundContext";
-import { PeopleProvider } from "@/components/finance/contexts/PeopleContext";
-import { TransactionsProvider } from "@/components/finance/contexts/TransactionsContext";
-
+/**
+ * FinanceProviders - Optional wrapper for finance-related route logic.
+ * Context providers have been removed (Phase 5 Option A).
+ * Data is now colocated via usePeopleData, useCategoriesData, useTransactionsData, etc.
+ * This component only handles path-based behavior (e.g. skip on landing/login).
+ */
 export function FinanceProviders({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname();
 
-  // Skip FinanceProviders on landing, login, and signup pages to avoid API calls
+  // Skip finance data loading on landing, login, and signup pages
   if (pathname === "/" || pathname?.startsWith("/entrar") || pathname?.startsWith("/signup")) {
     return <>{children}</>;
   }
 
-  return (
-    <CurrentMonthProvider>
-      <PeopleProvider>
-        <CategoriesProvider>
-          <DefaultPayerProvider>
-            <EmergencyFundProvider>
-              <TransactionsProvider>{children}</TransactionsProvider>
-            </EmergencyFundProvider>
-          </DefaultPayerProvider>
-        </CategoriesProvider>
-      </PeopleProvider>
-    </CurrentMonthProvider>
-  );
+  return <>{children}</>;
 }

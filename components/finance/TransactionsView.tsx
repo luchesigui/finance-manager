@@ -3,9 +3,6 @@
 import { useForm } from "@tanstack/react-form";
 import {
   AlertTriangle,
-  BrainCircuit,
-  Check,
-  CheckCircle2,
   CreditCard,
   Filter,
   Loader2,
@@ -13,42 +10,27 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Sparkles,
   Trash2,
-  TrendingDown,
-  TrendingUp,
-  UserX,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { MonthNavigator } from "@/components/finance/MonthNavigator";
 import { TransactionFormFields } from "@/components/finance/TransactionFormFields";
-import { useCategories } from "@/components/finance/contexts/CategoriesContext";
-import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
-import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
-import { usePeople } from "@/components/finance/contexts/PeopleContext";
-import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { BulkEditModal } from "@/components/finance/TransactionsView/BulkEditModal";
+import { EditTransactionModal } from "@/components/finance/TransactionsView/EditTransactionModal";
+import { SmartFillSection } from "@/components/finance/TransactionsView/SmartFillSection";
+import { TransactionRow } from "@/components/finance/TransactionsView/TransactionRow";
+import { fuzzyMatch } from "@/components/finance/TransactionsView/fuzzyMatch";
+import { useCategoriesData } from "@/components/finance/hooks/useCategoriesData";
+import { useDefaultPayerData } from "@/components/finance/hooks/useDefaultPayerData";
 import { useOutlierDetection } from "@/components/finance/hooks/useOutlierDetection";
-import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
-import { isSmartFillEnabled } from "@/lib/featureFlags";
-import { formatCurrency, formatDateString, formatMonthYear } from "@/lib/format";
+import { usePeopleData } from "@/components/finance/hooks/usePeopleData";
+import { useTransactionsData } from "@/components/finance/hooks/useTransactionsData";
+import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
+import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import type { NewTransactionFormState, Transaction } from "@/lib/types";
-
-// Fuzzy search function - checks if query characters appear in sequence
-const fuzzyMatch = (text: string, query: string): boolean => {
-  if (!query) return true;
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  let queryIndex = 0;
-  for (let i = 0; i < lowerText.length && queryIndex < lowerQuery.length; i++) {
-    if (lowerText[i] === lowerQuery[queryIndex]) {
-      queryIndex++;
-    }
-  }
-  return queryIndex === lowerQuery.length;
-};
 
 // ============================================================================
 // Helper Functions
@@ -84,9 +66,9 @@ function createDefaultFormState(
 
 export function TransactionsView() {
   const { selectedMonthDate } = useCurrentMonth();
-  const { people } = usePeople();
-  const { categories } = useCategories();
-  const { defaultPayerId } = useDefaultPayer();
+  const { people } = usePeopleData();
+  const { categories } = useCategoriesData();
+  const { defaultPayerId } = useDefaultPayerData();
   const {
     transactionsForSelectedMonth,
     transactionsForCalculations,
@@ -95,7 +77,7 @@ export function TransactionsView() {
     updateTransactionById,
     bulkUpdateTransactions,
     bulkDeleteTransactions,
-  } = useTransactions();
+  } = useTransactionsData();
 
   const { isOutlier } = useOutlierDetection(
     selectedMonthDate.getFullYear(),
@@ -492,40 +474,12 @@ Retorne APENAS o JSON, sem markdown.
       <div className="noir-card p-card-padding relative overflow-hidden border-accent-primary/30">
         <div className="absolute inset-0 bg-accent-primary/5" />
         <div className="relative">
-          {isSmartFillEnabled && (
-            <div className="mb-6 p-4 rounded-card bg-noir-active border border-noir-border">
-              <label
-                htmlFor="smart-input"
-                className="text-xs font-bold text-accent-primary flex items-center gap-1.5 mb-2"
-              >
-                <Sparkles size={14} />
-                PREENCHIMENTO INTELIGENTE (BETA)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="smart-input"
-                  type="text"
-                  value={smartInput}
-                  onChange={(event) => setSmartInput(event.target.value)}
-                  placeholder="Ex: Almoço com Amanda hoje custou 45 reais"
-                  className="noir-input flex-1 text-sm"
-                  onKeyDown={(event) => event.key === "Enter" && handleSmartFill()}
-                />
-                <button
-                  type="button"
-                  onClick={handleSmartFill}
-                  disabled={aiLoading || !smartInput}
-                  className="noir-btn-primary"
-                >
-                  {aiLoading ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <BrainCircuit size={18} />
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+          <SmartFillSection
+            smartInput={smartInput}
+            onSmartInputChange={setSmartInput}
+            onSmartFill={handleSmartFill}
+            isLoading={aiLoading}
+          />
 
           <newTransactionForm.Subscribe selector={(state) => state.values}>
             {(values) => (
@@ -915,211 +869,28 @@ Retorne APENAS o JSON, sem markdown.
               )}
             </div>
           ) : (
-            visibleTransactionsForSelectedMonth.map((transaction) => {
-              const selectedCategory = categories.find(
-                (category) => category.id === transaction.categoryId,
-              );
-              const selectedPerson = people.find((person) => person.id === transaction.paidBy);
-              const isSelected = selectedIds.has(transaction.id);
-              const canSelect = !transaction.isRecurring;
-              const isIncome = transaction.type === "income";
-              const isIncrement = transaction.isIncrement ?? true;
-              const isForecast = transaction.isForecast;
-
-              return (
-                <div
-                  key={transaction.id}
-                  role={isSelectionMode && canSelect ? "button" : undefined}
-                  tabIndex={isSelectionMode && canSelect ? 0 : undefined}
-                  className={`p-4 md:p-5 hover:bg-noir-active/30 transition-colors group cursor-pointer ${
-                    isSelected ? "bg-accent-primary/10" : ""
-                  } ${isIncome ? "border-l-2 border-l-accent-positive" : ""}`}
-                  onClick={() => {
-                    if (isSelectionMode && canSelect) {
-                      toggleTransactionSelection(transaction.id);
-                    } else if (!isSelectionMode) {
-                      handleOpenEditModal(transaction);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (isSelectionMode && canSelect && (e.key === "Enter" || e.key === " ")) {
-                      e.preventDefault();
-                      toggleTransactionSelection(transaction.id);
-                    }
-                  }}
-                >
-                  <div className="flex items-start gap-3 md:items-center md:gap-4">
-                    {isSelectionMode && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (canSelect) toggleTransactionSelection(transaction.id);
-                        }}
-                        disabled={!canSelect}
-                        className={`w-5 h-5 mt-0.5 md:mt-0 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                          isSelected
-                            ? "bg-accent-primary border-accent-primary text-white"
-                            : canSelect
-                              ? "border-noir-border-light hover:border-accent-primary"
-                              : "border-noir-border bg-noir-active cursor-not-allowed"
-                        }`}
-                        title={
-                          !canSelect ? "Lançamentos recorrentes não podem ser selecionados" : ""
-                        }
-                      >
-                        {isSelected && <Check size={12} strokeWidth={3} />}
-                      </button>
-                    )}
-                    {/* Avatar - hidden on mobile */}
-                    <div
-                      className={`hidden md:flex w-10 h-10 min-w-[40px] rounded-full items-center justify-center text-white font-bold text-xs flex-shrink-0 ${
-                        isIncome
-                          ? isIncrement
-                            ? "bg-accent-positive/80"
-                            : "bg-accent-warning/80"
-                          : "bg-noir-active"
-                      }`}
-                    >
-                      {isIncome ? (
-                        isIncrement ? (
-                          <TrendingUp size={18} />
-                        ) : (
-                          <TrendingDown size={18} />
-                        )
-                      ) : (
-                        <span className="text-body">
-                          {(selectedPerson?.name.substring(0, 2) ?? "?").toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      {/* Row 1: Description + Amount */}
-                      <div className="flex items-start justify-between gap-3">
-                        <h4 className="font-medium text-heading truncate">
-                          {transaction.description}
-                        </h4>
-                        <span
-                          className={`font-bold tabular-nums flex-shrink-0 ${
-                            isIncome
-                              ? isIncrement
-                                ? "text-accent-positive"
-                                : "text-accent-warning"
-                              : "text-heading"
-                          }`}
-                        >
-                          {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
-                          {formatCurrency(transaction.amount)}
-                        </span>
-                      </div>
-                      {/* Row 2: Metadata + Badges */}
-                      <div className="flex items-center justify-between gap-2 mt-1">
-                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                          <p className="text-xs text-muted flex gap-1.5 flex-shrink-0">
-                            {selectedCategory?.name && (
-                              <>
-                                <span>{selectedCategory.name}</span>
-                                <span>•</span>
-                              </>
-                            )}
-                            <span>{formatDateString(transaction.date)}</span>
-                          </p>
-                          {/* Badges - icon only on mobile, with label on desktop */}
-                          {isIncome && (
-                            <span
-                              className={`${
-                                isIncrement ? "noir-badge-positive" : "noir-badge-warning"
-                              } flex items-center gap-1`}
-                            >
-                              {isIncrement ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                              <span className="hidden md:inline">
-                                {isIncrement ? "Renda" : "Dedução"}
-                              </span>
-                            </span>
-                          )}
-                          {isForecast && (
-                            <span className="noir-badge-warning flex items-center gap-1">
-                              <CrystalBallLine size={13} />
-                              <span className="hidden md:inline">Previsão</span>
-                            </span>
-                          )}
-                          {transaction.isRecurring && (
-                            <span className="noir-badge-accent flex items-center gap-1">
-                              <RefreshCw size={13} />
-                              <span className="hidden md:inline">Recorrente</span>
-                            </span>
-                          )}
-                          {transaction.isCreditCard && (
-                            <span className="noir-badge-accent flex items-center gap-1">
-                              <CreditCard size={13} />
-                              <span className="hidden md:inline">Cartão</span>
-                            </span>
-                          )}
-                          {transaction.excludeFromSplit && (
-                            <span className="noir-badge-muted flex items-center gap-1">
-                              <UserX size={13} />
-                              <span className="hidden md:inline">Fora da divisão</span>
-                            </span>
-                          )}
-                          {isOutlier(transaction) && (
-                            <span className="noir-badge-negative flex items-center gap-1">
-                              <AlertTriangle size={13} />
-                              <span className="hidden md:inline">Fora do padrão</span>
-                            </span>
-                          )}
-                        </div>
-                        {/* Action buttons - hidden on mobile, always visible on desktop */}
-                        {!isSelectionMode && (
-                          <div className="hidden md:flex items-center gap-1 mt-1 flex-shrink-0">
-                            {isForecast && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateTransactionById(transaction.id, { isForecast: false });
-                                }}
-                                className="text-muted hover:text-accent-positive p-1.5 transition-all rounded-interactive hover:bg-accent-positive/10"
-                                title="Marcar como acontecido"
-                                aria-label={`Marcar lançamento como acontecido: ${transaction.description}`}
-                              >
-                                <CheckCircle2 size={15} />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenEditModal(transaction);
-                              }}
-                              className="text-muted hover:text-accent-primary p-1.5 transition-all rounded-interactive hover:bg-accent-primary/10"
-                              title="Editar"
-                              aria-label={`Editar lançamento: ${transaction.description}`}
-                            >
-                              <Pencil size={15} />
-                            </button>
-                            {!transaction.isRecurring && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteTransactionById(transaction.id);
-                                }}
-                                className="text-muted hover:text-accent-negative p-1.5 transition-all rounded-interactive hover:bg-accent-negative/10"
-                                title="Excluir"
-                                aria-label={`Excluir lançamento: ${transaction.description}`}
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+            visibleTransactionsForSelectedMonth.map((transaction) => (
+              <TransactionRow
+                key={transaction.id}
+                transaction={transaction}
+                category={categories.find((category) => category.id === transaction.categoryId)}
+                person={people.find((person) => person.id === transaction.paidBy)}
+                isOutlier={isOutlier(transaction)}
+                isSelectionMode={isSelectionMode}
+                isSelected={selectedIds.has(transaction.id)}
+                canSelect={!transaction.isRecurring}
+                onToggleSelection={() => toggleTransactionSelection(transaction.id)}
+                onEdit={() => handleOpenEditModal(transaction)}
+                onMarkAsHappened={
+                  transaction.isForecast
+                    ? () => updateTransactionById(transaction.id, { isForecast: false })
+                    : undefined
+                }
+                onDelete={
+                  !transaction.isRecurring ? () => deleteTransactionById(transaction.id) : undefined
+                }
+              />
+            ))
           )}
         </div>
 
@@ -1142,355 +913,27 @@ Retorne APENAS o JSON, sem markdown.
         )}
       </div>
 
-      {/* Edit Transaction Modal */}
       {editingTransaction && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          // biome-ignore lint/a11y/useSemanticElements: Custom modal with backdrop styling requires div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-modal-title"
-        >
-          <div className="noir-card max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
-            <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3
-                id="edit-modal-title"
-                className="font-semibold text-heading flex items-center gap-2"
-              >
-                <Pencil className="text-accent-primary" size={20} />
-                Editar Lançamento
-              </h3>
-              <button
-                type="button"
-                onClick={handleCloseEditModal}
-                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
-                aria-label="Fechar modal de edição"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  editTransactionForm.handleSubmit();
-                }}
-              >
-                <div className="mb-4">
-                  <editTransactionForm.Field name="description">
-                    {(field) => (
-                      <>
-                        <label
-                          htmlFor="edit-description"
-                          className="block text-xs font-medium text-body mb-1"
-                        >
-                          Descrição
-                        </label>
-                        <input
-                          id="edit-description"
-                          type="text"
-                          placeholder="Ex: Luz, Mercado, iFood..."
-                          className="noir-input w-full"
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          required
-                        />
-                      </>
-                    )}
-                  </editTransactionForm.Field>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                  <TransactionFormFields
-                    form={editTransactionForm}
-                    showInstallmentFields={false}
-                    showDescription={false}
-                    idPrefix="edit-transaction"
-                  />
-                </div>
-                <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
-                  <button
-                    type="button"
-                    onClick={handleCloseEditModal}
-                    className="noir-btn-secondary flex-1 py-3"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"
-                  >
-                    <Pencil size={18} />
-                    Salvar Alterações
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
+        <EditTransactionModal form={editTransactionForm} onClose={handleCloseEditModal} />
       )}
 
-      {/* Bulk Edit Modal */}
       {isBulkEditModalOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          // biome-ignore lint/a11y/useSemanticElements: Custom modal with backdrop styling requires div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bulk-edit-modal-title"
-        >
-          <div className="noir-card max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
-            <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3
-                id="bulk-edit-modal-title"
-                className="font-semibold text-heading flex items-center gap-2"
-              >
-                <Pencil className="text-accent-primary" size={20} />
-                Editar em Massa
-                <span className="noir-badge-muted">{selectedIds.size} lançamento(s)</span>
-              </h3>
-              <button
-                type="button"
-                onClick={handleCloseBulkEditModal}
-                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
-                aria-label="Fechar modal de edição em massa"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-body mb-4">
-                Selecione os campos que deseja alterar. Apenas os campos selecionados serão
-                atualizados em todos os lançamentos.
-              </p>
-
-              {/* Category */}
-              <div className="mb-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <input
-                    type="checkbox"
-                    id="bulk-category-enable"
-                    checked={bulkEditFormState.categoryId !== null}
-                    onChange={(e) =>
-                      setBulkEditFormState((prev) => ({
-                        ...prev,
-                        categoryId: e.target.checked ? (categories[0]?.id ?? "") : null,
-                      }))
-                    }
-                    className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-                  />
-                  <label
-                    htmlFor="bulk-category-enable"
-                    className="text-sm font-medium text-heading cursor-pointer"
-                  >
-                    Alterar Categoria
-                  </label>
-                </div>
-                {bulkEditFormState.categoryId !== null && (
-                  <select
-                    id="bulk-category"
-                    className="noir-select w-full animate-in slide-in-from-top-1 duration-200"
-                    value={bulkEditFormState.categoryId}
-                    onChange={(e) =>
-                      setBulkEditFormState((prev) => ({
-                        ...prev,
-                        categoryId: e.target.value,
-                      }))
-                    }
-                  >
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Paid By */}
-              <div className="mb-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <input
-                    type="checkbox"
-                    id="bulk-paidby-enable"
-                    checked={bulkEditFormState.paidBy !== null}
-                    onChange={(e) =>
-                      setBulkEditFormState((prev) => ({
-                        ...prev,
-                        paidBy: e.target.checked ? (people[0]?.id ?? "") : null,
-                      }))
-                    }
-                    className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-                  />
-                  <label
-                    htmlFor="bulk-paidby-enable"
-                    className="text-sm font-medium text-heading cursor-pointer"
-                  >
-                    Alterar Pago por
-                  </label>
-                </div>
-                {bulkEditFormState.paidBy !== null && (
-                  <select
-                    id="bulk-paidby"
-                    className="noir-select w-full animate-in slide-in-from-top-1 duration-200"
-                    value={bulkEditFormState.paidBy}
-                    onChange={(e) =>
-                      setBulkEditFormState((prev) => ({
-                        ...prev,
-                        paidBy: e.target.value,
-                      }))
-                    }
-                  >
-                    {people.map((person) => (
-                      <option key={person.id} value={person.id}>
-                        {person.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Boolean flags */}
-              <div className="space-y-3 mb-4">
-                {/* Is Recurring */}
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="bulk-recurring-enable"
-                    checked={bulkEditFormState.isRecurring !== null}
-                    onChange={(e) =>
-                      setBulkEditFormState((prev) => ({
-                        ...prev,
-                        isRecurring: e.target.checked ? false : null,
-                      }))
-                    }
-                    className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-                  />
-                  <label
-                    htmlFor="bulk-recurring-enable"
-                    className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
-                  >
-                    <RefreshCw size={14} /> Alterar Recorrente
-                  </label>
-                  {bulkEditFormState.isRecurring !== null && (
-                    <select
-                      className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
-                      value={bulkEditFormState.isRecurring ? "true" : "false"}
-                      onChange={(e) =>
-                        setBulkEditFormState((prev) => ({
-                          ...prev,
-                          isRecurring: e.target.value === "true",
-                        }))
-                      }
-                    >
-                      <option value="true">Sim</option>
-                      <option value="false">Não</option>
-                    </select>
-                  )}
-                </div>
-
-                {/* Is Credit Card */}
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="bulk-creditcard-enable"
-                    checked={bulkEditFormState.isCreditCard !== null}
-                    onChange={(e) =>
-                      setBulkEditFormState((prev) => ({
-                        ...prev,
-                        isCreditCard: e.target.checked ? false : null,
-                      }))
-                    }
-                    className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-                  />
-                  <label
-                    htmlFor="bulk-creditcard-enable"
-                    className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
-                  >
-                    <CreditCard size={14} /> Alterar Próxima Fatura
-                  </label>
-                  {bulkEditFormState.isCreditCard !== null && (
-                    <select
-                      className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
-                      value={bulkEditFormState.isCreditCard ? "true" : "false"}
-                      onChange={(e) =>
-                        setBulkEditFormState((prev) => ({
-                          ...prev,
-                          isCreditCard: e.target.value === "true",
-                        }))
-                      }
-                    >
-                      <option value="true">Sim</option>
-                      <option value="false">Não</option>
-                    </select>
-                  )}
-                </div>
-
-                {/* Exclude from Split */}
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="bulk-exclude-enable"
-                    checked={bulkEditFormState.excludeFromSplit !== null}
-                    onChange={(e) =>
-                      setBulkEditFormState((prev) => ({
-                        ...prev,
-                        excludeFromSplit: e.target.checked ? false : null,
-                      }))
-                    }
-                    className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-                  />
-                  <label
-                    htmlFor="bulk-exclude-enable"
-                    className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
-                  >
-                    <UserX size={14} /> Alterar Fora da Divisão
-                  </label>
-                  {bulkEditFormState.excludeFromSplit !== null && (
-                    <select
-                      className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
-                      value={bulkEditFormState.excludeFromSplit ? "true" : "false"}
-                      onChange={(e) =>
-                        setBulkEditFormState((prev) => ({
-                          ...prev,
-                          excludeFromSplit: e.target.value === "true",
-                        }))
-                      }
-                    >
-                      <option value="true">Sim</option>
-                      <option value="false">Não</option>
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
-                <button
-                  type="button"
-                  onClick={handleCloseBulkEditModal}
-                  className="noir-btn-secondary flex-1 py-3"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveBulkEdit}
-                  disabled={
-                    bulkEditFormState.categoryId === null &&
-                    bulkEditFormState.paidBy === null &&
-                    bulkEditFormState.isRecurring === null &&
-                    bulkEditFormState.isCreditCard === null &&
-                    bulkEditFormState.excludeFromSplit === null
-                  }
-                  className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"
-                >
-                  <Pencil size={18} />
-                  Aplicar Alterações
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <BulkEditModal
+          formState={bulkEditFormState}
+          onFormStateChange={setBulkEditFormState}
+          categories={categories}
+          people={people}
+          selectedCount={selectedIds.size}
+          onClose={handleCloseBulkEditModal}
+          onSave={handleSaveBulkEdit}
+          isSaveDisabled={
+            bulkEditFormState.categoryId === null &&
+            bulkEditFormState.paidBy === null &&
+            bulkEditFormState.isRecurring === null &&
+            bulkEditFormState.isCreditCard === null &&
+            bulkEditFormState.excludeFromSplit === null
+          }
+        />
       )}
     </div>
   );

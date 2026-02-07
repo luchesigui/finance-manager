@@ -2,13 +2,13 @@
 
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 
-import { useCurrentMonth } from "@/components/finance/contexts/CurrentMonthContext";
-import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { useTransactionsData } from "@/components/finance/hooks/useTransactionsData";
 import { formatMonthYear } from "@/lib/format";
+import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 
 export function MonthNavigator() {
   const { selectedMonthDate, setSelectedMonthDate } = useCurrentMonth();
-  const { transactionsForSelectedMonth } = useTransactions();
+  const { transactionsForSelectedMonth } = useTransactionsData();
 
   const handlePrevMonth = () => {
     setSelectedMonthDate(

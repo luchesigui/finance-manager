@@ -6,11 +6,11 @@ import { Monitor, Moon, PieChart, Plus, Save, Shield, Sun, Users } from "lucide-
 import { useEffect, useState } from "react";
 
 import { PersonEditRow } from "@/components/finance/PersonEditRow";
-import { useCategories } from "@/components/finance/contexts/CategoriesContext";
-import { useDefaultPayer } from "@/components/finance/contexts/DefaultPayerContext";
-import { useEmergencyFund } from "@/components/finance/contexts/EmergencyFundContext";
-import { usePeople } from "@/components/finance/contexts/PeopleContext";
+import { useCategoriesData } from "@/components/finance/hooks/useCategoriesData";
+import { useDefaultPayerData } from "@/components/finance/hooks/useDefaultPayerData";
+import { useEmergencyFundData } from "@/components/finance/hooks/useEmergencyFundData";
 import { calculateTotalIncome } from "@/components/finance/hooks/useFinanceCalculations";
+import { usePeopleData } from "@/components/finance/hooks/usePeopleData";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { FieldError } from "@/components/ui/FieldError";
 import { fetchJson } from "@/lib/apiClient";
@@ -57,18 +57,18 @@ function initializeCategoryEdits(categories: Category[]): CategoryEdits {
 // ============================================================================
 
 export function SettingsView() {
-  const { people, updatePeople, createPerson, deletePerson } = usePeople();
-  const { categories, updateCategories } = useCategories();
+  const { people, updatePeople, createPerson, deletePerson } = usePeopleData();
+  const { categories, updateCategories } = useCategoriesData();
   const {
     defaultPayerId,
     setDefaultPayerId,
     isUpdating: isUpdatingDefaultPayer,
-  } = useDefaultPayer();
+  } = useDefaultPayerData();
   const {
     emergencyFund,
     updateEmergencyFund,
     isUpdating: isUpdatingEmergencyFund,
-  } = useEmergencyFund();
+  } = useEmergencyFundData();
 
   // Form state
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);

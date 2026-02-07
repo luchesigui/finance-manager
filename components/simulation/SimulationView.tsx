@@ -1,20 +1,24 @@
 "use client";
 
-import { useCategories } from "@/components/finance/contexts/CategoriesContext";
-import { useEmergencyFund } from "@/components/finance/contexts/EmergencyFundContext";
-import { usePeople } from "@/components/finance/contexts/PeopleContext";
-import { useTransactions } from "@/components/finance/contexts/TransactionsContext";
+import { useCategoriesData } from "@/components/finance/hooks/useCategoriesData";
+import { useEmergencyFundData } from "@/components/finance/hooks/useEmergencyFundData";
+import { usePeopleData } from "@/components/finance/hooks/usePeopleData";
 import {
-  EditableExpensesCard,
-  FutureProjectionChart,
-  ParticipantSimulator,
-  SaveSimulationModal,
-  SavedSimulationsList,
-  ScenarioSelector,
-  SimulationAlerts,
-  SimulationSummaryCards,
-  useSimulation,
-} from "@/components/simulation";
+  useDeleteSimulationMutation,
+  useSaveSimulationMutation,
+  useSimulationsQuery,
+  useUpdateSimulationMutation,
+} from "@/components/finance/hooks/useSimulationQueries";
+import { useTransactionsData } from "@/components/finance/hooks/useTransactionsData";
+import { EditableExpensesCard } from "@/components/simulation/EditableExpensesCard";
+import { FutureProjectionChart } from "@/components/simulation/FutureProjectionChart";
+import { ParticipantSimulator } from "@/components/simulation/ParticipantSimulator";
+import { SaveSimulationModal } from "@/components/simulation/SaveSimulationModal";
+import { SavedSimulationsList } from "@/components/simulation/SavedSimulationsList";
+import { ScenarioSelector } from "@/components/simulation/ScenarioSelector";
+import { SimulationAlerts } from "@/components/simulation/SimulationAlerts";
+import { SimulationSummaryCards } from "@/components/simulation/SimulationSummaryCards";
+import { useSimulation } from "@/components/simulation/hooks/useSimulation";
 import type { SavedSimulation } from "@/lib/types";
 import { Loader2, RefreshCw, Save, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,10 +29,10 @@ import { toast } from "sonner";
 // ============================================================================
 
 export function SimulationView() {
-  const { people, isPeopleLoading } = usePeople();
-  const { transactionsForCalculations, isTransactionsLoading } = useTransactions();
-  const { categories, isCategoriesLoading } = useCategories();
-  const { emergencyFund, isEmergencyFundLoading } = useEmergencyFund();
+  const { people, isPeopleLoading } = usePeopleData();
+  const { transactionsForCalculations, isTransactionsLoading } = useTransactionsData();
+  const { categories, isCategoriesLoading } = useCategoriesData();
+  const { emergencyFund, isEmergencyFundLoading } = useEmergencyFundData();
 
   const isLoading =
     isPeopleLoading || isTransactionsLoading || isCategoriesLoading || isEmergencyFundLoading;
@@ -61,15 +65,19 @@ export function SimulationView() {
     emergencyFund,
   });
 
-  // Saved simulations state
-  const [savedSimulations, setSavedSimulations] = useState<SavedSimulation[]>([]);
-  const [isSavedLoading, setIsSavedLoading] = useState(true);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [updatingSimulationId, setUpdatingSimulationId] = useState<string | null>(null);
   const [activeSimulationId, setActiveSimulationId] = useState<string | null>(null);
   const [lastSavedStateSnapshot, setLastSavedStateSnapshot] = useState<string | null>(null);
   const hasSetInitialSnapshot = useRef(false);
+
+  const [updatingSimulationId, setUpdatingSimulationId] = useState<string | null>(null);
+
+  const { data: savedSimulations = [], isLoading: isSavedLoading } = useSimulationsQuery();
+  const saveMutation = useSaveSimulationMutation();
+  const updateMutation = useUpdateSimulationMutation();
+  const deleteMutation = useDeleteSimulationMutation();
+
+  const isSaving = saveMutation.isPending;
 
   // On first load, treat current state as "saved" so Save is disabled until user changes something
   useEffect(() => {
@@ -83,48 +91,19 @@ export function SimulationView() {
     [state, lastSavedStateSnapshot],
   );
 
-  // Fetch saved simulations on mount
-  useEffect(() => {
-    async function fetchSimulations() {
-      try {
-        const res = await fetch("/api/simulations");
-        if (res.ok) {
-          const data = await res.json();
-          setSavedSimulations(data);
-        }
-      } catch {
-        // Silently fail — non-critical
-      } finally {
-        setIsSavedLoading(false);
-      }
-    }
-    fetchSimulations();
-  }, []);
-
   const handleSave = useCallback(
     async (name: string) => {
-      setIsSaving(true);
       try {
-        const res = await fetch("/api/simulations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, state }),
-        });
-        if (res.ok) {
-          const created: SavedSimulation = await res.json();
-          setSavedSimulations((prev) => [created, ...prev]);
-          setActiveSimulationId(created.id);
-          setLastSavedStateSnapshot(JSON.stringify(state));
-          setIsSaveModalOpen(false);
-          toast.success("Simulação salva com sucesso.");
-        }
+        const created = await saveMutation.mutateAsync({ name, state });
+        setActiveSimulationId(created.id);
+        setLastSavedStateSnapshot(JSON.stringify(state));
+        setIsSaveModalOpen(false);
+        toast.success("Simulação salva com sucesso.");
       } catch {
         // Silently fail
-      } finally {
-        setIsSaving(false);
       }
     },
-    [state],
+    [state, saveMutation],
   );
 
   const handleLoad = useCallback(
@@ -140,41 +119,30 @@ export function SimulationView() {
     async (id: string) => {
       setUpdatingSimulationId(id);
       try {
-        const res = await fetch(`/api/simulations/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ state }),
-        });
-        if (res.ok) {
-          const updated: SavedSimulation = await res.json();
-          setSavedSimulations((prev) => prev.map((s) => (s.id === id ? updated : s)));
-          setLastSavedStateSnapshot(JSON.stringify(state));
-          toast.success("Simulação salva com sucesso.");
-        }
+        await updateMutation.mutateAsync({ id, state });
+        setLastSavedStateSnapshot(JSON.stringify(state));
+        toast.success("Simulação salva com sucesso.");
       } catch {
         // Silently fail
       } finally {
         setUpdatingSimulationId(null);
       }
     },
-    [state],
+    [state, updateMutation],
   );
 
   const handleDelete = useCallback(
     async (id: string) => {
       try {
-        const res = await fetch(`/api/simulations/${id}`, { method: "DELETE" });
-        if (res.ok) {
-          setSavedSimulations((prev) => prev.filter((s) => s.id !== id));
-          if (activeSimulationId === id) {
-            setActiveSimulationId(null);
-          }
+        await deleteMutation.mutateAsync(id);
+        if (activeSimulationId === id) {
+          setActiveSimulationId(null);
         }
       } catch {
         // Silently fail
       }
     },
-    [activeSimulationId],
+    [activeSimulationId, deleteMutation],
   );
 
   // Calculate scenario totals
