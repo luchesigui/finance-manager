@@ -8,12 +8,17 @@ import {
   EditableExpensesCard,
   FutureProjectionChart,
   ParticipantSimulator,
+  SaveSimulationModal,
+  SavedSimulationsList,
   ScenarioSelector,
   SimulationAlerts,
   SimulationSummaryCards,
   useSimulation,
 } from "@/components/simulation";
-import { RefreshCw, Sparkles } from "lucide-react";
+import type { SavedSimulation } from "@/lib/types";
+import { Loader2, RefreshCw, Save, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 // ============================================================================
 // Main Component
@@ -38,6 +43,7 @@ export function SimulationView() {
     removeManualExpense,
     setCustomExpenses,
     resetToBaseline,
+    loadState,
     projection,
     editableExpenses,
     totalSimulatedExpenses,
@@ -54,6 +60,122 @@ export function SimulationView() {
     categories,
     emergencyFund,
   });
+
+  // Saved simulations state
+  const [savedSimulations, setSavedSimulations] = useState<SavedSimulation[]>([]);
+  const [isSavedLoading, setIsSavedLoading] = useState(true);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [updatingSimulationId, setUpdatingSimulationId] = useState<string | null>(null);
+  const [activeSimulationId, setActiveSimulationId] = useState<string | null>(null);
+  const [lastSavedStateSnapshot, setLastSavedStateSnapshot] = useState<string | null>(null);
+  const hasSetInitialSnapshot = useRef(false);
+
+  // On first load, treat current state as "saved" so Save is disabled until user changes something
+  useEffect(() => {
+    if (hasSetInitialSnapshot.current || isLoading) return;
+    hasSetInitialSnapshot.current = true;
+    setLastSavedStateSnapshot(JSON.stringify(state));
+  }, [state, isLoading]);
+
+  const isSaveDisabled = useMemo(
+    () => lastSavedStateSnapshot !== null && JSON.stringify(state) === lastSavedStateSnapshot,
+    [state, lastSavedStateSnapshot],
+  );
+
+  // Fetch saved simulations on mount
+  useEffect(() => {
+    async function fetchSimulations() {
+      try {
+        const res = await fetch("/api/simulations");
+        if (res.ok) {
+          const data = await res.json();
+          setSavedSimulations(data);
+        }
+      } catch {
+        // Silently fail — non-critical
+      } finally {
+        setIsSavedLoading(false);
+      }
+    }
+    fetchSimulations();
+  }, []);
+
+  const handleSave = useCallback(
+    async (name: string) => {
+      setIsSaving(true);
+      try {
+        const res = await fetch("/api/simulations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, state }),
+        });
+        if (res.ok) {
+          const created: SavedSimulation = await res.json();
+          setSavedSimulations((prev) => [created, ...prev]);
+          setActiveSimulationId(created.id);
+          setLastSavedStateSnapshot(JSON.stringify(state));
+          setIsSaveModalOpen(false);
+          toast.success("Simulação salva com sucesso.");
+        }
+      } catch {
+        // Silently fail
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [state],
+  );
+
+  const handleLoad = useCallback(
+    (simulation: SavedSimulation) => {
+      loadState(simulation.state);
+      setActiveSimulationId(simulation.id);
+      setLastSavedStateSnapshot(JSON.stringify(simulation.state));
+    },
+    [loadState],
+  );
+
+  const handleUpdate = useCallback(
+    async (id: string) => {
+      setUpdatingSimulationId(id);
+      try {
+        const res = await fetch(`/api/simulations/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state }),
+        });
+        if (res.ok) {
+          const updated: SavedSimulation = await res.json();
+          setSavedSimulations((prev) => prev.map((s) => (s.id === id ? updated : s)));
+          setLastSavedStateSnapshot(JSON.stringify(state));
+          toast.success("Simulação salva com sucesso.");
+        }
+      } catch {
+        // Silently fail
+      } finally {
+        setUpdatingSimulationId(null);
+      }
+    },
+    [state],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        const res = await fetch(`/api/simulations/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          setSavedSimulations((prev) => prev.filter((s) => s.id !== id));
+          if (activeSimulationId === id) {
+            setActiveSimulationId(null);
+          }
+        }
+      } catch {
+        // Silently fail
+      }
+    },
+    [activeSimulationId],
+  );
 
   // Calculate scenario totals
   const minimalistTotal = recurringExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -94,16 +216,29 @@ export function SimulationView() {
         </span>
       </div>
 
-      {/* Reset button */}
+      {/* Action buttons */}
       {hasChanges && (
-        <div className="flex justify-center">
+        <div className="flex justify-center gap-3">
           <button
             type="button"
-            onClick={resetToBaseline}
+            onClick={() => {
+              resetToBaseline();
+              setActiveSimulationId(null);
+              setLastSavedStateSnapshot(null);
+            }}
             className="noir-btn-secondary flex items-center gap-2"
           >
             <RefreshCw size={16} />
             Resetar para valores reais
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsSaveModalOpen(true)}
+            disabled={isSaveDisabled || isSaving}
+            className="noir-btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {isSaving ? "Salvando..." : "Salvar simulação"}
           </button>
         </div>
       )}
@@ -120,6 +255,18 @@ export function SimulationView() {
           </div>
         </div>
       )}
+
+      {/* Saved simulations list */}
+      <SavedSimulationsList
+        simulations={savedSimulations}
+        onLoad={handleLoad}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
+        activeSimulationId={activeSimulationId}
+        isLoading={isSavedLoading}
+        isSaveDisabled={isSaveDisabled}
+        updatingSimulationId={updatingSimulationId}
+      />
 
       {/* Controls Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -174,6 +321,15 @@ export function SimulationView() {
           dados reais.
         </p>
       </div>
+
+      {/* Save Modal */}
+      {isSaveModalOpen && (
+        <SaveSimulationModal
+          onSave={handleSave}
+          onClose={() => setIsSaveModalOpen(false)}
+          isSaving={isSaving}
+        />
+      )}
     </div>
   );
 }

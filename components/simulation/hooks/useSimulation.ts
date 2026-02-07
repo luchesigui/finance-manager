@@ -19,6 +19,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 const PROJECTION_MONTHS = 12;
 const LIBERDADE_FINANCEIRA_CATEGORY = "Liberdade Financeira";
+const LS_DRAFT_STATE_KEY = "simulation_draft_state";
+const LS_DRAFT_CUSTOM_EXPENSES_KEY = "simulation_draft_custom_expenses";
 
 // ============================================================================
 // Types
@@ -44,8 +46,9 @@ type UseSimulationReturn = {
   addManualExpense: (description: string, amount: number) => void;
   removeManualExpense: (id: string) => void;
   setCustomExpenses: (amount: number) => void;
-  // Reset
+  // Reset / Load
   resetToBaseline: () => void;
+  loadState: (state: SimulationState) => void;
   // Computed values
   projection: ProjectionResult;
   editableExpenses: EditableExpense[];
@@ -190,18 +193,39 @@ export function useSimulation({
   categories,
   emergencyFund,
 }: UseSimulationProps): UseSimulationReturn {
-  // Initialize state
-  const [state, setState] = useState<SimulationState>(() => ({
-    participants: createInitialParticipants(people),
-    scenario: "currentMonth",
-    expenseOverrides: {
-      ignoredExpenseIds: [],
-      manualExpenses: [],
-    },
-  }));
+  // Initialize state (restore from localStorage if available)
+  const [state, setState] = useState<SimulationState>(() => {
+    try {
+      const stored = localStorage.getItem(LS_DRAFT_STATE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as SimulationState;
+        if (parsed.participants && parsed.scenario && parsed.expenseOverrides) {
+          return parsed;
+        }
+      }
+    } catch {
+      // Ignore invalid or unavailable localStorage
+    }
+    return {
+      participants: createInitialParticipants(people),
+      scenario: "currentMonth",
+      expenseOverrides: {
+        ignoredExpenseIds: [],
+        manualExpenses: [],
+      },
+    };
+  });
 
   // Custom expenses value (for custom scenario)
-  const [customExpensesValue, setCustomExpensesValue] = useState(0);
+  const [customExpensesValue, setCustomExpensesValue] = useState(() => {
+    try {
+      const stored = localStorage.getItem(LS_DRAFT_CUSTOM_EXPENSES_KEY);
+      if (stored) return Number(stored) || 0;
+    } catch {
+      // Ignore
+    }
+    return 0;
+  });
 
   // Sync participants when people data changes (e.g., after initial load)
   useEffect(() => {
@@ -222,6 +246,23 @@ export function useSimulation({
       }));
     }
   }, [people, state.participants]);
+
+  // Auto-persist state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_DRAFT_STATE_KEY, JSON.stringify(state));
+    } catch {
+      // Ignore quota or access errors
+    }
+  }, [state]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_DRAFT_CUSTOM_EXPENSES_KEY, String(customExpensesValue));
+    } catch {
+      // Ignore
+    }
+  }, [customExpensesValue]);
 
   // Filter valid expense transactions (exclude Liberdade Financeira and uncategorized)
   const validExpenseTransactions = useMemo(
@@ -632,7 +673,17 @@ export function useSimulation({
       },
     });
     setCustomExpensesValue(0);
+    try {
+      localStorage.removeItem(LS_DRAFT_STATE_KEY);
+      localStorage.removeItem(LS_DRAFT_CUSTOM_EXPENSES_KEY);
+    } catch {
+      // Ignore
+    }
   }, [people]);
+
+  const loadState = useCallback((newState: SimulationState) => {
+    setState(newState);
+  }, []);
 
   return {
     state,
@@ -644,6 +695,7 @@ export function useSimulation({
     removeManualExpense,
     setCustomExpenses,
     resetToBaseline,
+    loadState,
     projection,
     editableExpenses,
     totalSimulatedExpenses,

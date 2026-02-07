@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { createTransactionsBodySchema } from "@/lib/schemas";
-import { createTransaction, getTransactions } from "@/lib/server/financeStore";
+import {
+  createTransaction,
+  getRecurringTransactions,
+  getTransactions,
+} from "@/lib/server/financeStore";
 import { readJsonBody, requireAuth, validateBody } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +20,28 @@ export async function GET(request: Request) {
 
   try {
     const url = new URL(request.url);
+    const recurringOnly = url.searchParams.get("recurringOnly") === "true";
+
+    if (recurringOnly) {
+      const limitParam = url.searchParams.get("limit");
+      const offsetParam = url.searchParams.get("offset");
+      const pageParam = url.searchParams.get("page");
+      const limit = Math.min(limitParam ? Number.parseInt(limitParam, 10) : 100, 100);
+      const offset =
+        offsetParam !== null && offsetParam !== ""
+          ? Number.parseInt(offsetParam, 10)
+          : pageParam !== null && pageParam !== ""
+            ? (Math.max(1, Number.parseInt(pageParam, 10)) - 1) * limit
+            : 0;
+      const { transactions, total } = await getRecurringTransactions({
+        limit,
+        offset,
+      });
+      return NextResponse.json({ transactions, total });
+    }
+
     const yearParam = url.searchParams.get("year");
     const monthParam = url.searchParams.get("month");
-
     const year = yearParam ? Number.parseInt(yearParam, 10) : undefined;
     const month = monthParam ? Number.parseInt(monthParam, 10) : undefined;
 

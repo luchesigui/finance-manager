@@ -14,7 +14,7 @@ export function FinanceProviders({ children }: Readonly<{ children: React.ReactN
   const pathname = usePathname();
 
   // Skip FinanceProviders on landing, login, and signup pages to avoid API calls
-  if (pathname === "/" || pathname?.startsWith("/login") || pathname?.startsWith("/signup")) {
+  if (pathname === "/" || pathname?.startsWith("/entrar") || pathname?.startsWith("/signup")) {
     return <>{children}</>;
   }
 

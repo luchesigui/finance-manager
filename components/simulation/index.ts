@@ -8,6 +8,8 @@ export { EditableExpensesCard } from "./EditableExpensesCard";
 export { SimulationSummaryCards } from "./SimulationSummaryCards";
 export { FutureProjectionChart } from "./FutureProjectionChart";
 export { SimulationAlerts } from "./SimulationAlerts";
+export { SaveSimulationModal } from "./SaveSimulationModal";
+export { SavedSimulationsList } from "./SavedSimulationsList";
 
 // Hooks
 export { useSimulation } from "./hooks/useSimulation";

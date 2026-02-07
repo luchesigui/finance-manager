@@ -125,6 +125,46 @@ export const updateEmergencyFundBodySchema = z.object({
 });
 
 // ============================================================================
+// Simulation Schemas
+// ============================================================================
+
+const manualExpenseSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  amount: z.number(),
+});
+
+const expenseOverridesSchema = z.object({
+  ignoredExpenseIds: z.array(z.string()),
+  manualExpenses: z.array(manualExpenseSchema),
+});
+
+const simulationParticipantSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  realIncome: z.number(),
+  isActive: z.boolean(),
+  incomeMultiplier: z.number(),
+  simulatedIncome: z.number(),
+});
+
+const simulationStateSchema = z.object({
+  participants: z.array(simulationParticipantSchema),
+  scenario: z.enum(["currentMonth", "minimalist", "realistic", "custom"]),
+  expenseOverrides: expenseOverridesSchema,
+});
+
+export const createSimulationBodySchema = z.object({
+  name: z.string().min(1),
+  state: simulationStateSchema,
+});
+
+export const updateSimulationBodySchema = z.object({
+  name: z.string().min(1).optional(),
+  state: simulationStateSchema.optional(),
+});
+
+// ============================================================================
 // Type Exports (inferred from schemas)
 // ============================================================================
 

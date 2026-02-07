@@ -11,6 +11,8 @@ import type {
   Person,
   PersonPatch,
   PersonRow,
+  SavedSimulation,
+  SimulationRow,
   Transaction,
   TransactionPatch,
   TransactionRow,
@@ -66,6 +68,20 @@ function mapTransactionRow(row: TransactionRow): Transaction {
     householdId: row.household_id,
     type: row.type ?? "expense",
     isIncrement: row.is_increment ?? true,
+  };
+}
+
+/**
+ * Maps a simulation database row to the SavedSimulation domain type.
+ */
+function mapSimulationRow(row: SimulationRow): SavedSimulation {
+  return {
+    id: row.id,
+    name: row.name,
+    state: row.state as SavedSimulation["state"],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    householdId: row.household_id,
   };
 }
 
@@ -397,6 +413,33 @@ export async function getTransactions(year?: number, month?: number): Promise<Tr
 
   // Filtered by month with credit card offset handling
   return getTransactionsForMonth(supabase, householdId, year, month);
+}
+
+/**
+ * Returns one page of recurring transactions for the current household and total count.
+ * Single query with count: 'exact' for pagination.
+ */
+export async function getRecurringTransactions(options?: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ transactions: Transaction[]; total: number }> {
+  const limit = Math.min(options?.limit ?? 100, 100);
+  const offset = options?.offset ?? 0;
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const { data, error, count } = await supabase
+    .from("transactions")
+    .select("*", { count: "exact" })
+    .eq("household_id", householdId)
+    .eq("is_recurring", true)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) throw error;
+
+  const transactions = (data as TransactionRow[]).map(mapTransactionRow);
+  return { transactions, total: count ?? 0 };
 }
 
 /**
@@ -790,4 +833,81 @@ export async function getOutlierStatistics(
   }
 
   return statistics;
+}
+
+// ============================================================================
+// Simulations CRUD Operations
+// ============================================================================
+
+export async function getSimulations(): Promise<SavedSimulation[]> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const { data, error } = await supabase
+    .from("simulations")
+    .select("*")
+    .eq("household_id", householdId)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  return (data as SimulationRow[]).map(mapSimulationRow);
+}
+
+export async function createSimulation(input: {
+  name: string;
+  state: SavedSimulation["state"];
+}): Promise<SavedSimulation> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const { data, error } = await supabase
+    .from("simulations")
+    .insert({
+      household_id: householdId,
+      name: input.name,
+      state: input.state,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapSimulationRow(data as SimulationRow);
+}
+
+export async function updateSimulation(
+  id: string,
+  patch: { name?: string; state?: SavedSimulation["state"] },
+): Promise<SavedSimulation> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const dbPatch: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (patch.name !== undefined) dbPatch.name = patch.name;
+  if (patch.state !== undefined) dbPatch.state = patch.state;
+
+  const { data, error } = await supabase
+    .from("simulations")
+    .update(dbPatch)
+    .eq("id", id)
+    .eq("household_id", householdId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapSimulationRow(data as SimulationRow);
+}
+
+export async function deleteSimulation(id: string): Promise<void> {
+  const supabase = await createClient();
+  const householdId = await getPrimaryHouseholdId();
+
+  const { error } = await supabase
+    .from("simulations")
+    .delete()
+    .eq("id", id)
+    .eq("household_id", householdId);
+
+  if (error) throw error;
 }

@@ -159,12 +159,12 @@ export function LandingPage() {
           </div>
           <div className="flex items-center gap-4">
             <Link
-              href="/login"
+              href="/entrar"
               className="text-body hover:text-heading transition-colors font-medium"
             >
               Entrar
             </Link>
-            <Link href="/login" className="hidden md:inline-flex noir-btn-primary">
+            <Link href="/entrar" className="hidden md:inline-flex noir-btn-primary">
               Começar Agora
             </Link>
           </div>
@@ -213,7 +213,7 @@ export function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Link
-              href="/login"
+              href="/entrar"
               className="noir-btn-primary px-6 py-3 text-base flex items-center gap-2 group"
             >
               Começar Agora
@@ -480,7 +480,7 @@ export function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/login"
+              href="/entrar"
               className="noir-btn-primary px-8 py-3 text-base flex items-center gap-2 group"
             >
               Começar Agora

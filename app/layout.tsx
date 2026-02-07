@@ -5,6 +5,7 @@ import { Providers } from "@/app/providers";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MainContent } from "@/components/layout/MainContent";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { LazyToaster } from "@/components/ui/LazyToaster";
 import { ThemeProvider } from "@/lib/theme/ThemeContext";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
           </Providers>
         </ThemeProvider>
+        <LazyToaster />
         <Analytics />
       </body>
     </html>

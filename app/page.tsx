@@ -8,7 +8,7 @@ export default async function Page() {
 
   // If user is authenticated, redirect to dashboard
   if (data?.claims) {
-    redirect("/dashboard");
+    redirect("/resumo");
   }
 
   // Show landing page for unauthenticated users

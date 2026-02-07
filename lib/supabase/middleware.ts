@@ -9,7 +9,7 @@ export async function updateSession(request: NextRequest) {
   // The home page "/" shows the landing page for unauthenticated users
   if (
     pathname === "/" ||
-    pathname.startsWith("/login") ||
+    pathname.startsWith("/entrar") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api")
@@ -60,7 +60,7 @@ export async function updateSession(request: NextRequest) {
   if (!user) {
     // no user, redirect to the login page
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = "/entrar";
     return NextResponse.redirect(url);
   }
 

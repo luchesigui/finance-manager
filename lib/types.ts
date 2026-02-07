@@ -167,6 +167,28 @@ export type CurrentUserResponse = { userId: string };
 export type EmergencyFundResponse = { emergencyFund: number };
 
 // ============================================================================
+// Simulation Types
+// ============================================================================
+
+export type SavedSimulation = {
+  readonly id: string;
+  name: string;
+  state: import("@/lib/simulationTypes").SimulationState;
+  createdAt: string;
+  updatedAt: string;
+  householdId: string;
+};
+
+export type SimulationRow = {
+  id: string;
+  household_id: string;
+  name: string;
+  state: unknown;
+  created_at: string;
+  updated_at: string;
+};
+
+// ============================================================================
 // Outlier Detection Types
 // ============================================================================
 

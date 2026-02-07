@@ -5,17 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
-  { href: "/dashboard", label: "Resumo", icon: TrendingUp },
-  { href: "/transactions", label: "Lançamentos", icon: Plus },
-  { href: "/simulation", label: "Simulação", icon: FlaskConical },
-  { href: "/settings", label: "Config", icon: Settings },
+  { href: "/resumo", label: "Resumo", icon: TrendingUp },
+  { href: "/lancamentos", label: "Lançamentos", icon: Plus },
+  { href: "/simulacao", label: "Simulação", icon: FlaskConical },
+  { href: "/configuracoes", label: "Config", icon: Settings },
 ] as const;
 
 export function MobileNav() {
   const pathname = usePathname();
 
   // Hide nav on authentication pages and landing page
-  if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
+  if (pathname === "/" || pathname === "/entrar" || pathname === "/signup") {
     return null;
   }
 

@@ -6,10 +6,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const tabs = [
-  { href: "/dashboard", label: "Resumo", icon: TrendingUp },
-  { href: "/transactions", label: "Lançamentos", icon: DollarSign },
-  { href: "/simulation", label: "Simulação", icon: FlaskConical },
-  { href: "/settings", label: "Configurações", icon: Settings },
+  { href: "/resumo", label: "Resumo", icon: TrendingUp },
+  { href: "/lancamentos", label: "Lançamentos", icon: DollarSign },
+  { href: "/simulacao", label: "Simulação", icon: FlaskConical },
+  { href: "/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
 export function AppHeader() {
@@ -19,12 +19,12 @@ export function AppHeader() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/entrar");
     router.refresh();
   };
 
   // Hide header on authentication pages and landing page
-  if (pathname === "/" || pathname === "/login" || pathname === "/signup") {
+  if (pathname === "/" || pathname === "/entrar" || pathname === "/signup") {
     return null;
   }
 
@@ -35,7 +35,7 @@ export function AppHeader() {
           <div className="bg-accent-primary/15 p-2 rounded-interactive text-accent-primary border border-accent-primary/20">
             <Wallet size={22} />
           </div>
-          <Link href="/dashboard" className="text-xl text-heading tracking-tight">
+          <Link href="/resumo" className="text-xl text-heading tracking-tight">
             <span className="font-display italic">Finanças</span>
             <span className="text-accent-primary font-semibold text-sm ml-0.5 uppercase tracking-wider">
               Pro
