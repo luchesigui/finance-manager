@@ -69,7 +69,7 @@
     "vitest": "^4.0.18"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,json,css}": ["biome lint --write", "git add"]
+    "*.{js,jsx,ts,tsx,json,css}": ["biome check --write --no-errors-on-unmatched"]
   },
   "overrides": {
     "@types/react": "19.2.10",
