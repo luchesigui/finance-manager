@@ -42,13 +42,7 @@ describe("QuickStatsGrid", () => {
         percentAchieved: 100,
       },
     });
-    render(
-      <QuickStatsGrid
-        factors={factors}
-        totalExpenses={8000}
-        effectiveIncome={15000}
-      />,
-    );
+    render(<QuickStatsGrid factors={factors} totalExpenses={8000} effectiveIncome={15000} />);
     expect(selectors.getLiberdadeFinanceira()).toBeInTheDocument();
     expect(selectors.getAmount("R$ 5.000,00")).toBeInTheDocument();
   });
@@ -62,13 +56,7 @@ describe("QuickStatsGrid", () => {
         percentAchieved: 50,
       },
     });
-    render(
-      <QuickStatsGrid
-        factors={factors}
-        totalExpenses={6000}
-        effectiveIncome={12000}
-      />,
-    );
+    render(<QuickStatsGrid factors={factors} totalExpenses={6000} effectiveIncome={12000} />);
     const bar = selectors.getProgressBar50();
     expect(bar).toBeInTheDocument();
   });
@@ -82,13 +70,7 @@ describe("QuickStatsGrid", () => {
         percentAchieved: 100,
       },
     });
-    render(
-      <QuickStatsGrid
-        factors={factors}
-        totalExpenses={5000}
-        effectiveIncome={15000}
-      />,
-    );
+    render(<QuickStatsGrid factors={factors} totalExpenses={5000} effectiveIncome={15000} />);
     expect(selectors.getMetaAtingida()).toBeInTheDocument();
   });
 
@@ -101,24 +83,14 @@ describe("QuickStatsGrid", () => {
         percentAchieved: 40,
       },
     });
-    render(
-      <QuickStatsGrid
-        factors={factors}
-        totalExpenses={7000}
-        effectiveIncome={12000}
-      />,
-    );
+    render(<QuickStatsGrid factors={factors} totalExpenses={7000} effectiveIncome={12000} />);
     expect(selectors.getFaltamRS()).toBeInTheDocument();
     expect(selectors.getAmount3000()).toBeInTheDocument();
   });
 
   it("Gastos do Mês card displays totalExpenses and budget status", () => {
     render(
-      <QuickStatsGrid
-        factors={makeFactors({})}
-        totalExpenses={7000}
-        effectiveIncome={15000}
-      />,
+      <QuickStatsGrid factors={makeFactors({})} totalExpenses={7000} effectiveIncome={15000} />,
     );
     expect(selectors.getGastosDoMes()).toBeInTheDocument();
     expect(selectors.getAllAmount7000().length).toBeGreaterThanOrEqual(1);

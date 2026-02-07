@@ -1,5 +1,5 @@
-import { render, screen, userEvent, waitFor } from "@/test/test-utils";
 import { server } from "@/test/server";
+import { render, screen, userEvent, waitFor } from "@/test/test-utils";
 import { http, HttpResponse } from "msw";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { LoginPage } from "../LoginPage";
@@ -42,8 +42,7 @@ const selectors = {
   getCreateAccountToggle: () => screen.getByRole("button", { name: /criar uma conta/i }),
   findInvalidCredentialsMessage: () => screen.findByText(/invalid login credentials/i),
   findCadastrarButton: () => screen.findByRole("button", { name: /cadastrar/i }),
-  findCheckEmailMessage: () =>
-    screen.findByText(/check your email for the confirmation link/i),
+  findCheckEmailMessage: () => screen.findByText(/check your email for the confirmation link/i),
 };
 
 describe("LoginPage", () => {
@@ -91,9 +90,7 @@ describe("LoginPage", () => {
       });
     });
 
-    it.todo(
-      "exibe mensagem amigável quando Supabase retorna erro de rede/timeout",
-    );
+    it.todo("exibe mensagem amigável quando Supabase retorna erro de rede/timeout");
   });
 
   describe("Cadastro (sign-up)", () => {
@@ -128,9 +125,7 @@ describe("LoginPage", () => {
     it("on success with requiresConfirmation shows check email message", async () => {
       const user = userEvent.setup();
       server.use(
-        http.post("/api/auth/signup", () =>
-          HttpResponse.json({ requiresConfirmation: true }),
-        ),
+        http.post("/api/auth/signup", () => HttpResponse.json({ requiresConfirmation: true })),
       );
 
       render(<LoginPage />);
@@ -145,9 +140,7 @@ describe("LoginPage", () => {
     it("on success without confirmation redirects to /", async () => {
       const user = userEvent.setup();
       server.use(
-        http.post("/api/auth/signup", () =>
-          HttpResponse.json({ requiresConfirmation: false }),
-        ),
+        http.post("/api/auth/signup", () => HttpResponse.json({ requiresConfirmation: false })),
       );
 
       render(<LoginPage />);
@@ -161,11 +154,7 @@ describe("LoginPage", () => {
       expect(mockRefresh).toHaveBeenCalled();
     });
 
-    it.todo(
-      "exibe mensagem de erro quando /api/auth/signup retorna 4xx/5xx",
-    );
-    it.todo(
-      "exibe mensagem quando fetch do signup falha (rede)",
-    );
+    it.todo("exibe mensagem de erro quando /api/auth/signup retorna 4xx/5xx");
+    it.todo("exibe mensagem quando fetch do signup falha (rede)");
   });
 });

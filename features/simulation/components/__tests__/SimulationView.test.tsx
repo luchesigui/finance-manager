@@ -1,10 +1,10 @@
-import { render, screen, userEvent, waitFor } from "@/test/test-utils";
+import { useSimulationDraftStore } from "@/features/simulation/stores/simulationDraftStore";
+import type { Category, Person, Transaction } from "@/lib/types";
 import { server } from "@/test/server";
+import { render, screen, userEvent, waitFor } from "@/test/test-utils";
 import { http, HttpResponse } from "msw";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SimulationView } from "../SimulationView";
-import type { Category, Person, Transaction } from "@/lib/types";
-import { useSimulationDraftStore } from "@/features/simulation/stores/simulationDraftStore";
 
 // Avoid Recharts ResponsiveContainer width/height -1 in JSDOM (no layout)
 vi.mock("../FutureProjectionChart", () => ({
@@ -16,9 +16,7 @@ const mockPeople: Person[] = [
   { id: "p2", name: "Bob", income: 8000 },
 ];
 
-const mockCategories: Category[] = [
-  { id: "c1", name: "Alimentação", targetPercent: 30 },
-];
+const mockCategories: Category[] = [{ id: "c1", name: "Alimentação", targetPercent: 30 }];
 
 const mockTransactions: Transaction[] = [
   {
@@ -39,11 +37,28 @@ const mockTransactions: Transaction[] = [
 
 const mockSimulationState = {
   participants: [
-    { id: "p1", name: "Alice", realIncome: 10000, isActive: true, incomeMultiplier: 1, simulatedIncome: 10000 },
-    { id: "p2", name: "Bob", realIncome: 8000, isActive: true, incomeMultiplier: 1, simulatedIncome: 8000 },
+    {
+      id: "p1",
+      name: "Alice",
+      realIncome: 10000,
+      isActive: true,
+      incomeMultiplier: 1,
+      simulatedIncome: 10000,
+    },
+    {
+      id: "p2",
+      name: "Bob",
+      realIncome: 8000,
+      isActive: true,
+      incomeMultiplier: 1,
+      simulatedIncome: 8000,
+    },
   ],
   scenario: "currentMonth" as const,
-  expenseOverrides: { ignoredExpenseIds: [] as string[], manualExpenses: [] as { id: string; description: string; amount: number }[] },
+  expenseOverrides: {
+    ignoredExpenseIds: [] as string[],
+    manualExpenses: [] as { id: string; description: string; amount: number }[],
+  },
 };
 
 const mockSavedSimulations = [
@@ -89,8 +104,7 @@ const selectors = {
     getNomeInput: () => screen.getByLabelText(/nome da simulação/i),
     getSalvarButton: () => screen.getByRole("button", { name: /^Salvar$/i }),
   },
-  getSavedSimulationsToggle: () =>
-    screen.getByText(/Simulações salvas/i).closest("button"),
+  getSavedSimulationsToggle: () => screen.getByText(/Simulações salvas/i).closest("button"),
   getLoadButtons: () => screen.getAllByRole("button", { name: /Carregar/i }),
 };
 
@@ -139,20 +153,25 @@ describe("SimulationView", () => {
       const user = userEvent.setup();
       render(<SimulationView />);
       await selectors.findTitle();
-      await waitFor(() => {
-        const saveBtn = selectors.querySaveSimulacaoButton();
-        if (saveBtn && !saveBtn.hasAttribute("disabled")) {
-          return saveBtn;
-        }
-        return null;
-      }, { timeout: 5000 }).then(async (saveBtn) => {
-        if (saveBtn) {
-          await user.click(saveBtn);
-          await waitFor(() => {
-            expect(selectors.getSaveSimulacaoDialog()).toBeInTheDocument();
-          });
-        }
-      }).catch(() => {});
+      await waitFor(
+        () => {
+          const saveBtn = selectors.querySaveSimulacaoButton();
+          if (saveBtn && !saveBtn.hasAttribute("disabled")) {
+            return saveBtn;
+          }
+          return null;
+        },
+        { timeout: 5000 },
+      )
+        .then(async (saveBtn) => {
+          if (saveBtn) {
+            await user.click(saveBtn);
+            await waitFor(() => {
+              expect(selectors.getSaveSimulacaoDialog()).toBeInTheDocument();
+            });
+          }
+        })
+        .catch(() => {});
     });
   });
 
@@ -193,11 +212,14 @@ describe("SimulationView", () => {
       });
 
       await user.click(selectors.getMinimalistaHeading());
-      const saveBtn = await waitFor(() => {
-        const btn = selectors.querySaveSimulacaoButton();
-        if (btn && !btn.hasAttribute("disabled")) return btn;
-        return null;
-      }, { timeout: 2000 });
+      const saveBtn = await waitFor(
+        () => {
+          const btn = selectors.querySaveSimulacaoButton();
+          if (btn && !btn.hasAttribute("disabled")) return btn;
+          return null;
+        },
+        { timeout: 2000 },
+      );
 
       expect(saveBtn).toBeTruthy();
       if (saveBtn) {
@@ -207,16 +229,17 @@ describe("SimulationView", () => {
         });
         await user.type(selectors.modal.getNomeInput(), "Minha sim");
         await user.click(selectors.modal.getSalvarButton());
-        await waitFor(() => {
-          expect(capturedBody).toBeTruthy();
-          expect((capturedBody as { name?: string })?.name).toBe("Minha sim");
-        }, { timeout: 3000 });
+        await waitFor(
+          () => {
+            expect(capturedBody).toBeTruthy();
+            expect((capturedBody as { name?: string })?.name).toBe("Minha sim");
+          },
+          { timeout: 3000 },
+        );
       }
     });
 
-    it.todo(
-      "ao falhar POST /api/simulations: exibir feedback de erro e manter modal aberto",
-    );
+    it.todo("ao falhar POST /api/simulations: exibir feedback de erro e manter modal aberto");
   });
 
   describe("Load/update/delete simulation", () => {

@@ -16,9 +16,7 @@ describe("SaveSimulationModal", () => {
   it("renders with title Salvar Simulação, input, Cancel and Salvar buttons", () => {
     const onSave = vi.fn();
     const onClose = vi.fn();
-    render(
-      <SaveSimulationModal onSave={onSave} onClose={onClose} isSaving={false} />,
-    );
+    render(<SaveSimulationModal onSave={onSave} onClose={onClose} isSaving={false} />);
 
     expect(selectors.getDialog()).toBeInTheDocument();
     expect(selectors.getNomeInput()).toBeInTheDocument();
@@ -28,25 +26,13 @@ describe("SaveSimulationModal", () => {
   });
 
   it("submit button is disabled when name is empty", () => {
-    render(
-      <SaveSimulationModal
-        onSave={vi.fn()}
-        onClose={vi.fn()}
-        isSaving={false}
-      />,
-    );
+    render(<SaveSimulationModal onSave={vi.fn()} onClose={vi.fn()} isSaving={false} />);
     expect(selectors.getSalvarButton()).toBeDisabled();
   });
 
   it("submit button is disabled when name is only whitespace", async () => {
     const user = userEvent.setup();
-    render(
-      <SaveSimulationModal
-        onSave={vi.fn()}
-        onClose={vi.fn()}
-        isSaving={false}
-      />,
-    );
+    render(<SaveSimulationModal onSave={vi.fn()} onClose={vi.fn()} isSaving={false} />);
     await user.type(selectors.getNomeInput(), "   ");
     expect(selectors.getSalvarButton()).toBeDisabled();
   });
@@ -55,9 +41,7 @@ describe("SaveSimulationModal", () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     const onClose = vi.fn();
-    render(
-      <SaveSimulationModal onSave={onSave} onClose={onClose} isSaving={false} />,
-    );
+    render(<SaveSimulationModal onSave={onSave} onClose={onClose} isSaving={false} />);
 
     await user.type(selectors.getNomeInput(), "  Minha sim  ");
     expect(selectors.getSalvarButton()).not.toBeDisabled();
@@ -72,9 +56,7 @@ describe("SaveSimulationModal", () => {
   it("Cancel button calls onClose", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      <SaveSimulationModal onSave={vi.fn()} onClose={onClose} isSaving={false} />,
-    );
+    render(<SaveSimulationModal onSave={vi.fn()} onClose={onClose} isSaving={false} />);
     await user.click(selectors.getCancelarButton());
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -82,21 +64,13 @@ describe("SaveSimulationModal", () => {
   it("closing via X button calls onClose", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(
-      <SaveSimulationModal onSave={vi.fn()} onClose={onClose} isSaving={false} />,
-    );
+    render(<SaveSimulationModal onSave={vi.fn()} onClose={onClose} isSaving={false} />);
     await user.click(selectors.getFecharModalButton());
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("when isSaving is true, submit shows loading state and buttons are disabled", () => {
-    render(
-      <SaveSimulationModal
-        onSave={vi.fn()}
-        onClose={vi.fn()}
-        isSaving={true}
-      />,
-    );
+    render(<SaveSimulationModal onSave={vi.fn()} onClose={vi.fn()} isSaving={true} />);
     expect(selectors.getSalvandoButton()).toBeInTheDocument();
     expect(selectors.getSalvandoButton()).toBeDisabled();
     expect(selectors.getCancelarButton()).toBeDisabled();

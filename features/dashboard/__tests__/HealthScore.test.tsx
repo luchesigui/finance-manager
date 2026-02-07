@@ -1,7 +1,7 @@
 import { render, screen } from "@/test/test-utils";
 import { describe, expect, it } from "vitest";
 import { HealthScore } from "../HealthScore";
-import type { HealthScoreResult, HealthScoreFactors } from "../hooks/useHealthScore";
+import type { HealthScoreFactors, HealthScoreResult } from "../hooks/useHealthScore";
 
 function makeHealthScore(overrides: Partial<HealthScoreResult>): HealthScoreResult {
   const defaultFactors: HealthScoreFactors = {
@@ -64,9 +64,7 @@ describe("HealthScore", () => {
   });
 
   it("loading state shows skeleton and does not show score or status label", () => {
-    render(
-      <HealthScore healthScore={makeHealthScore({})} isLoading={true} />,
-    );
+    render(<HealthScore healthScore={makeHealthScore({})} isLoading={true} />);
     expect(selectors.querySaudavel()).not.toBeInTheDocument();
     expect(selectors.querySlash100()).not.toBeInTheDocument();
     expect(selectors.getLoadingSkeleton()).toBeInTheDocument();

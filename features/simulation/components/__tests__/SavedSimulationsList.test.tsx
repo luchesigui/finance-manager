@@ -1,8 +1,8 @@
+import type { SimulationState } from "@/features/simulation/types";
+import type { SavedSimulation } from "@/lib/types";
 import { render, screen, userEvent } from "@/test/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { SavedSimulationsList } from "../SavedSimulationsList";
-import type { SavedSimulation } from "@/lib/types";
-import type { SimulationState } from "@/features/simulation/types";
 
 const mockSimulationState: SimulationState = {
   participants: [],
@@ -33,12 +33,14 @@ const selectors = {
   getSimulacoesSalvas: () => screen.getByText(/Simulações salvas/i),
   getCountBadge: () => screen.getByText("2"),
   getToggleButton: () =>
-    screen.getByRole("button", { name: /Simulações salvas/i }) ?? screen.getByText(/Simulações salvas/i).closest("button"),
+    screen.getByRole("button", { name: /Simulações salvas/i }) ??
+    screen.getByText(/Simulações salvas/i).closest("button"),
   getToggleByText: () => screen.getByText(/Simulações salvas/i).closest("button"),
   getSimulationName: (name: string) => screen.getByText(name),
   getLoadButtons: () => screen.getAllByRole("button", { name: /Carregar/i }),
   getSalvarButton: () => screen.getByRole("button", { name: /Salvar/i }),
-  getExcluirButton: (name: string) => screen.getByLabelText(new RegExp(`Excluir simulação ${name}`, "i")),
+  getExcluirButton: (name: string) =>
+    screen.getByLabelText(new RegExp(`Excluir simulação ${name}`, "i")),
   getCarregandoText: () => screen.getByText(/Carregando simulações salvas/i),
 };
 

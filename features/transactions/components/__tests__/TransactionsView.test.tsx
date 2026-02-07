@@ -1,10 +1,10 @@
-import { render, screen, userEvent, waitFor } from "@/test/test-utils";
+import { useCurrentMonthStore } from "@/lib/stores/currentMonthStore";
+import type { Category, Person, Transaction } from "@/lib/types";
 import { server } from "@/test/server";
+import { render, screen, userEvent, waitFor } from "@/test/test-utils";
 import { http, HttpResponse } from "msw";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { TransactionsView } from "../TransactionsView";
-import { useCurrentMonthStore } from "@/lib/stores/currentMonthStore";
-import type { Category, Person, Transaction } from "@/lib/types";
 
 const mockPeople: Person[] = [
   { id: "p1", name: "Alice", income: 10000 },
@@ -60,9 +60,7 @@ function setupHandlers(transactions: Transaction[] = mockTransactions) {
     }),
     http.get("/api/people", () => HttpResponse.json(mockPeople)),
     http.get("/api/categories", () => HttpResponse.json(mockCategories)),
-    http.get("/api/default-payer", () =>
-      HttpResponse.json({ defaultPayerId: "p1" }),
-    ),
+    http.get("/api/default-payer", () => HttpResponse.json({ defaultPayerId: "p1" })),
     http.get("/api/user", () => HttpResponse.json({ userId: "u1" })),
     http.get("/api/outlier-statistics", () => HttpResponse.json([])),
   ];
@@ -92,19 +90,23 @@ const selectors = {
     screen.getByLabelText(new RegExp(`Marcar lançamento como acontecido: ${desc}`, "i")),
   findNenhumLancamento: () => screen.findByText(/Nenhum lançamento neste mês/i),
   form: {
-    getDescricaoInput: () => screen.getByLabelText(/Descrição/i) || screen.getByPlaceholderText(/Descrição/i),
+    getDescricaoInput: () =>
+      screen.getByLabelText(/Descrição/i) || screen.getByPlaceholderText(/Descrição/i),
     getAmountInput: () =>
-      document.querySelector('input[placeholder*="R$"]') || document.querySelector('input[id*="amount"]'),
+      document.querySelector('input[placeholder*="R$"]') ||
+      document.querySelector('input[id*="amount"]'),
   },
   getRendaTab: () => screen.getByText("Renda"),
   getAdicionarRendaButton: () => screen.getByRole("button", { name: /Adicionar Renda/i }),
-  getEditButton: (desc: string) => screen.getByLabelText(new RegExp(`Editar lançamento: ${desc}`, "i")),
+  getEditButton: (desc: string) =>
+    screen.getByLabelText(new RegExp(`Editar lançamento: ${desc}`, "i")),
   getEditDescriptionField: () =>
     document.querySelector("#edit-description") ?? screen.queryByLabelText(/Descrição/i),
   getEditDescriptionInput: () =>
     document.querySelector("#edit-description") || screen.getByLabelText(/Descrição/i),
   getSaveConfirmButton: () => screen.getByRole("button", { name: /Salvar|Confirmar/i }),
-  getDeleteButton: (desc: string) => screen.getByLabelText(new RegExp(`Excluir lançamento: ${desc}`, "i")),
+  getDeleteButton: (desc: string) =>
+    screen.getByLabelText(new RegExp(`Excluir lançamento: ${desc}`, "i")),
   toolbar: {
     getFilterButton: () => screen.getByLabelText(/Filtrar lançamentos/i),
     getTipoLabel: () => screen.getByLabelText(/^Tipo$/i),
@@ -174,7 +176,9 @@ describe("TransactionsView", () => {
       render(<TransactionsView />);
       await selectors.findLancamentosCount();
       const headings = selectors.getAllHeadingsLevel2();
-      expect(headings.some((h) => /janeiro.*2025|Janeiro.*2025/i.test(h.textContent ?? ""))).toBe(true);
+      expect(headings.some((h) => /janeiro.*2025|Janeiro.*2025/i.test(h.textContent ?? ""))).toBe(
+        true,
+      );
     });
 
     it("clicking prev updates displayed month", async () => {
@@ -186,7 +190,9 @@ describe("TransactionsView", () => {
       await user.click(prevButton);
       await waitFor(() => {
         const headings = selectors.getAllHeadingsLevel2();
-        expect(headings.some((h) => /dezembro.*2024|Dezembro.*2024/i.test(h.textContent ?? ""))).toBe(true);
+        expect(
+          headings.some((h) => /dezembro.*2024|Dezembro.*2024/i.test(h.textContent ?? "")),
+        ).toBe(true);
       });
     });
   });
@@ -285,7 +291,9 @@ describe("TransactionsView", () => {
           patchBody = await request.json();
           return HttpResponse.json({
             ...mockTransactions[0],
-            description: (patchBody as { patch?: { description?: string } })?.patch?.description ?? "Supermercado",
+            description:
+              (patchBody as { patch?: { description?: string } })?.patch?.description ??
+              "Supermercado",
           });
         }),
       );
@@ -370,9 +378,7 @@ describe("TransactionsView", () => {
       });
     });
 
-    it.todo(
-      "ao falhar DELETE: exibir feedback de erro e não remover o lançamento da lista",
-    );
+    it.todo("ao falhar DELETE: exibir feedback de erro e não remover o lançamento da lista");
   });
 
   describe("Filters and search", () => {

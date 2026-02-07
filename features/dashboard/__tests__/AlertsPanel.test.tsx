@@ -32,10 +32,7 @@ describe("AlertsPanel", () => {
   it("shows correct alert count in badge", () => {
     render(
       <AlertsPanel
-        alerts={[
-          makeAlert({ id: "1" }),
-          makeAlert({ id: "2", title: "Outro alerta" }),
-        ]}
+        alerts={[makeAlert({ id: "1" }), makeAlert({ id: "2", title: "Outro alerta" })]}
       />,
     );
     expect(selectors.getCountBadge("2")).toBeInTheDocument();

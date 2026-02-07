@@ -12,8 +12,10 @@ const selectors = {
   },
   getMinimalistaText: () => screen.getByText(/Minimalista/i),
   getCustomValueInput: () =>
-    screen.getByLabelText(/Valor mensal personalizado/i) ?? document.querySelector("#custom-expense-value"),
-  getCustomExpenseValueInput: () => document.querySelector("#custom-expense-value") as HTMLInputElement,
+    screen.getByLabelText(/Valor mensal personalizado/i) ??
+    document.querySelector("#custom-expense-value"),
+  getCustomExpenseValueInput: () =>
+    document.querySelector("#custom-expense-value") as HTMLInputElement,
 };
 
 describe("ScenarioSelector", () => {
@@ -39,25 +41,14 @@ describe("ScenarioSelector", () => {
   it("clicking option selects it and calls onScenarioChange", async () => {
     const user = userEvent.setup();
     const onScenarioChange = vi.fn();
-    render(
-      <ScenarioSelector
-        {...defaultProps}
-        onScenarioChange={onScenarioChange}
-      />,
-    );
+    render(<ScenarioSelector {...defaultProps} onScenarioChange={onScenarioChange} />);
     await user.click(selectors.getMinimalistaText());
     expect(onScenarioChange).toHaveBeenCalledWith("minimalist");
   });
 
   it("when Personalizado selected shows CurrencyInput for custom value", async () => {
     const user = userEvent.setup();
-    render(
-      <ScenarioSelector
-        {...defaultProps}
-        selectedScenario="custom"
-        customValue={8000}
-      />,
-    );
+    render(<ScenarioSelector {...defaultProps} selectedScenario="custom" customValue={8000} />);
     const customInput = selectors.getCustomValueInput();
     expect(customInput).toBeInTheDocument();
   });

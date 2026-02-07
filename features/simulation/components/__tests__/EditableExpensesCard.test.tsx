@@ -1,7 +1,7 @@
+import type { EditableExpense, ExpenseScenario } from "@/features/simulation/types";
 import { render, screen, userEvent } from "@/test/test-utils";
 import { describe, expect, it, vi } from "vitest";
 import { EditableExpensesCard } from "../EditableExpensesCard";
-import type { EditableExpense, ExpenseScenario } from "@/features/simulation/types";
 
 const mockExpenses: EditableExpense[] = [
   {
@@ -33,7 +33,8 @@ const mockExpenses: EditableExpense[] = [
 const selectors = {
   getGastosSimulacao: () => screen.getByText(/Gastos na Simulação/i),
   getHeaderButton: () =>
-    screen.getByRole("button", { name: /Gastos na Simulação/i }) ?? screen.getByText(/Gastos na Simulação/i).closest("button"),
+    screen.getByRole("button", { name: /Gastos na Simulação/i }) ??
+    screen.getByText(/Gastos na Simulação/i).closest("button"),
   getHeaderButtonByText: () => screen.getByText(/Gastos na Simulação/i).closest("button"),
   getTotalAmount: () => screen.getAllByText(/R\$\s*4[.,]700[,.]00/),
   getExpenseName: (name: string) => screen.getByText(name),
@@ -41,7 +42,8 @@ const selectors = {
   getAluguelRow: () => screen.getByText("Aluguel").closest("div"),
   getDescricaoInput: () => screen.getByPlaceholderText(/Descrição/i),
   getAmountInput: () =>
-    document.querySelector('input[placeholder*="R$"]') ?? document.querySelector('input[type="text"]'),
+    document.querySelector('input[placeholder*="R$"]') ??
+    document.querySelector('input[type="text"]'),
   getAdicionarButton: () => screen.getByRole("button", { name: /Adicionar/i }),
   getRemoverGastoButton: () => screen.getByLabelText(/Remover gasto/i),
 };
@@ -82,12 +84,7 @@ describe("EditableExpensesCard", () => {
   it("toggling checkbox calls onToggleExpense", async () => {
     const user = userEvent.setup();
     const onToggleExpense = vi.fn();
-    render(
-      <EditableExpensesCard
-        {...defaultProps}
-        onToggleExpense={onToggleExpense}
-      />,
-    );
+    render(<EditableExpensesCard {...defaultProps} onToggleExpense={onToggleExpense} />);
     const headerButton = selectors.getHeaderButtonByText();
     if (headerButton) await user.click(headerButton);
     const expenseRow = selectors.getAluguelRow();
@@ -103,12 +100,7 @@ describe("EditableExpensesCard", () => {
   it("Add form calls onAddExpense when submitting", async () => {
     const user = userEvent.setup();
     const onAddExpense = vi.fn();
-    render(
-      <EditableExpensesCard
-        {...defaultProps}
-        onAddExpense={onAddExpense}
-      />,
-    );
+    render(<EditableExpensesCard {...defaultProps} onAddExpense={onAddExpense} />);
     const headerButton = selectors.getHeaderButtonByText();
     if (headerButton) await user.click(headerButton);
     const descInput = selectors.getDescricaoInput();
@@ -124,12 +116,7 @@ describe("EditableExpensesCard", () => {
   it("remove button on manual expense calls onRemoveExpense", async () => {
     const user = userEvent.setup();
     const onRemoveExpense = vi.fn();
-    render(
-      <EditableExpensesCard
-        {...defaultProps}
-        onRemoveExpense={onRemoveExpense}
-      />,
-    );
+    render(<EditableExpensesCard {...defaultProps} onRemoveExpense={onRemoveExpense} />);
     const headerButton = selectors.getHeaderButtonByText();
     if (headerButton) await user.click(headerButton);
     const removeButton = selectors.getRemoverGastoButton();

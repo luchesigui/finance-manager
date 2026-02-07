@@ -1,10 +1,10 @@
-import { render, screen, userEvent } from "@/test/test-utils";
+import { useCurrentMonthStore } from "@/lib/stores/currentMonthStore";
+import type { Transaction } from "@/lib/types";
 import { server } from "@/test/server";
+import { render, screen, userEvent } from "@/test/test-utils";
 import { http, HttpResponse } from "msw";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { MonthNavigator } from "../MonthNavigator";
-import { useCurrentMonthStore } from "@/lib/stores/currentMonthStore";
-import type { Transaction } from "@/lib/types";
 
 const mockTransactions: Transaction[] = [
   {
@@ -69,22 +69,16 @@ describe("MonthNavigator", () => {
   });
 
   it("renders month label and transaction count from API", async () => {
-    server.use(
-      http.get("/api/transactions", () => HttpResponse.json(mockTransactions)),
-    );
+    server.use(http.get("/api/transactions", () => HttpResponse.json(mockTransactions)));
 
     render(<MonthNavigator />);
 
     await selectors.findLancamentosCount();
-    expect(selectors.getHeadingLevel2()).toHaveTextContent(
-      /janeiro.*2025|Janeiro.*2025/i,
-    );
+    expect(selectors.getHeadingLevel2()).toHaveTextContent(/janeiro.*2025|Janeiro.*2025/i);
   });
 
   it("clicking prev month updates displayed month", async () => {
-    server.use(
-      http.get("/api/transactions", () => HttpResponse.json(mockTransactions)),
-    );
+    server.use(http.get("/api/transactions", () => HttpResponse.json(mockTransactions)));
 
     render(<MonthNavigator />);
     await selectors.findLancamentosCount();
@@ -93,15 +87,11 @@ describe("MonthNavigator", () => {
     const prevButton = buttons[0];
     await userEvent.click(prevButton);
 
-    expect(selectors.getHeadingLevel2()).toHaveTextContent(
-      /dezembro.*2024|Dezembro.*2024/i,
-    );
+    expect(selectors.getHeadingLevel2()).toHaveTextContent(/dezembro.*2024|Dezembro.*2024/i);
   });
 
   it("clicking next month updates displayed month", async () => {
-    server.use(
-      http.get("/api/transactions", () => HttpResponse.json(mockTransactions)),
-    );
+    server.use(http.get("/api/transactions", () => HttpResponse.json(mockTransactions)));
 
     render(<MonthNavigator />);
     await selectors.findLancamentosCount();
@@ -110,8 +100,6 @@ describe("MonthNavigator", () => {
     const rightButton = buttons[buttons.length - 1];
     await userEvent.click(rightButton);
 
-    expect(selectors.getHeadingLevel2()).toHaveTextContent(
-      /fevereiro.*2025|Fevereiro.*2025/i,
-    );
+    expect(selectors.getHeadingLevel2()).toHaveTextContent(/fevereiro.*2025|Fevereiro.*2025/i);
   });
 });
