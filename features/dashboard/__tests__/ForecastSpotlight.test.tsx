@@ -1,6 +1,6 @@
 import type { Category, Transaction } from "@/lib/types";
 import { render, screen, userEvent } from "@/test/test-utils";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ForecastSpotlight } from "../ForecastSpotlight";
 
 function makeTransaction(overrides: Partial<Transaction>): Transaction {
