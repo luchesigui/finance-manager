@@ -6,7 +6,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
   "Liberdade Financeira": "#664FDB", // vibrant medium purple/violet
   "Custos Fixos": "#007AFF", // bright electric blue
   Conforto: "#FF3C96", // vivid hot pink/magenta
-  Metas: "#990099", // deep, rich purple
+  Planejamento: "#990099", // deep, rich purple
   Prazeres: "#FF8000", // bright, saturated orange
   Conhecimento: "#FFE600", // bright, clear yellow
 };
