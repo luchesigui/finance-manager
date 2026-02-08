@@ -7,7 +7,7 @@ import {
 } from "@/features/dashboard/server/healthScoreCalculation";
 import { getPeople } from "@/features/people/server/store";
 import { getOutlierStatistics, getTransactions } from "@/features/transactions/server/store";
-import { requireAuth } from "@/lib/server/requestBodyValidation";
+import { requireAuthWithHousehold } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -102,8 +102,10 @@ function countOutliers(
  * Maximum 10 periods per request.
  */
 export async function GET(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireAuthWithHousehold();
   if (!auth.success) return auth.response;
+
+  const { householdId } = auth;
 
   try {
     const url = new URL(request.url);
@@ -148,8 +150,8 @@ export async function GET(request: Request) {
 
     for (const { year, month, periodStr } of periods) {
       const [transactions, outlierStats] = await Promise.all([
-        getTransactions(year, month),
-        getOutlierStatistics(year, month).catch(() => []),
+        getTransactions(year, month, householdId),
+        getOutlierStatistics(year, month, householdId).catch(() => []),
       ]);
 
       const outlierCount = countOutliers(transactions, outlierStats);

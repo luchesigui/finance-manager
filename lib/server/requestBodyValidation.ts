@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getPrimaryHouseholdIdForUser } from "@/lib/server/household";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { ZodSchema } from "zod";
@@ -24,6 +25,38 @@ export async function requireAuth(): Promise<
   }
 
   return { success: true, userId: user.id };
+}
+
+/**
+ * Checks if the request is authenticated and returns userId + householdId.
+ * Uses a single getUser() call to avoid intermittent auth failures when
+ * downstream code calls getPrimaryHouseholdId() in parallel/sequence.
+ */
+export async function requireAuthWithHousehold(): Promise<
+  | { success: true; userId: string; householdId: string }
+  | { success: false; response: NextResponse }
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      success: false,
+      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+
+  try {
+    const householdId = await getPrimaryHouseholdIdForUser(supabase, user.id);
+    return { success: true, userId: user.id, householdId };
+  } catch {
+    return {
+      success: false,
+      response: NextResponse.json({ error: "No household found" }, { status: 403 }),
+    };
+  }
 }
 
 /**

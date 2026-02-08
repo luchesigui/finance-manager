@@ -42,9 +42,13 @@ function recurringTemplateToTransaction(
   };
 }
 
-export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
+export async function getTransactions(
+  year?: number,
+  month?: number,
+  householdIdOverride?: string,
+): Promise<Transaction[]> {
   const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
   const query = supabase.from("transactions").select("*").eq("household_id", householdId);
 
   if (year === undefined || month === undefined) {
@@ -309,9 +313,10 @@ export async function bulkDeleteTransactions(ids: number[]): Promise<void> {
 export async function getOutlierStatistics(
   referenceYear: number,
   referenceMonth: number,
+  householdIdOverride?: string,
 ): Promise<CategoryStatistics[]> {
   const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
 
   const referenceDate = dayjs.utc(`${referenceYear}-${referenceMonth}-01`);
   const prevMonth = referenceDate.subtract(1, "month");
