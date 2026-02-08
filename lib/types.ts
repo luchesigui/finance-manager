@@ -8,6 +8,7 @@ export type Person = {
   income: number;
   householdId?: string;
   linkedUserId?: string;
+  incomeTemplateId?: number | null;
 };
 
 export type Category = {
@@ -26,7 +27,7 @@ export type Transaction = {
   /** Category ID. Required for expenses, null for income transactions. */
   categoryId: string | null;
   paidBy: string;
-  isRecurring: boolean;
+  recurringTemplateId: number | null;
   /** If true, expense is accounted for in the next month (credit card billing cycle). */
   isCreditCard: boolean;
   /** If true, transaction should not be considered in fair split calculation. */
@@ -35,6 +36,7 @@ export type Transaction = {
   isForecast: boolean;
   /** YYYY-MM-DD format */
   date: string;
+  dayOfMonth?: number;
   /** ISO timestamp from DB. Optional for backwards compatibility. */
   createdAt?: string;
   householdId?: string;
@@ -56,7 +58,6 @@ export type TransactionPatch = Partial<
     | "amount"
     | "categoryId"
     | "paidBy"
-    | "isRecurring"
     | "isCreditCard"
     | "excludeFromSplit"
     | "isForecast"
@@ -72,7 +73,6 @@ export type BulkTransactionPatch = Partial<
     Transaction,
     | "categoryId"
     | "paidBy"
-    | "isRecurring"
     | "isCreditCard"
     | "excludeFromSplit"
     | "isForecast"
@@ -99,6 +99,7 @@ export type NewTransactionFormState = {
   categoryId: string;
   paidBy: string;
   isRecurring: boolean;
+  dayOfMonth: number;
   /** If true, expense is accounted for in the next month (credit card billing). */
   isCreditCard: boolean;
   /** 'month': date set to 1st of selected month, 'specific': user picks exact date */
@@ -126,6 +127,7 @@ export type PersonRow = {
   income: number | string;
   household_id: string | null;
   linked_user_id: string | null;
+  income_template_id?: number | string | null;
 };
 
 /** Raw database row shape for household_categories join */
@@ -144,7 +146,7 @@ export type TransactionRow = {
   amount: number | string;
   category_id: string | null;
   paid_by: string;
-  is_recurring: boolean;
+  recurring_template_id?: number | string | null;
   is_credit_card?: boolean;
   exclude_from_split?: boolean;
   is_forecast?: boolean;
@@ -153,6 +155,56 @@ export type TransactionRow = {
   household_id?: string;
   type?: TransactionType;
   is_increment?: boolean;
+};
+
+export type RecurringTemplate = {
+  readonly id: number;
+  description: string;
+  amount: number;
+  categoryId: string | null;
+  paidBy: string;
+  type: TransactionType;
+  isIncrement: boolean;
+  isCreditCard: boolean;
+  excludeFromSplit: boolean;
+  dayOfMonth: number;
+  isActive: boolean;
+  householdId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type RecurringTemplatePatch = Partial<
+  Pick<
+    RecurringTemplate,
+    | "description"
+    | "amount"
+    | "categoryId"
+    | "paidBy"
+    | "type"
+    | "isIncrement"
+    | "isCreditCard"
+    | "excludeFromSplit"
+    | "dayOfMonth"
+    | "isActive"
+  >
+>;
+
+export type RecurringTemplateRow = {
+  id: number | string;
+  household_id: string | null;
+  description: string;
+  amount: number | string;
+  category_id: string | null;
+  paid_by: string;
+  type?: TransactionType;
+  is_increment?: boolean;
+  is_credit_card?: boolean;
+  exclude_from_split?: boolean;
+  day_of_month: number | string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 };
 
 // ============================================================================

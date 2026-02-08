@@ -16,7 +16,6 @@ export const transactionPatchSchema = z
     amount: z.number(),
     categoryId: z.string(),
     paidBy: z.string(),
-    isRecurring: z.boolean(),
     isCreditCard: z.boolean(),
     excludeFromSplit: z.boolean(),
     isForecast: z.boolean(),
@@ -30,7 +29,6 @@ export const bulkTransactionPatchSchema = z
   .object({
     categoryId: z.string(),
     paidBy: z.string(),
-    isRecurring: z.boolean(),
     isCreditCard: z.boolean(),
     excludeFromSplit: z.boolean(),
     isForecast: z.boolean(),
@@ -44,11 +42,12 @@ export const createTransactionSchema = z.object({
   amount: z.number().positive(),
   categoryId: z.string().nullable(),
   paidBy: z.string().min(1),
-  isRecurring: z.boolean(),
+  recurringTemplateId: z.number().int().positive().nullable().optional(),
   isCreditCard: z.boolean(),
   excludeFromSplit: z.boolean(),
   isForecast: z.boolean().default(false),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dayOfMonth: z.number().int().min(1).max(31).optional(),
   type: transactionTypeSchema.default("expense"),
   isIncrement: z.boolean().default(true),
 });
@@ -189,7 +188,7 @@ const transactionSchema = z.object({
   amount: z.number(),
   categoryId: z.string().nullable(),
   paidBy: z.string(),
-  isRecurring: z.boolean(),
+  recurringTemplateId: z.number().int().positive().nullable().optional(),
   isCreditCard: z.boolean().optional(),
   excludeFromSplit: z.boolean().optional(),
   isForecast: z.boolean().optional(),
@@ -208,6 +207,37 @@ export const simulationProjectBodySchema = z.object({
 });
 
 // ============================================================================
+// Recurring Template Schemas
+// ============================================================================
+
+export const createRecurringTemplateSchema = z.object({
+  description: z.string().min(1),
+  amount: z.number().positive(),
+  categoryId: z.string().nullable(),
+  paidBy: z.string().min(1),
+  type: transactionTypeSchema.default("expense"),
+  isIncrement: z.boolean().default(true),
+  isCreditCard: z.boolean().default(false),
+  excludeFromSplit: z.boolean().default(false),
+  dayOfMonth: z.number().int().min(1).max(31),
+  isActive: z.boolean().default(true),
+});
+
+export const recurringTemplatePatchSchema = createRecurringTemplateSchema.partial();
+
+export const updateRecurringTemplateBodySchema = z.object({
+  patch: recurringTemplatePatchSchema,
+  scope: z.enum(["template_only", "full_history"]).optional(),
+});
+
+export const adminMonthlyCloseBodySchema = z.object({
+  year: z.number().int().min(2000).max(2100),
+  month: z.number().int().min(1).max(12),
+  householdId: z.string().uuid().optional(),
+  dryRun: z.boolean().optional(),
+});
+
+// ============================================================================
 // Type Exports (inferred from schemas)
 // ============================================================================
 
@@ -217,3 +247,5 @@ export type BulkTransactionPatchInput = z.infer<typeof bulkTransactionPatchSchem
 export type CreatePersonInput = z.infer<typeof createPersonBodySchema>;
 export type UpdatePersonInput = z.infer<typeof updatePersonBodySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategoryBodySchema>;
+export type CreateRecurringTemplateInput = z.infer<typeof createRecurringTemplateSchema>;
+export type RecurringTemplatePatchInput = z.infer<typeof recurringTemplatePatchSchema>;
