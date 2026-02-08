@@ -1,4 +1,4 @@
--- Phase 1: recurring templates and monthly snapshots
+-- Phase 1: recurring templates (no monthly_snapshots; closing is manual or via cron)
 
 CREATE TABLE public.recurring_templates (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -19,26 +19,6 @@ CREATE TABLE public.recurring_templates (
 
 CREATE INDEX idx_recurring_templates_household_active
   ON public.recurring_templates(household_id) WHERE is_active = true;
-
-CREATE TABLE public.monthly_snapshots (
-  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  household_id uuid REFERENCES public.households(id) ON DELETE CASCADE NOT NULL,
-  year integer NOT NULL,
-  month integer NOT NULL CHECK (month >= 1 AND month <= 12),
-  people_income jsonb NOT NULL DEFAULT '[]',
-  category_targets jsonb NOT NULL DEFAULT '[]',
-  total_income numeric NOT NULL DEFAULT 0,
-  total_expenses numeric NOT NULL DEFAULT 0,
-  net_income_adjustments numeric NOT NULL DEFAULT 0,
-  effective_income numeric NOT NULL DEFAULT 0,
-  health_score integer,
-  health_status text,
-  health_reason text,
-  emergency_fund numeric NOT NULL DEFAULT 0,
-  snapshot_source text NOT NULL DEFAULT 'cron',
-  created_at timestamptz DEFAULT timezone('utc', now()) NOT NULL,
-  UNIQUE(household_id, year, month)
-);
 
 ALTER TABLE public.transactions
   ADD COLUMN recurring_template_id bigint
@@ -133,7 +113,6 @@ FOR EACH ROW
 EXECUTE FUNCTION public.assign_recurring_template_on_transaction_write();
 
 ALTER TABLE public.recurring_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.monthly_snapshots ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view recurring templates in their households" ON public.recurring_templates
   FOR SELECT USING (
@@ -167,42 +146,6 @@ CREATE POLICY "Users can delete recurring templates in their households" ON publ
     EXISTS (
       SELECT 1 FROM public.household_members
       WHERE household_id = public.recurring_templates.household_id
-      AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can view monthly snapshots in their households" ON public.monthly_snapshots
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.household_members
-      WHERE household_id = public.monthly_snapshots.household_id
-      AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can insert monthly snapshots in their households" ON public.monthly_snapshots
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.household_members
-      WHERE household_id = public.monthly_snapshots.household_id
-      AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can update monthly snapshots in their households" ON public.monthly_snapshots
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM public.household_members
-      WHERE household_id = public.monthly_snapshots.household_id
-      AND user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can delete monthly snapshots in their households" ON public.monthly_snapshots
-  FOR DELETE USING (
-    EXISTS (
-      SELECT 1 FROM public.household_members
-      WHERE household_id = public.monthly_snapshots.household_id
       AND user_id = auth.uid()
     )
   );
@@ -247,11 +190,13 @@ WHERE t.is_recurring = true
   )
 ORDER BY t.household_id, t.description, t.amount, t.category_id, t.paid_by, t.created_at DESC;
 
+-- Link only past months: recurring_template_id set only for transactions before current month
 UPDATE public.transactions t
 SET recurring_template_id = rt.id
 FROM public.recurring_templates rt
 WHERE t.is_recurring = true
   AND t.recurring_template_id IS NULL
+  AND t.date < date_trunc('month', CURRENT_DATE)::date
   AND t.household_id = rt.household_id
   AND t.description = rt.description
   AND t.amount = rt.amount
@@ -259,107 +204,14 @@ WHERE t.is_recurring = true
   AND COALESCE((CASE WHEN t.type = 'income' THEN NULL ELSE t.category_id END)::text, '')
     = COALESCE(rt.category_id::text, '');
 
-CREATE OR REPLACE FUNCTION public.bootstrap_historical_monthly_snapshots()
-RETURNS void AS $$
-DECLARE
-  period_record RECORD;
-  people_income_snapshot jsonb;
-  category_targets_snapshot jsonb;
-  emergency_fund_snapshot numeric;
-  v_total_income numeric;
-  v_total_expenses numeric;
-  v_net_income_adjustments numeric;
-  v_effective_income numeric;
-BEGIN
-  FOR period_record IN
-    SELECT DISTINCT
-      t.household_id,
-      EXTRACT(YEAR FROM t.date)::integer AS year,
-      EXTRACT(MONTH FROM t.date)::integer AS month
-    FROM public.transactions t
-    ORDER BY t.household_id, year, month
-  LOOP
-    SELECT COALESCE(
-      jsonb_agg(
-        jsonb_build_object(
-          'person_id', p.id,
-          'person_name', p.name,
-          'income', p.income
-        )
-        ORDER BY p.name
-      ),
-      '[]'::jsonb
-    )
-    INTO people_income_snapshot
-    FROM public.people p
-    WHERE p.household_id = period_record.household_id;
-
-    SELECT COALESCE(
-      jsonb_agg(
-        jsonb_build_object(
-          'category_id', hc.id,
-          'category_name', c.name,
-          'target_percent', hc.target_percent
-        )
-        ORDER BY c.name
-      ),
-      '[]'::jsonb
-    )
-    INTO category_targets_snapshot
-    FROM public.household_categories hc
-    JOIN public.categories c ON c.id = hc.category_id
-    WHERE hc.household_id = period_record.household_id;
-
-    SELECT COALESCE(h.emergency_fund, 0)
-    INTO emergency_fund_snapshot
-    FROM public.households h
-    WHERE h.id = period_record.household_id;
-
-    -- Compute aggregates from actual transactions (best-effort, ignores credit card month shift)
-    SELECT
-      COALESCE(SUM(CASE WHEN t.type = 'income' AND COALESCE(t.is_increment, true) THEN t.amount ELSE 0 END), 0),
-      COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0),
-      COALESCE(SUM(CASE WHEN t.type = 'income' AND NOT COALESCE(t.is_increment, true) THEN t.amount ELSE 0 END), 0)
-    INTO v_total_income, v_total_expenses, v_net_income_adjustments
-    FROM public.transactions t
-    WHERE t.household_id = period_record.household_id
-      AND EXTRACT(YEAR FROM t.date)::integer = period_record.year
-      AND EXTRACT(MONTH FROM t.date)::integer = period_record.month
-      AND NOT COALESCE(t.is_forecast, false);
-
-    v_effective_income := v_total_income - v_net_income_adjustments - v_total_expenses;
-
-    INSERT INTO public.monthly_snapshots (
-      household_id,
-      year,
-      month,
-      people_income,
-      category_targets,
-      total_income,
-      total_expenses,
-      net_income_adjustments,
-      effective_income,
-      emergency_fund,
-      health_score,
-      snapshot_source
-    ) VALUES (
-      period_record.household_id,
-      period_record.year,
-      period_record.month,
-      people_income_snapshot,
-      category_targets_snapshot,
-      v_total_income,
-      v_total_expenses,
-      v_net_income_adjustments,
-      v_effective_income,
-      emergency_fund_snapshot,
-      NULL,
-      'migration_bootstrap'
-    )
-    ON CONFLICT (household_id, year, month) DO NOTHING;
-  END LOOP;
-END;
-$$ LANGUAGE plpgsql;
-
-SELECT public.bootstrap_historical_monthly_snapshots();
-DROP FUNCTION public.bootstrap_historical_monthly_snapshots();
+-- Remove current-month and future recurring transactions; only the template remains (materialized on demand)
+DELETE FROM public.transactions t
+USING public.recurring_templates rt
+WHERE t.is_recurring = true
+  AND t.date >= date_trunc('month', CURRENT_DATE)::date
+  AND t.household_id = rt.household_id
+  AND t.description = rt.description
+  AND t.amount = rt.amount
+  AND t.paid_by = rt.paid_by
+  AND COALESCE((CASE WHEN t.type = 'income' THEN NULL ELSE t.category_id END)::text, '')
+    = COALESCE(rt.category_id::text, '');

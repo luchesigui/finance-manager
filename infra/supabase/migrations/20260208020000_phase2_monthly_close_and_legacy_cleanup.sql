@@ -1,4 +1,4 @@
--- Phase 2: monthly close (transactions + closed_periods only), legacy recurring cleanup, drop monthly_snapshots
+-- Phase 2: closed_periods, run_monthly_close, legacy recurring cleanup (no auto-close; manual or cron)
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_transactions_template_occurrence
   ON public.transactions(household_id, recurring_template_id, date)
@@ -158,18 +158,6 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql;
-
-DROP POLICY IF EXISTS "Users can insert monthly snapshots in their households" ON public.monthly_snapshots;
-DROP POLICY IF EXISTS "Users can update monthly snapshots in their households" ON public.monthly_snapshots;
-DROP POLICY IF EXISTS "Users can delete monthly snapshots in their households" ON public.monthly_snapshots;
-
--- Preserve "closed" semantics: copy existing snapshot periods into closed_periods before dropping
-INSERT INTO public.closed_periods (household_id, year, month)
-SELECT household_id, year, month
-FROM public.monthly_snapshots
-ON CONFLICT (household_id, year, month) DO NOTHING;
-
-DROP TABLE IF EXISTS public.monthly_snapshots;
 
 DROP TRIGGER IF EXISTS trg_assign_recurring_template_on_transaction_write ON public.transactions;
 DROP FUNCTION IF EXISTS public.assign_recurring_template_on_transaction_write();
