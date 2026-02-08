@@ -396,10 +396,10 @@ export function calculateHealthScore(
   outlierCount: number,
   dayOfMonth: number,
 ): { score: number; status: HealthStatus; reason?: string } {
-  const baseIncome = calculateTotalIncome(people);
-
+  // Calculate effective income from transactions only
+  // (includes virtual income templates from people's salaries)
   const incomeBreakdown = calculateIncomeBreakdown(transactions);
-  const effectiveIncome = baseIncome + incomeBreakdown.netIncome;
+  const effectiveIncome = incomeBreakdown.netIncome;
 
   const categorySummary = calculateCategorySummary(categories, transactions, effectiveIncome);
 

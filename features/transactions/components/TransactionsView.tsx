@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { useDefaultPayerData } from "@/features/people/hooks/useDefaultPayerData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
+import { useRecurringTemplateMutations } from "@/features/recurring-templates/hooks/useRecurringTemplateMutations";
 import { MonthNavigator } from "@/features/transactions/components/MonthNavigator";
 import { TransactionFormFields } from "@/features/transactions/components/TransactionFormFields";
 import { BulkEditModal } from "@/features/transactions/components/TransactionsView/BulkEditModal";
@@ -47,6 +48,7 @@ function createDefaultFormState(
     categoryId,
     paidBy,
     isRecurring: false,
+    dayOfMonth: 1,
     isCreditCard: false,
     dateSelectionMode: "month",
     selectedMonth: yearMonth,
@@ -78,6 +80,13 @@ export function TransactionsView() {
     bulkUpdateTransactions,
     bulkDeleteTransactions,
   } = useTransactionsData();
+  const {
+    createRecurringTemplate,
+    updateRecurringTemplate,
+    deleteRecurringTemplate,
+    deleteRecurringTemplateAsync,
+    isDeletingRecurringTemplate,
+  } = useRecurringTemplateMutations();
 
   const { isOutlier } = useOutlierDetection(
     selectedMonthDate.getFullYear(),
@@ -96,6 +105,16 @@ export function TransactionsView() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
+  // Recurring delete modal state
+  const [deletingRecurringTemplateId, setDeletingRecurringTemplateId] = useState<number | null>(
+    null,
+  );
+
+  // Recurring edit scope: when editing a recurring transaction, which scope to apply
+  const [recurringEditScope, setRecurringEditScope] = useState<"template_only" | "full_history">(
+    "template_only",
+  );
+
   // Selection state for bulk operations
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -105,13 +124,11 @@ export function TransactionsView() {
   const [bulkEditFormState, setBulkEditFormState] = useState<{
     categoryId: string | null;
     paidBy: string | null;
-    isRecurring: boolean | null;
     isCreditCard: boolean | null;
     excludeFromSplit: boolean | null;
   }>({
     categoryId: null,
     paidBy: null,
-    isRecurring: null,
     isCreditCard: null,
     excludeFromSplit: null,
   });
@@ -174,12 +191,38 @@ export function TransactionsView() {
       if (!editingTransaction) return;
       if (!value.description || value.amount == null) return;
 
+      if (editingTransaction.recurringTemplateId != null) {
+        const selectedDay = (() => {
+          if (value.dayOfMonth) return value.dayOfMonth;
+          const day = Number.parseInt(value.date.split("-")[2] ?? "1", 10);
+          return Number.isFinite(day) ? day : 1;
+        })();
+
+        updateRecurringTemplate(
+          editingTransaction.recurringTemplateId,
+          {
+            description: value.description,
+            amount: value.amount,
+            categoryId: value.type === "income" ? null : value.categoryId,
+            paidBy: value.paidBy,
+            type: value.type,
+            isIncrement: value.isIncrement,
+            isCreditCard: value.type === "income" ? false : value.isCreditCard,
+            excludeFromSplit: value.type === "income" ? false : value.excludeFromSplit,
+            dayOfMonth: selectedDay,
+            isActive: value.isRecurring,
+          },
+          { scope: recurringEditScope },
+        );
+        setEditingTransaction(null);
+        return;
+      }
+
       updateTransactionById(editingTransaction.id, {
         description: value.description,
         amount: value.amount,
         categoryId: value.categoryId,
         paidBy: value.paidBy,
-        isRecurring: value.isRecurring,
         isCreditCard: value.isCreditCard,
         excludeFromSplit: value.excludeFromSplit,
         isForecast: value.isForecast,
@@ -274,6 +317,7 @@ export function TransactionsView() {
 
   const handleOpenEditModal = (transaction: Transaction) => {
     setEditingTransaction(transaction);
+    setRecurringEditScope("template_only");
 
     // Determine if the transaction date is the 1st of a month (month mode) or a specific date
     const dateParts = transaction.date.split("-");
@@ -291,7 +335,8 @@ export function TransactionsView() {
       transaction.categoryId ?? categories[0]?.id ?? "",
     );
     editTransactionForm.setFieldValue("paidBy", transaction.paidBy);
-    editTransactionForm.setFieldValue("isRecurring", transaction.isRecurring);
+    editTransactionForm.setFieldValue("isRecurring", transaction.recurringTemplateId != null);
+    editTransactionForm.setFieldValue("dayOfMonth", day);
     editTransactionForm.setFieldValue("isCreditCard", transaction.isCreditCard);
     editTransactionForm.setFieldValue("dateSelectionMode", isFirstOfMonth ? "month" : "specific");
     editTransactionForm.setFieldValue("selectedMonth", selectedMonth);
@@ -407,7 +452,7 @@ Retorne APENAS o JSON, sem markdown.
 
   const selectAllVisibleTransactions = () => {
     const nonRecurringIds = visibleTransactionsForSelectedMonth
-      .filter((transaction) => !transaction.isRecurring)
+      .filter((transaction) => transaction.recurringTemplateId == null)
       .map((transaction) => transaction.id);
     setSelectedIds(new Set(nonRecurringIds));
   };
@@ -421,7 +466,6 @@ Retorne APENAS o JSON, sem markdown.
     setBulkEditFormState({
       categoryId: null,
       paidBy: null,
-      isRecurring: null,
       isCreditCard: null,
       excludeFromSplit: null,
     });
@@ -438,7 +482,6 @@ Retorne APENAS o JSON, sem markdown.
     const patch: Record<string, unknown> = {};
     if (bulkEditFormState.categoryId !== null) patch.categoryId = bulkEditFormState.categoryId;
     if (bulkEditFormState.paidBy !== null) patch.paidBy = bulkEditFormState.paidBy;
-    if (bulkEditFormState.isRecurring !== null) patch.isRecurring = bulkEditFormState.isRecurring;
     if (bulkEditFormState.isCreditCard !== null)
       patch.isCreditCard = bulkEditFormState.isCreditCard;
     if (bulkEditFormState.excludeFromSplit !== null)
@@ -878,7 +921,7 @@ Retorne APENAS o JSON, sem markdown.
                 isOutlier={isOutlier(transaction)}
                 isSelectionMode={isSelectionMode}
                 isSelected={selectedIds.has(transaction.id)}
-                canSelect={!transaction.isRecurring}
+                canSelect={transaction.recurringTemplateId == null}
                 onToggleSelection={() => toggleTransactionSelection(transaction.id)}
                 onEdit={() => handleOpenEditModal(transaction)}
                 onMarkAsHappened={
@@ -887,7 +930,10 @@ Retorne APENAS o JSON, sem markdown.
                     : undefined
                 }
                 onDelete={
-                  !transaction.isRecurring ? () => deleteTransactionById(transaction.id) : undefined
+                  transaction.recurringTemplateId != null
+                    ? () =>
+                        setDeletingRecurringTemplateId(transaction.recurringTemplateId as number)
+                    : () => deleteTransactionById(transaction.id)
                 }
               />
             ))
@@ -914,7 +960,13 @@ Retorne APENAS o JSON, sem markdown.
       </div>
 
       {editingTransaction && (
-        <EditTransactionModal form={editTransactionForm} onClose={handleCloseEditModal} />
+        <EditTransactionModal
+          form={editTransactionForm}
+          onClose={handleCloseEditModal}
+          editingTransaction={editingTransaction}
+          recurringEditScope={recurringEditScope}
+          onRecurringEditScopeChange={setRecurringEditScope}
+        />
       )}
 
       {isBulkEditModalOpen && (
@@ -929,11 +981,96 @@ Retorne APENAS o JSON, sem markdown.
           isSaveDisabled={
             bulkEditFormState.categoryId === null &&
             bulkEditFormState.paidBy === null &&
-            bulkEditFormState.isRecurring === null &&
             bulkEditFormState.isCreditCard === null &&
             bulkEditFormState.excludeFromSplit === null
           }
         />
+      )}
+
+      {deletingRecurringTemplateId !== null && (
+        <dialog
+          open
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          aria-labelledby="recurring-delete-modal-title"
+        >
+          <div className="noir-card max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+            <div className="p-6 border-b border-noir-border flex items-center justify-between">
+              <h3
+                id="recurring-delete-modal-title"
+                className="font-semibold text-heading flex items-center gap-2"
+              >
+                <Trash2 className="text-accent-negative" size={20} />
+                Excluir Recorrente
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDeletingRecurringTemplateId(null)}
+                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
+                aria-label="Fechar"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-body">
+                O que deseja fazer com este lançamento recorrente?
+              </p>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  disabled={isDeletingRecurringTemplate}
+                  onClick={async () => {
+                    try {
+                      await deleteRecurringTemplateAsync(deletingRecurringTemplateId, {
+                        scope: "template_only",
+                      });
+                      setDeletingRecurringTemplateId(null);
+                    } catch (err) {
+                      console.error("Failed to delete recurring template:", err);
+                      alert("Não foi possível excluir. Tente novamente.");
+                    }
+                  }}
+                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50"
+                >
+                  <p className="font-medium text-heading text-sm">Só daqui pra frente</p>
+                  <p className="text-xs text-muted mt-1">
+                    Desativa o modelo e remove ocorrências em meses abertos. Meses já fechados
+                    permanecem como estão.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingRecurringTemplate}
+                  onClick={async () => {
+                    try {
+                      await deleteRecurringTemplateAsync(deletingRecurringTemplateId, {
+                        scope: "full_history",
+                      });
+                      setDeletingRecurringTemplateId(null);
+                    } catch (err) {
+                      console.error("Failed to delete recurring template:", err);
+                      alert("Não foi possível excluir. Tente novamente.");
+                    }
+                  }}
+                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-negative hover:bg-accent-negative/5 transition-all disabled:opacity-50"
+                >
+                  <p className="font-medium text-heading text-sm">Todo o histórico</p>
+                  <p className="text-xs text-muted mt-1">
+                    Desativa o template. Em meses já fechados os lançamentos são apenas
+                    desvinculados (valores mantidos). Em meses abertos os lançamentos são excluídos.
+                  </p>
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletingRecurringTemplateId(null)}
+                className="w-full noir-btn-secondary py-2.5 mt-2"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </dialog>
       )}
     </div>
   );

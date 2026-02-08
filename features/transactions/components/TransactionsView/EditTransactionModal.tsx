@@ -1,15 +1,27 @@
 "use client";
 
 import { TransactionFormFields } from "@/features/transactions/components/TransactionFormFields";
+import type { Transaction } from "@/lib/types";
 import { Pencil, X } from "lucide-react";
 
 type EditTransactionModalProps = {
   onClose: () => void;
   // biome-ignore lint/suspicious/noExplicitAny: TanStack Form has complex generic types
   form: any;
+  editingTransaction: Transaction;
+  recurringEditScope: "template_only" | "full_history";
+  onRecurringEditScopeChange: (scope: "template_only" | "full_history") => void;
 };
 
-export function EditTransactionModal({ onClose, form }: EditTransactionModalProps) {
+export function EditTransactionModal({
+  onClose,
+  form,
+  editingTransaction,
+  recurringEditScope,
+  onRecurringEditScopeChange,
+}: EditTransactionModalProps) {
+  const isRecurring = editingTransaction.recurringTemplateId != null;
+
   return (
     <div
       // biome-ignore lint/a11y/useSemanticElements: Custom modal with backdrop styling requires div
@@ -72,6 +84,35 @@ export function EditTransactionModal({ onClose, form }: EditTransactionModalProp
                 idPrefix="edit-transaction"
               />
             </div>
+            {isRecurring && (
+              <div className="mt-4 pt-4 border-t border-noir-border">
+                <p className="text-xs font-medium text-body mb-2">
+                  Aplicar alterações ao modelo recorrente
+                </p>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="recurring-edit-scope"
+                      checked={recurringEditScope === "template_only"}
+                      onChange={() => onRecurringEditScopeChange("template_only")}
+                      className="text-accent-primary"
+                    />
+                    <span className="text-sm text-body">Só daqui pra frente</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="recurring-edit-scope"
+                      checked={recurringEditScope === "full_history"}
+                      onChange={() => onRecurringEditScopeChange("full_history")}
+                      className="text-accent-primary"
+                    />
+                    <span className="text-sm text-body">Todo o histórico (meses abertos)</span>
+                  </label>
+                </div>
+              </div>
+            )}
             <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
               <button type="button" onClick={onClose} className="noir-btn-secondary flex-1 py-3">
                 Cancelar

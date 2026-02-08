@@ -1,6 +1,8 @@
 import "server-only";
 
-import { dayjs, getAccountingYearMonthUtc, parseDateStringUtc } from "@/lib/dateUtils";
+import { getRecurringTemplates } from "@/features/recurring-templates/server/store";
+import { isMonthClosed } from "@/features/snapshots/server/store";
+import { dayjs, getAccountingYearMonthUtc, toDateString } from "@/lib/dateUtils";
 import {
   mapTransactionRow,
   toBulkTransactionDbPatch,
@@ -11,10 +13,34 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   BulkTransactionPatch,
   CategoryStatistics,
+  RecurringTemplate,
   Transaction,
   TransactionPatch,
   TransactionRow,
 } from "@/lib/types";
+
+function recurringTemplateToTransaction(
+  template: RecurringTemplate,
+  date: string,
+  id = -template.id,
+): Transaction {
+  return {
+    id,
+    description: template.description,
+    amount: template.amount,
+    categoryId: template.type === "income" ? null : template.categoryId,
+    paidBy: template.paidBy,
+    recurringTemplateId: template.id,
+    isCreditCard: template.type === "income" ? false : template.isCreditCard,
+    excludeFromSplit: template.type === "income" ? false : template.excludeFromSplit,
+    isForecast: false,
+    date,
+    createdAt: template.createdAt,
+    householdId: template.householdId,
+    type: template.type,
+    isIncrement: template.isIncrement,
+  };
+}
 
 export async function getTransactions(year?: number, month?: number): Promise<Transaction[]> {
   const supabase = await createClient();
@@ -36,23 +62,17 @@ export async function getRecurringTransactions(options?: {
   limit?: number;
   offset?: number;
 }): Promise<{ transactions: Transaction[]; total: number }> {
-  const limit = Math.min(options?.limit ?? 100, 100);
-  const offset = options?.offset ?? 0;
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const { templates, total } = await getRecurringTemplates({
+    activeOnly: true,
+    limit: options?.limit,
+    offset: options?.offset,
+  });
 
-  const { data, error, count } = await supabase
-    .from("transactions")
-    .select("*", { count: "exact" })
-    .eq("household_id", householdId)
-    .eq("is_recurring", true)
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (error) throw error;
-
-  const transactions = (data as TransactionRow[]).map(mapTransactionRow);
-  return { transactions, total: count ?? 0 };
+  const todayDate = toDateString(new Date());
+  const transactions = templates.map((template) =>
+    recurringTemplateToTransaction(template, todayDate),
+  );
+  return { transactions, total };
 }
 
 function filterByAccountingMonth(
@@ -66,52 +86,57 @@ function filterByAccountingMonth(
   });
 }
 
-async function materializeRecurringTransactions(
-  // biome-ignore lint/suspicious/noExplicitAny: Supabase client type
-  supabase: any,
-  householdId: string,
-  startDate: string,
-  year: number,
-  month: number,
-): Promise<TransactionRow[]> {
-  const { data: recurringData, error: recurringError } = await supabase
-    .from("transactions")
-    .select("*")
-    .eq("household_id", householdId)
-    .eq("is_recurring", true)
-    .lt("date", startDate)
-    .order("created_at", { ascending: false });
+function clampDay(year: number, month: number, day: number): number {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return Math.min(day, lastDay);
+}
 
-  if (recurringError) throw recurringError;
+function toVirtualId(templateId: number, year: number, month: number): number {
+  return -(templateId * 100_000 + year * 100 + month);
+}
 
-  const monthsToMaterialize = [
-    { year, month },
-    {
-      year: month === 1 ? year - 1 : year,
-      month: month === 1 ? 12 : month - 1,
-    },
-  ];
+/** True if (year, month) is >= template's creation month (from createdAt). */
+function templateAppliesToMonth(tpl: RecurringTemplate, year: number, month: number): boolean {
+  if (!tpl.createdAt) return true;
+  const d = new Date(tpl.createdAt);
+  const createdYear = d.getUTCFullYear();
+  const createdMonth = d.getUTCMonth() + 1;
+  return year > createdYear || (year === createdYear && month >= createdMonth);
+}
 
-  const virtualTransactions =
-    (recurringData as TransactionRow[] | null)?.flatMap((recurringTransaction) => {
-      const originalDate = parseDateStringUtc(recurringTransaction.date);
-      const day = originalDate.getUTCDate();
+async function materializeRecurringTemplates(year: number, month: number): Promise<Transaction[]> {
+  const { templates } = await getRecurringTemplates({
+    activeOnly: true,
+    limit: 500,
+  });
 
-      return monthsToMaterialize.map((targetMonth) => {
-        let targetDate = new Date(Date.UTC(targetMonth.year, targetMonth.month - 1, day));
+  const applicable = templates.filter((tpl) => templateAppliesToMonth(tpl, year, month));
+  if (applicable.length === 0) return [];
 
-        if (targetDate.getUTCMonth() !== targetMonth.month - 1) {
-          targetDate = new Date(Date.UTC(targetMonth.year, targetMonth.month, 0));
-        }
+  const results: Transaction[] = [];
 
-        return {
-          ...recurringTransaction,
-          date: targetDate.toISOString().split("T")[0],
-        };
-      });
-    }) ?? [];
+  for (const tpl of applicable) {
+    // Current month: regular templates
+    const day = clampDay(year, month, tpl.dayOfMonth);
+    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-  return filterByAccountingMonth(virtualTransactions, year, month);
+    if (!tpl.isCreditCard) {
+      results.push(recurringTemplateToTransaction(tpl, dateStr, toVirtualId(tpl.id, year, month)));
+    }
+
+    // Credit card: transaction from previous month appears in current accounting month
+    if (tpl.isCreditCard) {
+      const prevMonth = month === 1 ? 12 : month - 1;
+      const prevYear = month === 1 ? year - 1 : year;
+      const prevDay = clampDay(prevYear, prevMonth, tpl.dayOfMonth);
+      const prevDateStr = `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(prevDay).padStart(2, "0")}`;
+      results.push(
+        recurringTemplateToTransaction(tpl, prevDateStr, toVirtualId(tpl.id, year, month)),
+      );
+    }
+  }
+
+  return results;
 }
 
 async function getTransactionsForMonth(
@@ -121,7 +146,6 @@ async function getTransactionsForMonth(
   year: number,
   month: number,
 ): Promise<Transaction[]> {
-  const startDate = new Date(Date.UTC(year, month - 1, 1)).toISOString().split("T")[0];
   const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
   const prevMonthStartDate = new Date(Date.UTC(year, month - 2, 1)).toISOString().split("T")[0];
 
@@ -135,29 +159,40 @@ async function getTransactionsForMonth(
 
   if (currentError) throw currentError;
 
-  const currentMonthData = filterByAccountingMonth(rawData ?? [], year, month);
+  const filteredRows = filterByAccountingMonth(rawData ?? [], year, month);
+  const realTransactions = filteredRows.map(mapTransactionRow);
 
-  const virtualTransactions = await materializeRecurringTransactions(
-    supabase,
-    householdId,
-    startDate,
-    year,
-    month,
+  const closed = await isMonthClosed(householdId, year, month);
+  if (closed) {
+    realTransactions.sort((a, b) => {
+      const ca = a.createdAt ?? "";
+      const cb = b.createdAt ?? "";
+      const createdAtCompare = cb.localeCompare(ca);
+      return createdAtCompare !== 0 ? createdAtCompare : b.id - a.id;
+    });
+    return realTransactions;
+  }
+
+  // Materialize recurring templates as virtual transactions (only for open months)
+  const virtualTransactions = await materializeRecurringTemplates(year, month);
+
+  // Deduplicate: exclude virtual transactions whose template already has a real row this month
+  const realTemplateIds = new Set(
+    realTransactions.filter((t) => t.recurringTemplateId != null).map((t) => t.recurringTemplateId),
   );
 
-  const existingIds = new Set(currentMonthData.map((t: TransactionRow) => t.id));
-  const uniqueVirtualTransactions = virtualTransactions.filter(
-    (transaction) => !existingIds.has(transaction.id),
-  );
+  const deduped = virtualTransactions.filter((vt) => !realTemplateIds.has(vt.recurringTemplateId));
 
-  const allTransactions = [...currentMonthData, ...uniqueVirtualTransactions];
+  const allTransactions = [...realTransactions, ...deduped];
 
   allTransactions.sort((a, b) => {
-    const createdAtCompare = String(b.created_at ?? "").localeCompare(String(a.created_at ?? ""));
-    return createdAtCompare !== 0 ? createdAtCompare : Number(b.id ?? 0) - Number(a.id ?? 0);
+    const ca = a.createdAt ?? "";
+    const cb = b.createdAt ?? "";
+    const createdAtCompare = cb.localeCompare(ca);
+    return createdAtCompare !== 0 ? createdAtCompare : b.id - a.id;
   });
 
-  return allTransactions.map(mapTransactionRow);
+  return allTransactions;
 }
 
 export async function getTransaction(id: number): Promise<Transaction | null> {
@@ -175,9 +210,17 @@ export async function getTransaction(id: number): Promise<Transaction | null> {
   return mapTransactionRow(data as TransactionRow);
 }
 
-export async function createTransaction(t: Omit<Transaction, "id">): Promise<Transaction> {
+export async function createTransaction(
+  t: Omit<Transaction, "id" | "recurringTemplateId"> & {
+    recurringTemplateId?: number | null;
+  },
+): Promise<Transaction> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
+
+  // Only use recurringTemplateId if explicitly passed (e.g., from monthly close)
+  // Templates are now created separately via the recurring-templates API
+  const recurringTemplateId = t.recurringTemplateId ?? null;
 
   const isIncome = t.type === "income";
   const isForecast = t.isForecast ?? false;
@@ -187,7 +230,7 @@ export async function createTransaction(t: Omit<Transaction, "id">): Promise<Tra
     amount: t.amount,
     category_id: isIncome ? null : t.categoryId,
     paid_by: t.paidBy,
-    is_recurring: t.isRecurring,
+    recurring_template_id: recurringTemplateId,
     is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
     exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
     is_forecast: isForecast,
@@ -284,7 +327,7 @@ export async function getOutlierStatistics(
     .select("category_id, amount, date, is_credit_card")
     .eq("household_id", householdId)
     .eq("type", "expense")
-    .eq("is_recurring", false)
+    .is("recurring_template_id", null)
     .eq("exclude_from_split", false)
     .not("category_id", "is", null)
     .gte("date", startDateStr)

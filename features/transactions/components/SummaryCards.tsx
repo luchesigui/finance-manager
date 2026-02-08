@@ -4,7 +4,6 @@ import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import {
   calculateIncomeBreakdown,
   calculateTotalExpenses,
-  calculateTotalIncome,
   getExpenseTransactions,
 } from "@/features/transactions/hooks/useFinanceCalculations";
 import { useTransactionsData } from "@/features/transactions/hooks/useTransactionsData";
@@ -42,12 +41,14 @@ export function SummaryCards({
     forecastExpenses.length === 1 ? "1 item" : `${forecastExpenses.length} itens`;
 
   // Calculate total income
-  const totalIncome = calculateTotalIncome(people);
-
-  // Calculate income breakdown
+  // Income now comes from transactions (includes virtual income templates from people's salaries)
+  // We no longer use calculateTotalIncome(people) as that would double-count with income templates
   const incomeBreakdown = calculateIncomeBreakdown(transactionsForCalculations);
-  const effectiveIncome = totalIncome + incomeBreakdown.netIncome;
+  const effectiveIncome = incomeBreakdown.netIncome;
 
+  // Only show income breakdown section if there are deductions
+  // (increments are always present now due to salary templates)
+  const hasIncomeDeductions = incomeBreakdown.totalIncomeDecrement > 0;
   // Build set of excluded category IDs for fair distribution
   const excludedCategoryIds = new Set(
     categories
@@ -67,9 +68,6 @@ export function SummaryCards({
   // Calculate total expenses for distribution
   const totalExpenses = calculateTotalExpenses(transactionsForFairDistribution);
 
-  const hasIncomeTransactions =
-    incomeBreakdown.totalIncomeIncrement > 0 || incomeBreakdown.totalIncomeDecrement > 0;
-
   const freeBalance = effectiveIncome - totalExpenses;
   const isPositiveBalance = freeBalance >= 0;
 
@@ -81,7 +79,7 @@ export function SummaryCards({
         <p className="text-2xl font-bold text-heading tabular-nums">
           {formatCurrency(effectiveIncome)}
         </p>
-        {hasIncomeTransactions && (
+        {hasIncomeDeductions && (
           <div className="mt-3 pt-3 border-t border-noir-border">
             <div className="text-xs space-y-1.5">
               {incomeBreakdown.totalIncomeIncrement > 0 && (

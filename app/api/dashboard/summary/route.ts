@@ -21,7 +21,7 @@ function countOutliers(
     amount: number;
     categoryId: string | null;
     type: string;
-    isRecurring: boolean;
+    recurringTemplateId: number | null;
     excludeFromSplit: boolean;
   }>,
   statistics: CategoryStatistics[],
@@ -35,7 +35,7 @@ function countOutliers(
   let count = 0;
   for (const transaction of transactions) {
     if (transaction.type === "income") continue;
-    if (transaction.isRecurring) continue;
+    if (transaction.recurringTemplateId != null) continue;
     if (transaction.excludeFromSplit) continue;
     if (!transaction.categoryId) continue;
 

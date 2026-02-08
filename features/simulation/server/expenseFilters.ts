@@ -37,7 +37,9 @@ export function filterValidExpenseTransactions(
  * Groups recurring expense transactions by description and returns average amounts.
  */
 export function buildRecurringExpenses(transactions: Transaction[]): RecurringExpenseItem[] {
-  const expenseTransactions = transactions.filter((transaction) => transaction.isRecurring);
+  const expenseTransactions = transactions.filter(
+    (transaction) => transaction.recurringTemplateId != null,
+  );
 
   const grouped = new Map<
     string,

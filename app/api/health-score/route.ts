@@ -62,7 +62,7 @@ function countOutliers(
     amount: number;
     categoryId: string | null;
     type: string;
-    isRecurring: boolean;
+    recurringTemplateId: number | null;
     excludeFromSplit: boolean;
   }>,
   statistics: Array<{ categoryId: string; mean: number; standardDeviation: number }>,
@@ -76,7 +76,7 @@ function countOutliers(
   let count = 0;
   for (const t of transactions) {
     if (t.type === "income") continue;
-    if (t.isRecurring) continue;
+    if (t.recurringTemplateId != null) continue;
     if (t.excludeFromSplit) continue;
     if (!t.categoryId) continue;
 
@@ -147,19 +147,14 @@ export async function GET(request: Request) {
     const results: HealthScoreResponse[] = [];
 
     for (const { year, month, periodStr } of periods) {
-      // Fetch transactions and outlier statistics for this period
       const [transactions, outlierStats] = await Promise.all([
         getTransactions(year, month),
-        getOutlierStatistics(year, month).catch(() => []), // Gracefully handle if no stats
+        getOutlierStatistics(year, month).catch(() => []),
       ]);
 
-      // Count outliers
       const outlierCount = countOutliers(transactions, outlierStats);
-
-      // Calculate effective day of month
       const dayOfMonth = getEffectiveDayOfMonth(year, month);
 
-      // Calculate health score
       const { score, status, reason } = calculateHealthScore(
         people,
         categories,
@@ -173,11 +168,9 @@ export async function GET(request: Request) {
         score,
         status,
       };
-
       if (reason) {
         response.reason = reason;
       }
-
       results.push(response);
     }
 

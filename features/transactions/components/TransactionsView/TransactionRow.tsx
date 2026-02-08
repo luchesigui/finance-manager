@@ -46,6 +46,7 @@ export function TransactionRow({
   const isIncome = transaction.type === "income";
   const isIncrement = transaction.isIncrement ?? true;
   const isForecast = transaction.isForecast;
+  const isFromTemplate = transaction.recurringTemplateId != null;
 
   return (
     <div
@@ -151,7 +152,7 @@ export function TransactionRow({
                   <span className="hidden md:inline">Previsão</span>
                 </span>
               )}
-              {transaction.isRecurring && (
+              {isFromTemplate && (
                 <span className="noir-badge-accent flex items-center gap-1">
                   <RefreshCw size={13} />
                   <span className="hidden md:inline">Recorrente</span>
@@ -204,7 +205,7 @@ export function TransactionRow({
                 >
                   <Pencil size={15} />
                 </button>
-                {!transaction.isRecurring && onDelete && (
+                {onDelete && (
                   <button
                     type="button"
                     onClick={(event) => {

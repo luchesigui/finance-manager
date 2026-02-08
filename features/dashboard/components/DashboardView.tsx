@@ -21,7 +21,6 @@ import {
   calculateCategorySummary,
   calculateIncomeBreakdown,
   calculateTotalExpenses,
-  calculateTotalIncome,
   getExpenseTransactions,
 } from "@/features/transactions/hooks/useFinanceCalculations";
 import { useOutlierDetection } from "@/features/transactions/hooks/useOutlierDetection";
@@ -193,13 +192,13 @@ export function DashboardView() {
     selectedMonthNumber,
   );
 
-  // Calculate effective income
-  const baseIncome = useMemo(() => calculateTotalIncome(people), [people]);
+  // Calculate effective income from transactions only
+  // (includes virtual income templates from people's salaries)
   const incomeBreakdown = useMemo(
     () => calculateIncomeBreakdown(transactionsForCalculations),
     [transactionsForCalculations],
   );
-  const effectiveIncome = baseIncome + incomeBreakdown.netIncome;
+  const effectiveIncome = incomeBreakdown.netIncome;
 
   // Calculate category summary
   const categorySummary = useMemo(
