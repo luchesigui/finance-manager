@@ -1,12 +1,11 @@
 "use client";
 
 import type { Category, Person } from "@/lib/types";
-import { CreditCard, Pencil, RefreshCw, UserX, X } from "lucide-react";
+import { CreditCard, Pencil, UserX, X } from "lucide-react";
 
 type BulkEditFormState = {
   categoryId: string | null;
   paidBy: string | null;
-  isRecurring: boolean | null;
   isCreditCard: boolean | null;
   excludeFromSplit: boolean | null;
 };
@@ -144,42 +143,6 @@ export function BulkEditModal({
           </div>
 
           <div className="space-y-3 mb-4">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="bulk-recurring-enable"
-                checked={formState.isRecurring !== null}
-                onChange={(event) =>
-                  onFormStateChange({
-                    ...formState,
-                    isRecurring: event.target.checked ? false : null,
-                  })
-                }
-                className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-              />
-              <label
-                htmlFor="bulk-recurring-enable"
-                className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
-              >
-                <RefreshCw size={14} /> Alterar Recorrente
-              </label>
-              {formState.isRecurring !== null && (
-                <select
-                  className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
-                  value={formState.isRecurring ? "true" : "false"}
-                  onChange={(event) =>
-                    onFormStateChange({
-                      ...formState,
-                      isRecurring: event.target.value === "true",
-                    })
-                  }
-                >
-                  <option value="true">Sim</option>
-                  <option value="false">Não</option>
-                </select>
-              )}
-            </div>
-
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"

@@ -7,7 +7,7 @@ import {
 } from "@/features/dashboard/server/healthScoreCalculation";
 import { getPeople } from "@/features/people/server/store";
 import { getOutlierStatistics, getTransactions } from "@/features/transactions/server/store";
-import { requireAuth } from "@/lib/server/requestBodyValidation";
+import { requireAuthWithHousehold } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +62,7 @@ function countOutliers(
     amount: number;
     categoryId: string | null;
     type: string;
-    isRecurring: boolean;
+    recurringTemplateId: number | null;
     excludeFromSplit: boolean;
   }>,
   statistics: Array<{ categoryId: string; mean: number; standardDeviation: number }>,
@@ -76,7 +76,7 @@ function countOutliers(
   let count = 0;
   for (const t of transactions) {
     if (t.type === "income") continue;
-    if (t.isRecurring) continue;
+    if (t.recurringTemplateId != null) continue;
     if (t.excludeFromSplit) continue;
     if (!t.categoryId) continue;
 
@@ -102,8 +102,10 @@ function countOutliers(
  * Maximum 10 periods per request.
  */
 export async function GET(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireAuthWithHousehold();
   if (!auth.success) return auth.response;
+
+  const { householdId } = auth;
 
   try {
     const url = new URL(request.url);
@@ -147,19 +149,14 @@ export async function GET(request: Request) {
     const results: HealthScoreResponse[] = [];
 
     for (const { year, month, periodStr } of periods) {
-      // Fetch transactions and outlier statistics for this period
       const [transactions, outlierStats] = await Promise.all([
-        getTransactions(year, month),
-        getOutlierStatistics(year, month).catch(() => []), // Gracefully handle if no stats
+        getTransactions(year, month, householdId),
+        getOutlierStatistics(year, month, householdId).catch(() => []),
       ]);
 
-      // Count outliers
       const outlierCount = countOutliers(transactions, outlierStats);
-
-      // Calculate effective day of month
       const dayOfMonth = getEffectiveDayOfMonth(year, month);
 
-      // Calculate health score
       const { score, status, reason } = calculateHealthScore(
         people,
         categories,
@@ -173,11 +170,9 @@ export async function GET(request: Request) {
         score,
         status,
       };
-
       if (reason) {
         response.reason = reason;
       }
-
       results.push(response);
     }
 

@@ -29,3 +29,8 @@ jobs:
         run: npx supabase db push --workdir infra
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Deploy Edge Functions
+        run: npx supabase functions deploy monthly-close --workdir infra
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

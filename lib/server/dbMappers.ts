@@ -6,6 +6,9 @@ import type {
   Person,
   PersonPatch,
   PersonRow,
+  RecurringTemplate,
+  RecurringTemplatePatch,
+  RecurringTemplateRow,
   SavedSimulation,
   SimulationRow,
   Transaction,
@@ -18,12 +21,18 @@ import type {
 // ============================================================================
 
 export function mapPersonRow(row: PersonRow): Person {
+  const incomeTemplateId =
+    row.income_template_id === null || row.income_template_id === undefined
+      ? null
+      : Number(row.income_template_id);
+
   return {
     id: row.id,
     name: row.name,
     income: Number(row.income),
     householdId: row.household_id ?? undefined,
     linkedUserId: row.linked_user_id ?? undefined,
+    incomeTemplateId,
   };
 }
 
@@ -38,13 +47,18 @@ export function mapCategoryRow(row: CategoryRow): Category {
 }
 
 export function mapTransactionRow(row: TransactionRow): Transaction {
+  const recurringTemplateId =
+    row.recurring_template_id === null || row.recurring_template_id === undefined
+      ? null
+      : Number(row.recurring_template_id);
+
   return {
     id: Number(row.id),
     description: row.description,
     amount: Number(row.amount),
     categoryId: row.category_id,
     paidBy: row.paid_by,
-    isRecurring: row.is_recurring,
+    recurringTemplateId,
     isCreditCard: row.is_credit_card ?? false,
     excludeFromSplit: row.exclude_from_split ?? false,
     isForecast: row.is_forecast ?? false,
@@ -53,6 +67,25 @@ export function mapTransactionRow(row: TransactionRow): Transaction {
     householdId: row.household_id,
     type: row.type ?? "expense",
     isIncrement: row.is_increment ?? true,
+  };
+}
+
+export function mapRecurringTemplateRow(row: RecurringTemplateRow): RecurringTemplate {
+  return {
+    id: Number(row.id),
+    description: row.description,
+    amount: Number(row.amount),
+    categoryId: row.category_id,
+    paidBy: row.paid_by,
+    type: row.type ?? "expense",
+    isIncrement: row.is_increment ?? true,
+    isCreditCard: row.is_credit_card ?? false,
+    excludeFromSplit: row.exclude_from_split ?? false,
+    dayOfMonth: Number(row.day_of_month),
+    isActive: row.is_active ?? true,
+    householdId: row.household_id ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -90,7 +123,6 @@ export function toTransactionDbPatch(patch: TransactionPatch): Record<string, un
   if (patch.amount !== undefined) dbPatch.amount = patch.amount;
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
-  if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
@@ -104,11 +136,28 @@ export function toBulkTransactionDbPatch(patch: BulkTransactionPatch): Record<st
   const dbPatch: Record<string, unknown> = {};
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
-  if (patch.isRecurring !== undefined) dbPatch.is_recurring = patch.isRecurring;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.type !== undefined) dbPatch.type = patch.type;
   if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
+  return dbPatch;
+}
+
+export function toRecurringTemplateDbPatch(patch: RecurringTemplatePatch): Record<string, unknown> {
+  const dbPatch: Record<string, unknown> = {};
+  if (patch.description !== undefined) dbPatch.description = patch.description;
+  if (patch.amount !== undefined) dbPatch.amount = patch.amount;
+  if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
+  if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
+  if (patch.type !== undefined) dbPatch.type = patch.type;
+  if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
+  if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.dayOfMonth !== undefined) dbPatch.day_of_month = patch.dayOfMonth;
+  if (patch.isActive !== undefined) dbPatch.is_active = patch.isActive;
+  if (Object.keys(dbPatch).length > 0) {
+    dbPatch.updated_at = new Date().toISOString();
+  }
   return dbPatch;
 }

@@ -44,8 +44,8 @@ export function useOutlierDetection(year: number, month: number) {
     // Only flag expenses
     if (transaction.type === "income") return false;
 
-    // Exclude recurring transactions
-    if (transaction.isRecurring) return false;
+    // Exclude recurring-template transactions
+    if (transaction.recurringTemplateId != null) return false;
 
     // Exclude transactions excluded from split
     if (transaction.excludeFromSplit) return false;

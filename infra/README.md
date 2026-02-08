@@ -91,6 +91,20 @@ If the project is **new** or has never had migrations applied, you need to link 
 
 After this, the online DB is up to date. For future migration changes, use the same flow: update migrations locally, then run `npm run db:push` (or let CI do it).
 
+### Edge Functions
+
+The **monthly-close** Edge Function runs `run_monthly_close` for one or all households (e.g. to close the previous month). It is used by Cron or manually via `POST /api/admin/monthly-close`.
+
+**Deploy** (same env as migrations: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF` in `.env.local`; project must be linked):
+
+```bash
+npm run functions:deploy
+```
+
+This deploys `infra/supabase/functions/monthly-close`. After deploy, set the function’s secrets in the Supabase Dashboard (Project Settings → Edge Functions → monthly-close → Secrets): `ADMIN_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. See `infra/supabase/functions/monthly-close/README.md` for behavior and local testing.
+
+CI deploys this function on every push to `main` (after migrations).
+
 ### Optional: interactive login
 
 Instead of access tokens, you can run `npx supabase login` once; then `npm run db:link` can prompt for project and password. Re-auth when the session expires.
@@ -144,7 +158,8 @@ Instead of access tokens, you can run `npx supabase login` once; then `npm run d
 | `npm run db:diff` | Generate diff from remote (requires link) |
 | `npm run db:new -- <name>` | Create new migration file |
 | `npm run db:status` | Show local Supabase URLs and keys |
+| `npm run functions:deploy` | Deploy Edge Functions (e.g. monthly-close) to the linked project |
 
 ### CI
 
-The [Run migrations](../.github/workflows/migrate.yml) workflow applies migrations to the remote database on push to `main`, using the same env-based auth: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, and `SUPABASE_DB_PASSWORD` are set as repository secrets.
+The [Run migrations](../.github/workflows/migrate.yml) workflow runs on push to `main`: it applies migrations to the remote database and deploys Edge Functions. Repository secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`.

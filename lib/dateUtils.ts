@@ -18,14 +18,6 @@ export function parseDateString(dateString: string): Date {
 }
 
 /**
- * Parses a YYYY-MM-DD date string to a Date object in UTC timezone.
- * @param dateString - Date string in YYYY-MM-DD format
- */
-export function parseDateStringUtc(dateString: string): Date {
-  return dayjs.utc(dateString).toDate();
-}
-
-/**
  * Converts a Date object to YYYY-MM-DD format string.
  * @param date - Date object to convert
  */
@@ -49,15 +41,6 @@ export function toYearMonthString(date: Date): string {
  */
 export function addMonthsClamped(date: Date, monthsToAdd: number): Date {
   return dayjs(date).add(monthsToAdd, "month").toDate();
-}
-
-/**
- * Adds months to a UTC date, clamping the day to the last day of the target month when needed.
- * @param date - Base UTC date
- * @param monthsToAdd - Number of months to add (can be negative)
- */
-export function addMonthsClampedUtc(date: Date, monthsToAdd: number): Date {
-  return dayjs.utc(date).add(monthsToAdd, "month").toDate();
 }
 
 /**

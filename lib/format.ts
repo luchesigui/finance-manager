@@ -1,8 +1,5 @@
 import { parseDateString } from "@/lib/dateUtils";
 
-// Re-export parseDateString for backwards compatibility
-export { parseDateString } from "@/lib/dateUtils";
-
 // ============================================================================
 // Currency Formatting
 // ============================================================================

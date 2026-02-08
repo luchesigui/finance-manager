@@ -9,7 +9,6 @@ import {
   calculatePeopleShareWithIncomeTransactions,
   calculateSettlementData,
   calculateTotalExpenses,
-  calculateTotalIncome,
   getExpenseTransactions,
 } from "@/features/transactions/hooks/useFinanceCalculations";
 import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
@@ -284,12 +283,10 @@ export function useHealthScore({
   dayOfMonth,
 }: UseHealthScoreParams): HealthScoreResult {
   return useMemo(() => {
-    // Calculate base income
-    const baseIncome = calculateTotalIncome(people);
-
-    // Calculate income adjustments from transactions
+    // Calculate effective income from transactions only
+    // (includes virtual income templates from people's salaries)
     const incomeBreakdown = calculateIncomeBreakdown(transactions);
-    const effectiveIncome = baseIncome + incomeBreakdown.netIncome;
+    const effectiveIncome = incomeBreakdown.netIncome;
 
     // Calculate category summary
     const categorySummary = calculateCategorySummary(categories, transactions, effectiveIncome);

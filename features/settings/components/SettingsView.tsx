@@ -13,6 +13,7 @@ import { PersonEditRow } from "@/features/people/components/PersonEditRow";
 import { useDefaultPayerData } from "@/features/people/hooks/useDefaultPayerData";
 import { useEmergencyFundData } from "@/features/people/hooks/useEmergencyFundData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
+
 import { calculateTotalIncome } from "@/features/transactions/hooks/useFinanceCalculations";
 import { fetchJson } from "@/lib/apiClient";
 import { zodValidator } from "@/lib/form";
@@ -72,7 +73,6 @@ export function SettingsView() {
 
   // Form state
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);
-
   // Loading states
   const [isCreatingPerson, setIsCreatingPerson] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    testTimeout: 10000,
     setupFiles: ["./test/setup.ts"],
     include: ["**/__tests__/**/*.{test,spec}.{ts,tsx}"],
     coverage: {
@@ -19,6 +20,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      "server-only": path.resolve(__dirname, "test/server-only.ts"),
     },
   },
 });

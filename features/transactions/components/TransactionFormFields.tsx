@@ -316,7 +316,17 @@ export function TransactionFormFields({
                           type="checkbox"
                           id={inputId("recurring")}
                           checked={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.checked)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            field.handleChange(checked);
+                            if (checked) {
+                              const day = Number.parseInt(values.date.split("-")[2] ?? "1", 10);
+                              form.setFieldValue(
+                                "dayOfMonth",
+                                Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1,
+                              );
+                            }
+                          }}
                           className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
                         />
                         <label
@@ -450,6 +460,29 @@ export function TransactionFormFields({
                     )}
                   </form.Field>
                   <span className="text-xs text-muted">parcelas</span>
+                </div>
+              )}
+
+              {values.isRecurring && (
+                <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
+                  <span className="text-xs text-muted">Dia do mês</span>
+                  <form.Field name="dayOfMonth">
+                    {(field: FieldState<number>) => (
+                      <input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={field.state.value}
+                        onChange={(e) => {
+                          const day = Number.parseInt(e.target.value, 10);
+                          field.handleChange(
+                            Number.isFinite(day) ? Math.min(31, Math.max(1, day)) : 1,
+                          );
+                        }}
+                        className="noir-input w-16 text-sm py-1 text-center"
+                      />
+                    )}
+                  </form.Field>
                 </div>
               )}
             </div>

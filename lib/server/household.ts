@@ -16,10 +16,22 @@ export async function getPrimaryHouseholdId(): Promise<string> {
     throw new Error("Not authenticated");
   }
 
+  return getPrimaryHouseholdIdForUser(supabase, user.id);
+}
+
+/**
+ * Gets the primary household ID for a user by ID.
+ * Use this when you already have the user ID from auth to avoid redundant getUser() calls.
+ * @throws Error if no household found
+ */
+export async function getPrimaryHouseholdIdForUser(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<string> {
   const { data, error } = await supabase
     .from("household_members")
     .select("household_id")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .limit(1)
     .single();
 

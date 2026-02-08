@@ -37,6 +37,7 @@ export async function POST(request: Request) {
 
     const normalizedTransactions: Transaction[] = transactions.map((transaction) => ({
       ...transaction,
+      recurringTemplateId: transaction.recurringTemplateId ?? null,
       isCreditCard: transaction.isCreditCard ?? false,
       excludeFromSplit: transaction.excludeFromSplit ?? false,
       isForecast: transaction.isForecast ?? false,

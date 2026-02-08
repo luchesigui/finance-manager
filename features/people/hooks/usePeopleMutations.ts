@@ -26,6 +26,8 @@ export function usePeopleMutations() {
       queryClient.setQueryData<Person[]>(PEOPLE_QUERY_KEY, (existing = []) =>
         existing.map((person) => (person.id === updated.id ? updated : person)),
       );
+      // Invalidate transactions since income changes affect virtual income transactions
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
@@ -38,6 +40,8 @@ export function usePeopleMutations() {
         ...existing,
         newPerson,
       ]);
+      // Invalidate transactions since new person with income creates income template
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
@@ -51,6 +55,8 @@ export function usePeopleMutations() {
       queryClient.setQueryData<Person[]>(PEOPLE_QUERY_KEY, (existing = []) =>
         existing.filter((person) => person.id !== personId),
       );
+      // Invalidate transactions since deleting person affects income templates
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
@@ -78,6 +84,9 @@ export function usePeopleMutations() {
       const updatedMap = new Map(updatedPeople.map((person) => [person.id, person]));
       return existing.map((person) => updatedMap.get(person.id) ?? person);
     });
+
+    // Invalidate transactions since income changes affect virtual income transactions
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
   };
 
   const createPerson = (data: { name: string; income: number }) => createMutation.mutateAsync(data);

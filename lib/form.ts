@@ -49,15 +49,3 @@ export function zodValidator<T>(schema: z.ZodSchema<T>) {
     return result.error.issues[0]?.message;
   };
 }
-
-/**
- * Creates an async TanStack Form validator function from a Zod schema.
- * Use this for async field-level validation.
- */
-export function zodValidatorAsync<T>(schema: z.ZodSchema<T>) {
-  return async ({ value }: { value: T }): Promise<string | undefined> => {
-    const result = await schema.safeParseAsync(value);
-    if (result.success) return undefined;
-    return result.error.issues[0]?.message;
-  };
-}

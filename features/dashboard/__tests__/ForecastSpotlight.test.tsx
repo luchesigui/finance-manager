@@ -10,7 +10,7 @@ function makeTransaction(overrides: Partial<Transaction>): Transaction {
     amount: 2000,
     categoryId: "cat-1",
     paidBy: "p1",
-    isRecurring: false,
+    recurringTemplateId: null,
     isCreditCard: false,
     excludeFromSplit: false,
     isForecast: true,

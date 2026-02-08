@@ -24,7 +24,8 @@
     "db:diff": "dotenv -e .env.local -- npx supabase db diff --workdir infra",
     "db:new": "npx supabase migration new --workdir infra",
     "db:link": "dotenv -e .env.local -- sh -c 'npx supabase link --project-ref \"$SUPABASE_PROJECT_REF\" --workdir infra'",
-    "db:status": "npx supabase status --workdir infra"
+    "db:status": "npx supabase status --workdir infra",
+    "functions:deploy": "dotenv -e .env.local -- npx supabase functions deploy monthly-close --workdir infra"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
