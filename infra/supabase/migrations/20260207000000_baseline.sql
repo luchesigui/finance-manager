@@ -215,7 +215,7 @@ BEGIN
           cat_record.id,
           CASE cat_record.name
             WHEN 'Liberdade Financeira' THEN 30
-            WHEN 'Custos Fixos' THEN 25
+            WHEN 'Gastos Essenciais' THEN 25
             WHEN 'Conforto' THEN 15
             WHEN 'Planejamento' THEN 15
             WHEN 'Prazeres' THEN 10
@@ -444,7 +444,7 @@ CREATE POLICY "Users can delete simulations in their households" ON public.simul
 -- =============================================================================
 INSERT INTO public.categories (name) VALUES
   ('Liberdade Financeira'),
-  ('Custos Fixos'),
+  ('Gastos Essenciais'),
   ('Conforto'),
   ('Planejamento'),
   ('Prazeres'),
