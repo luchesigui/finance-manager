@@ -9,10 +9,12 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  Repeat,
   Search,
   Trash2,
   X,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
@@ -93,12 +95,22 @@ export function TransactionsView() {
     selectedMonthDate.getMonth() + 1,
   );
 
+  const searchParams = useSearchParams();
+  const initialCategoryId = searchParams.get("categoryId");
+
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
+  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(() => {
+    if (initialCategoryId) {
+      return new Set([initialCategoryId]);
+    }
+    return new Set();
+  });
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  // ... existing state
   const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
+  const [recurringFilter, setRecurringFilter] = useState<"all" | "yes" | "no">("all");
   const [outlierFilter, setOutlierFilter] = useState<"all" | "yes" | "no">("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -297,6 +309,13 @@ export function TransactionsView() {
       const isOutlierTransaction = isOutlier(transaction);
       if (outlierFilter === "yes" && !isOutlierTransaction) return false;
       if (outlierFilter === "no" && isOutlierTransaction) return false;
+    }
+
+    // Recurring filter
+    if (recurringFilter !== "all") {
+      const isRecurring = transaction.recurringTemplateId != null;
+      if (recurringFilter === "yes" && !isRecurring) return false;
+      if (recurringFilter === "no" && isRecurring) return false;
     }
 
     return true;
@@ -639,6 +658,7 @@ Retorne APENAS o JSON, sem markdown.
                 paidByFilter !== "all" ||
                 categoryFilter.size > 0 ||
                 creditCardFilter !== "all" ||
+                recurringFilter !== "all" ||
                 outlierFilter !== "all") && (
                 <button
                   type="button"
@@ -647,6 +667,7 @@ Retorne APENAS o JSON, sem markdown.
                     setPaidByFilter("all");
                     setCategoryFilter(new Set());
                     setCreditCardFilter("all");
+                    setRecurringFilter("all");
                     setOutlierFilter("all");
                   }}
                   className="text-xs text-accent-primary hover:text-blue-400 font-medium flex items-center gap-1"
@@ -789,6 +810,25 @@ Retorne APENAS o JSON, sem markdown.
                   <option value="all">Todos</option>
                   <option value="yes">Cartão</option>
                   <option value="no">Não cartão</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="recurring-filter"
+                  className="text-xs font-medium text-body flex items-center gap-1"
+                >
+                  <Repeat size={12} />
+                  Recorrente
+                </label>
+                <select
+                  id="recurring-filter"
+                  className="noir-select text-sm py-1"
+                  value={recurringFilter}
+                  onChange={(e) => setRecurringFilter(e.target.value as "all" | "yes" | "no")}
+                >
+                  <option value="all">Todos</option>
+                  <option value="yes">Sim</option>
+                  <option value="no">Não</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">

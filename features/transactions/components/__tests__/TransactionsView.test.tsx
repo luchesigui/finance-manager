@@ -16,6 +16,18 @@ const mockCategories: Category[] = [
   { id: "c2", name: "Transporte", targetPercent: 20 },
 ];
 
+// Mock Next.js navigation
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => ({
+    get: vi.fn().mockReturnValue(null),
+  }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/lancamentos",
+}));
 const mockTransactions: Transaction[] = [
   {
     id: 1,
@@ -417,6 +429,45 @@ describe("TransactionsView", () => {
       await waitFor(() => {
         expect(selectors.getTransactionText("Uber")).toBeInTheDocument();
         expect(selectors.queryTransactionText("Supermercado")).not.toBeInTheDocument();
+      });
+    });
+
+    it("filtering by Recurring shows only recurring transactions", async () => {
+      const user = userEvent.setup();
+      server.use(
+        ...setupHandlers([
+          { ...mockTransactions[0], description: "NonRecurring", recurringTemplateId: null },
+          { ...mockTransactions[1], description: "Recurring", recurringTemplateId: 100 },
+        ]),
+      );
+
+      render(<TransactionsView />);
+      await selectors.findHistorico();
+
+      await user.click(selectors.toolbar.getFilterButton());
+
+      // Use getAllByLabelText and pick the select element, or use a more specific query
+      // The filter label is "Recorrente" but associated with a select.
+      // The form label is also "Recorrente" but associated with a checkbox.
+
+      // Option 1: Selector by ID (easiest given we have IDs)
+      const recurringSelect = document.querySelector("#recurring-filter");
+      expect(recurringSelect).toBeInTheDocument();
+      if (recurringSelect) {
+        await user.selectOptions(recurringSelect as HTMLSelectElement, "yes");
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText("Recurring")).toBeInTheDocument();
+        expect(screen.queryByText("NonRecurring")).not.toBeInTheDocument();
+      });
+
+      if (recurringSelect) {
+        await user.selectOptions(recurringSelect as HTMLSelectElement, "no");
+      }
+      await waitFor(() => {
+        expect(screen.queryByText("Recurring")).not.toBeInTheDocument();
+        expect(screen.getByText("NonRecurring")).toBeInTheDocument();
       });
     });
   });
