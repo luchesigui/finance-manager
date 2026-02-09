@@ -101,7 +101,7 @@ BEGIN
   SELECT hc.id INTO v_hc_custos
   FROM public.household_categories hc
   JOIN public.categories c ON c.id = hc.category_id
-  WHERE hc.household_id = v_household_id AND c.name = 'Custos Fixos';
+  WHERE hc.household_id = v_household_id AND c.name = 'Gastos Essenciais';
 
   SELECT hc.id INTO v_hc_conforto
   FROM public.household_categories hc
