@@ -86,19 +86,24 @@ BEGIN
   v_date_1mo := (date_trunc('month', CURRENT_DATE) - interval '1 month')::date + 10;
   v_date_cur := (date_trunc('month', CURRENT_DATE))::date + 5;
 
-  -- Scenario 1: "Testing" – recurring created two months ago (2mo, 1mo, current).
-  -- After Phase 1: template + Jan/Feb linked; March row deleted.
-  INSERT INTO public.transactions (
-    description, amount, category_id, paid_by, date, household_id, type, is_recurring
-  ) VALUES
-    ('Testing', 100, v_hc_conforto, v_person_id, v_date_2mo, v_household_id, 'expense', true),
-    ('Testing', 100, v_hc_conforto, v_person_id, v_date_1mo, v_household_id, 'expense', true),
-    ('Testing', 100, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='transactions' AND column_name='is_recurring'
+  ) THEN
+    -- Scenario 1: "Testing" – recurring created two months ago (2mo, 1mo, current).
+    -- After Phase 1: template + Jan/Feb linked; March row deleted.
+    INSERT INTO public.transactions (
+      description, amount, category_id, paid_by, date, household_id, type, is_recurring
+    ) VALUES
+      ('Testing', 100, v_hc_conforto, v_person_id, v_date_2mo, v_household_id, 'expense', true),
+      ('Testing', 100, v_hc_conforto, v_person_id, v_date_1mo, v_household_id, 'expense', true),
+      ('Testing', 100, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
 
-  -- Scenario 2: "test 2" – recurring only in current month.
-  -- After Phase 1: only template remains; transaction deleted.
-  INSERT INTO public.transactions (
-    description, amount, category_id, paid_by, date, household_id, type, is_recurring
-  ) VALUES
-    ('test 2', 50, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
+    -- Scenario 2: "test 2" – recurring only in current month.
+    -- After Phase 1: only template remains; transaction deleted.
+    INSERT INTO public.transactions (
+      description, amount, category_id, paid_by, date, household_id, type, is_recurring
+    ) VALUES
+      ('test 2', 50, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
+  END IF;
 END $$;
