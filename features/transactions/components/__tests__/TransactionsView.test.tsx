@@ -16,6 +16,18 @@ const mockCategories: Category[] = [
   { id: "c2", name: "Transporte", targetPercent: 20 },
 ];
 
+// Mock Next.js navigation
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => ({
+    get: vi.fn().mockReturnValue(null),
+  }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/lancamentos",
+}));
 const mockTransactions: Transaction[] = [
   {
     id: 1,
