@@ -13,6 +13,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
@@ -93,11 +94,20 @@ export function TransactionsView() {
     selectedMonthDate.getMonth() + 1,
   );
 
+  const searchParams = useSearchParams();
+  const initialCategoryId = searchParams.get("categoryId");
+
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
+  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(() => {
+    if (initialCategoryId) {
+      return new Set([initialCategoryId]);
+    }
+    return new Set();
+  });
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  // ... existing state
   const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
   const [outlierFilter, setOutlierFilter] = useState<"all" | "yes" | "no">("all");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
