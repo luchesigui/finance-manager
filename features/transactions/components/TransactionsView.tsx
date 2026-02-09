@@ -274,6 +274,21 @@ export function TransactionsView() {
     }
   }, [categoryFilter, categories]);
 
+  // Sync category filter with URL parameter
+  useEffect(() => {
+    const categoryIdFromUrl = searchParams.get("categoryId");
+    if (categoryIdFromUrl) {
+      // Only set if category exists in categories list
+      const categoryExists = categories.some((cat) => cat.id === categoryIdFromUrl);
+      if (categoryExists) {
+        setCategoryFilter(new Set([categoryIdFromUrl]));
+      }
+    } else {
+      // Clear filter if URL parameter is removed
+      setCategoryFilter(new Set());
+    }
+  }, [searchParams, categories]);
+
   const matchesFilters = (transaction: Transaction) => {
     if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
     if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
