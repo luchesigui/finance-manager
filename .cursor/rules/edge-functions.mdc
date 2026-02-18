@@ -1,0 +1,45 @@
+---
+description: How to run and deploy Edge Functions (e.g. monthly-close); local serve and deploy.
+globs: ["infra/supabase/functions/**"]
+alwaysApply: false
+---
+
+# Edge Functions
+
+Use these when working on Supabase Edge Functions (e.g. monthly-close). See [infra/supabase/functions/monthly-close/README.md](/infra/supabase/functions/monthly-close/README.md) for behavior and options.
+
+## Local serve
+
+From repo root:
+
+```bash
+supabase functions serve monthly-close --workdir infra
+```
+
+Call with **`Authorization: Bearer $ADMIN_API_KEY`**. Optional body override: `{ "year", "month", "householdId", "source" }`.
+
+Example:
+
+```bash
+curl -X POST \
+  -H "Authorization: Bearer $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"year":2026,"month":2}' \
+  http://127.0.0.1:54321/functions/v1/monthly-close
+```
+
+## Deploy
+
+- **`npm run functions:deploy`** — Deploys `infra/supabase/functions/monthly-close` to the linked project.
+
+Requires linked project (`npm run db:link`) and Supabase auth (`SUPABASE_ACCESS_TOKEN` in `.env.local` or `npx supabase login`).
+
+## After deploy
+
+Set Edge Function secrets in Supabase Dashboard (Project Settings → Edge Functions → monthly-close → Secrets):
+
+- `ADMIN_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+See [infra/supabase/functions/monthly-close/README.md](/infra/supabase/functions/monthly-close/README.md) for details.

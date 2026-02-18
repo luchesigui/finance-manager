@@ -1,0 +1,46 @@
+---
+description: How to create and apply migrations, and use local vs remote Supabase (db:start, db:reset, db:push).
+alwaysApply: false
+---
+# Database and migrations
+
+Use these commands when working on the database or migrations. See [infra/README.md](/infra/README.md) for full setup and env vars.
+
+## Local stack
+
+- **`npm run db:start`** — Start local Supabase (Docker)
+- **`npm run db:stop`** — Stop local stack
+
+Migrations in `infra/supabase/migrations/` and seed in `infra/supabase/seed.sql` run automatically on **first start** and on **every reset**. They are **not** auto-applied when you add new migration files.
+
+## After adding or editing a migration (local)
+
+Run **`npm run db:reset`** to reapply all migrations and run the seed. **This wipes all local data.**
+
+## Creating a new migration
+
+1. **Create** the migration file:
+   ```bash
+   npm run db:new -- <name>
+   ```
+   Example: `npm run db:new -- add_user_preferences` creates `infra/supabase/migrations/YYYYMMDDHHMMSS_add_user_preferences.sql`.
+
+2. **Edit** the new `.sql` file with your schema changes.
+
+3. **Test locally:** run `npm run db:reset` so the new migration is applied (and seed runs again).
+
+4. **Apply to remote** when ready (see below).
+
+## Remote (Supabase Cloud)
+
+- **Link once:** `npm run db:link` (requires in `.env.local`: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`).
+- **Preview:** `npm run db:push:dry`
+- **Apply migrations:** `npm run db:push`
+
+See [infra/README.md](/infra/README.md) for first-time remote setup and CI (migrations run on push to `main`).
+
+## Reference
+
+- **Config (local):** `infra/supabase/config.toml`
+- **Seed (local):** `infra/supabase/seed.sql`
+- **Other commands:** `npm run db:status` (local URLs/keys), `npm run db:diff` (requires link)
