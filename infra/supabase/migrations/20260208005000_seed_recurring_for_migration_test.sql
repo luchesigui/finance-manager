@@ -1,6 +1,6 @@
 -- Seed recurring transactions so Phase 1 migration can be tested:
--- 1) "Streaming mensal": created two months ago -> template + past months linked, current-month row deleted
--- 2) "Academia": only in current month -> only template remains, transaction deleted
+-- 1) "Testing": created two months ago -> template + past months linked, current-month row deleted
+-- 2) "test 2": only in current month -> only template remains, transaction deleted
 -- Requires dev user and household to exist (created here so trigger runs before Phase 1).
 
 INSERT INTO auth.users (
@@ -90,20 +90,20 @@ BEGIN
     SELECT 1 FROM information_schema.columns 
     WHERE table_name='transactions' AND column_name='is_recurring'
   ) THEN
-    -- Scenario 1: "Streaming mensal" – recurring created two months ago (2mo, 1mo, current).
+    -- Scenario 1: "Testing" – recurring created two months ago (2mo, 1mo, current).
     -- After Phase 1: template + Jan/Feb linked; March row deleted.
     INSERT INTO public.transactions (
       description, amount, category_id, paid_by, date, household_id, type, is_recurring
     ) VALUES
-      ('Streaming mensal', 100, v_hc_conforto, v_person_id, v_date_2mo, v_household_id, 'expense', true),
-      ('Streaming mensal', 100, v_hc_conforto, v_person_id, v_date_1mo, v_household_id, 'expense', true),
-      ('Streaming mensal', 100, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
+      ('Testing', 100, v_hc_conforto, v_person_id, v_date_2mo, v_household_id, 'expense', true),
+      ('Testing', 100, v_hc_conforto, v_person_id, v_date_1mo, v_household_id, 'expense', true),
+      ('Testing', 100, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
 
-    -- Scenario 2: "Academia" – recurring only in current month.
+    -- Scenario 2: "test 2" – recurring only in current month.
     -- After Phase 1: only template remains; transaction deleted.
     INSERT INTO public.transactions (
       description, amount, category_id, paid_by, date, household_id, type, is_recurring
     ) VALUES
-      ('Academia', 50, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
+      ('test 2', 50, v_hc_conforto, v_person_id, v_date_cur, v_household_id, 'expense', true);
   END IF;
 END $$;
