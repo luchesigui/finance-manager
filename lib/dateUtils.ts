@@ -45,16 +45,16 @@ export function addMonthsClamped(date: Date, monthsToAdd: number): Date {
 
 /**
  * Calculates the accounting year and month for a transaction.
- * Credit card transactions are accounted for in the following month.
+ * Transactions with isNextBilling are accounted for in the following month.
  * @param dateString - Transaction date in YYYY-MM-DD format
- * @param isCreditCard - Whether the transaction is a credit card expense
+ * @param isNextBilling - Whether the transaction counts in the next month's accounting
  */
 export function getAccountingYearMonth(
   dateString: string,
-  isCreditCard: boolean,
+  isNextBilling: boolean,
 ): { year: number; month: number } {
   const base = dayjs(dateString);
-  const accountingDate = isCreditCard ? base.add(1, "month") : base;
+  const accountingDate = isNextBilling ? base.add(1, "month") : base;
   return {
     year: accountingDate.year(),
     month: accountingDate.month() + 1,
@@ -66,10 +66,10 @@ export function getAccountingYearMonth(
  */
 export function getAccountingYearMonthUtc(
   dateString: string,
-  isCreditCard: boolean,
+  isNextBilling: boolean,
 ): { year: number; month: number } {
   const base = dayjs.utc(dateString);
-  const accountingDate = isCreditCard ? base.add(1, "month") : base;
+  const accountingDate = isNextBilling ? base.add(1, "month") : base;
   return {
     year: accountingDate.year(),
     month: accountingDate.month() + 1,

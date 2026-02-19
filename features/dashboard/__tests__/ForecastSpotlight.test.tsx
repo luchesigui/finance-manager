@@ -12,6 +12,7 @@ function makeTransaction(overrides: Partial<Transaction>): Transaction {
     paidBy: "p1",
     recurringTemplateId: null,
     isCreditCard: false,
+    isNextBilling: false,
     excludeFromSplit: false,
     isForecast: true,
     date: "2025-02-15",

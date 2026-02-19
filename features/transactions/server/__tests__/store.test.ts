@@ -119,6 +119,7 @@ describe("transactions store monthly query", () => {
             paid_by: "p1",
             recurring_template_id: null,
             is_credit_card: true,
+            is_next_billing: true,
             exclude_from_split: false,
             is_forecast: false,
             date: "2026-02-20",

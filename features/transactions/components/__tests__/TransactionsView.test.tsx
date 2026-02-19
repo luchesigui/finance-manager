@@ -1,10 +1,13 @@
 import { useCurrentMonthStore } from "@/lib/stores/currentMonthStore";
 import type { Category, Person, Transaction } from "@/lib/types";
 import { server } from "@/test/server";
-import { render, screen, userEvent, waitFor } from "@/test/test-utils";
+import { render, screen, userEvent, waitFor, within } from "@/test/test-utils";
 import { http, HttpResponse } from "msw";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { TransactionsView } from "../TransactionsView";
+
+/** Instant typing/clicks in tests; avoids delay between keystrokes. */
+const user = userEvent.setup({ delay: null });
 
 const mockPeople: Person[] = [
   { id: "p1", name: "Alice", income: 10000 },
@@ -16,6 +19,23 @@ const mockCategories: Category[] = [
   { id: "c2", name: "Transporte", targetPercent: 20 },
 ];
 
+// Mock Next.js navigation
+const mockSearchParams = new URLSearchParams();
+
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => mockSearchParams,
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/lancamentos",
+}));
+
+// Mock Gemini so tests never hit the network
+vi.mock("@/lib/geminiClient", () => ({
+  generateGeminiContent: vi.fn().mockResolvedValue(null),
+}));
 const mockTransactions: Transaction[] = [
   {
     id: 1,
@@ -25,6 +45,7 @@ const mockTransactions: Transaction[] = [
     paidBy: "p1",
     recurringTemplateId: null,
     isCreditCard: false,
+    isNextBilling: false,
     excludeFromSplit: false,
     isForecast: false,
     date: "2025-01-15",
@@ -39,6 +60,7 @@ const mockTransactions: Transaction[] = [
     paidBy: "p1",
     recurringTemplateId: null,
     isCreditCard: false,
+    isNextBilling: false,
     excludeFromSplit: false,
     isForecast: true,
     date: "2025-01-20",
@@ -66,21 +88,21 @@ function setupHandlers(transactions: Transaction[] = mockTransactions) {
   ];
 }
 
-beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 const selectors = {
-  findHistorico: () => screen.findByText(/Histórico de/i),
+  findHistorico: () => screen.findByText(/Total de/i),
   findAllHeadingsLevel2: () => screen.findAllByRole("heading", { level: 2 }),
   getAllHeadingsLevel2: () => screen.getAllByRole("heading", { level: 2 }),
   findFormTitle: () => screen.findByText(/Nova Despesa Manual|Novo Lançamento de Renda/i),
   getAdicionarLancamentoButton: () => screen.getByRole("button", { name: /Adicionar Lançamento/i }),
-  findDoisItens: () => screen.findByText(/2 itens/),
+  findDoisItens: () => screen.findByText(/Total de 2 lançamentos/),
   findFilterLabel: () => screen.findByLabelText(/Filtrar lançamentos/i),
   findSearchLabel: () => screen.findByLabelText(/Buscar lançamentos/i),
   getSelecionarButton: () => screen.getByRole("button", { name: /Selecionar/i }),
-  findLancamentosCount: () => screen.findByText(/2 lançamentos/),
+  findLancamentosCount: () => screen.findByText(/Total de 2 lançamentos/),
   getAllButtons: () => screen.getAllByRole("button"),
   findSupermercado: () => screen.findByText("Supermercado"),
   findUber: () => screen.findByText("Uber"),
@@ -96,7 +118,7 @@ const selectors = {
       document.querySelector('input[placeholder*="R$"]') ||
       document.querySelector('input[id*="amount"]'),
   },
-  getRendaTab: () => screen.getByText("Renda"),
+  getRendaTab: () => screen.getAllByRole("button", { name: "Renda" })[0],
   getAdicionarRendaButton: () => screen.getByRole("button", { name: /Adicionar Renda/i }),
   getEditButton: (desc: string) =>
     screen.getByLabelText(new RegExp(`Editar lançamento: ${desc}`, "i")),
@@ -109,13 +131,21 @@ const selectors = {
     screen.getByLabelText(new RegExp(`Excluir lançamento: ${desc}`, "i")),
   toolbar: {
     getFilterButton: () => screen.getByLabelText(/Filtrar lançamentos/i),
-    getTipoLabel: () => screen.getByLabelText(/^Tipo$/i),
-    getAtribuidoLabel: () => screen.getByLabelText(/Atribuído à/i),
-    getTypeSelect: () => screen.getByLabelText(/^Tipo$/i) || document.querySelector("#type-filter"),
-    getTypeFilterValue: () => (document.querySelector("#type-filter") as HTMLSelectElement)?.value,
-    getClearFilters: () => screen.queryByText(/Limpar filtros/i),
+    getFilterBar: () => {
+      const btn = screen.getByLabelText(/Filtrar lançamentos/i);
+      return (btn.closest(".noir-card") ?? document.body) as HTMLElement;
+    },
+    getTipoLabel: () =>
+      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: "Despesa" }),
+    getAtribuidoLabel: () =>
+      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: /Atribuído à/i }),
+    getTypeSelect: () =>
+      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: "Despesa" }),
+    getTypeFilterValue: () =>
+      (document.querySelector("#type-filter") as HTMLInputElement)?.value ?? "",
+    getClearFilters: () => screen.queryByRole("button", { name: /^Limpar$/i }),
     getSearchButton: () => screen.getByLabelText(/Buscar lançamentos/i),
-    getSearchInput: () => screen.getByPlaceholderText(/Buscar por descrição/i),
+    getSearchInput: () => screen.getByPlaceholderText(/Buscar por descrição, categoria, pessoa/i),
   },
   getTransactionText: (text: string) => screen.getByText(text),
   queryTransactionText: (text: string) => screen.queryByText(text),
@@ -130,7 +160,11 @@ const selectors = {
   getBulkEditDialog: () => screen.getByRole("dialog"),
 };
 
-describe("TransactionsView", () => {
+function renderView() {
+  return render(<TransactionsView />);
+}
+
+describe("TransactionsView", { timeout: 5000 }, () => {
   beforeEach(() => {
     useCurrentMonthStore.setState({
       selectedMonthDate: new Date(2025, 0, 1),
@@ -140,31 +174,31 @@ describe("TransactionsView", () => {
 
   describe("Page structure", () => {
     it("renders without crashing when API returns minimal data", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findHistorico();
     });
 
     it("renders MonthNavigator", async () => {
-      render(<TransactionsView />);
+      renderView();
       const headings = await selectors.findAllHeadingsLevel2();
       expect(headings.length).toBeGreaterThanOrEqual(1);
       expect(headings[0]).toHaveTextContent(/janeiro|Janeiro/i);
     });
 
     it("renders Nova Despesa Manual form with TransactionFormFields", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findFormTitle();
       expect(selectors.getAdicionarLancamentoButton()).toBeInTheDocument();
     });
 
     it("renders Histórico section with item count badge", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findHistorico();
       await selectors.findDoisItens();
     });
 
     it("renders Filter, Search and Selecionar buttons in toolbar", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findFilterLabel();
       await selectors.findSearchLabel();
       await selectors.getSelecionarButton();
@@ -173,7 +207,7 @@ describe("TransactionsView", () => {
 
   describe("Month navigator", () => {
     it("displays correct month label and N lançamentos count", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findLancamentosCount();
       const headings = selectors.getAllHeadingsLevel2();
       expect(headings.some((h) => /janeiro.*2025|Janeiro.*2025/i.test(h.textContent ?? ""))).toBe(
@@ -182,8 +216,7 @@ describe("TransactionsView", () => {
     });
 
     it("clicking prev updates displayed month", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findLancamentosCount();
       const buttons = selectors.getAllButtons();
       const prevButton = buttons[0];
@@ -199,7 +232,7 @@ describe("TransactionsView", () => {
 
   describe("Transaction list", () => {
     it("displays transactions with description, amount, category, date", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await selectors.findUber();
       expect(selectors.getAmount500().length).toBeGreaterThan(0);
@@ -207,21 +240,20 @@ describe("TransactionsView", () => {
     });
 
     it("shows Marcar como acontecido button for forecast transactions", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findUber();
       expect(selectors.getMarcarAcontecidoButton("Uber")).toBeInTheDocument();
     });
 
     it("empty state shows Nenhum lançamento neste mês when no transactions", async () => {
       server.use(...setupHandlers([]));
-      render(<TransactionsView />);
+      renderView();
       await selectors.findNenhumLancamento();
     });
   });
 
   describe("Add transaction", () => {
     it("submitting valid form calls POST /api/transactions with correct body", async () => {
-      const user = userEvent.setup();
       let capturedBody: unknown = null;
       server.use(
         ...setupHandlers(),
@@ -239,7 +271,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
 
       const descInput = selectors.form.getDescricaoInput();
@@ -256,8 +288,7 @@ describe("TransactionsView", () => {
     });
 
     it("submit button reflects type Adicionar Lançamento vs Adicionar Renda", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       expect(selectors.getAdicionarLancamentoButton()).toBeInTheDocument();
       await user.click(selectors.getRendaTab());
@@ -269,8 +300,7 @@ describe("TransactionsView", () => {
 
   describe("Edit transaction modal", () => {
     it("clicking Pencil opens EditTransactionModal with pre-filled values", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       const editButton = selectors.getEditButton("Supermercado");
       await user.click(editButton);
@@ -281,7 +311,6 @@ describe("TransactionsView", () => {
     });
 
     it("submitting edit calls PATCH /api/transactions/:id and closes modal", async () => {
-      const user = userEvent.setup();
       let patchUrl: string | null = null;
       let patchBody: unknown = null;
       server.use(
@@ -298,7 +327,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       const editButton = selectors.getEditButton("Supermercado");
       await user.click(editButton);
@@ -326,7 +355,6 @@ describe("TransactionsView", () => {
 
   describe("Mark as happened (joia)", () => {
     it("clicking CheckCircle2 on forecast calls PATCH /api/transactions/:id with isForecast false", async () => {
-      const user = userEvent.setup();
       let patchBody: unknown = null;
       server.use(
         ...setupHandlers(),
@@ -339,7 +367,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findUber();
       const markButton = selectors.getMarcarAcontecidoButton("Uber");
       await user.click(markButton);
@@ -358,7 +386,6 @@ describe("TransactionsView", () => {
 
   describe("Delete transaction", () => {
     it("clicking Trash2 on non-recurring triggers delete and row is removed", async () => {
-      const user = userEvent.setup();
       let deleteCalled = false;
       server.use(
         ...setupHandlers(),
@@ -368,7 +395,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       const deleteButton = selectors.getDeleteButton("Supermercado");
       await user.click(deleteButton);
@@ -383,33 +410,32 @@ describe("TransactionsView", () => {
 
   describe("Filters and search", () => {
     it("opening Filter panel shows Tipo, Atribuído à, Categoria, Cartão, Fora do padrão", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
+      expect(selectors.toolbar.getTipoLabel()).toBeInTheDocument();
+      expect(selectors.toolbar.getAtribuidoLabel()).toBeInTheDocument();
       await user.click(selectors.toolbar.getFilterButton());
       await waitFor(() => {
-        expect(selectors.toolbar.getTipoLabel()).toBeInTheDocument();
-        expect(selectors.toolbar.getAtribuidoLabel()).toBeInTheDocument();
+        expect(screen.getByText(/Filtros Avançados/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/^Cartão$/i)).toBeInTheDocument();
+        expect(screen.getByText(/Fora do padrão/i)).toBeInTheDocument();
       });
     });
 
     it("Limpar filtros resets all filters", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
+      await user.click(selectors.toolbar.getTypeSelect());
+      expect(selectors.toolbar.getTypeFilterValue()).toBe("expense");
       await user.click(selectors.toolbar.getFilterButton());
-      const typeSelect = selectors.toolbar.getTypeSelect();
-      if (typeSelect) await user.selectOptions(typeSelect as HTMLSelectElement, "expense");
       const clearBtn = selectors.toolbar.getClearFilters();
-      if (clearBtn) {
-        await user.click(clearBtn);
-        expect(selectors.toolbar.getTypeFilterValue()).toBe("all");
-      }
+      expect(clearBtn).toBeInTheDocument();
+      if (clearBtn) await user.click(clearBtn);
+      expect(selectors.toolbar.getTypeFilterValue()).toBe("all");
     });
 
     it("search input filters list", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.toolbar.getSearchButton());
       const searchInput = selectors.toolbar.getSearchInput();
@@ -419,12 +445,39 @@ describe("TransactionsView", () => {
         expect(selectors.queryTransactionText("Supermercado")).not.toBeInTheDocument();
       });
     });
+
+    it("filtering by Recurring shows only recurring transactions", async () => {
+      server.use(
+        ...setupHandlers([
+          { ...mockTransactions[0], description: "NonRecurring", recurringTemplateId: null },
+          { ...mockTransactions[1], description: "Recurring", recurringTemplateId: 100 },
+        ]),
+      );
+
+      renderView();
+      await selectors.findHistorico();
+
+      await user.click(selectors.toolbar.getFilterButton());
+      const recurringSwitch = screen.getByRole("switch", { name: /Recorrente/i });
+      expect(recurringSwitch).toBeInTheDocument();
+      await user.click(recurringSwitch);
+
+      await waitFor(() => {
+        expect(screen.getByText("Recurring")).toBeInTheDocument();
+        expect(screen.queryByText("NonRecurring")).not.toBeInTheDocument();
+      });
+
+      await user.click(recurringSwitch);
+      await waitFor(() => {
+        expect(screen.getByText("Recurring")).toBeInTheDocument();
+        expect(screen.getByText("NonRecurring")).toBeInTheDocument();
+      });
+    });
   });
 
   describe("Selection mode and bulk actions", () => {
     it("clicking Selecionar enters selection mode with checkboxes", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await waitFor(() => {
@@ -434,8 +487,7 @@ describe("TransactionsView", () => {
     });
 
     it("Selecionar Todos selects non-recurring items", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await user.click(selectors.selection.getSelecionarTodos());
@@ -445,8 +497,7 @@ describe("TransactionsView", () => {
     });
 
     it("Editar em Massa opens BulkEditModal", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await user.click(selectors.selection.getSelecionarTodos());
@@ -459,7 +510,6 @@ describe("TransactionsView", () => {
     });
 
     it("Excluir triggers confirm and DELETE bulk", async () => {
-      const user = userEvent.setup();
       const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
       let bulkDeleteCalled = false;
       server.use(
@@ -470,7 +520,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await user.click(selectors.selection.getSelecionarTodos());

@@ -7,13 +7,15 @@
     "indentWidth": 2,
     "lineWidth": 100
   },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true
-    }
-  },
+  "linter": { "enabled": true, "rules": { "recommended": true } },
   "files": {
-    "ignore": ["**/node_modules/**", "**/.next/**", "**/out/**", "**/coverage/**", "core"]
+    "ignore": [
+      "**/node_modules/**",
+      "**/.next/**",
+      "**/out/**",
+      "**/coverage/**",
+      "**/dist/**",
+      "core"
+    ]
   }
 }

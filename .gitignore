@@ -8,6 +8,8 @@ coverage
 core
 *.log
 *.tsbuildinfo
+.nx
+dist
 
 # Supabase local
 infra/supabase/.branches
