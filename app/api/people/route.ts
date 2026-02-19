@@ -111,10 +111,13 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: errorMessage }, { status: 400 });
       }
 
-      // PostgreSQL foreign key constraint error
+      // PostgreSQL foreign key constraint error (e.g. transactions or recurring_templates)
       if (errorCode === "23503") {
         return NextResponse.json(
-          { error: "Cannot delete person because they are referenced by transactions." },
+          {
+            error:
+              "Cannot delete person because they are referenced by transactions or recurring templates.",
+          },
           { status: 400 },
         );
       }
