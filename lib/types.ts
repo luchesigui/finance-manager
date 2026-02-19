@@ -28,8 +28,10 @@ export type Transaction = {
   categoryId: string | null;
   paidBy: string;
   recurringTemplateId: number | null;
-  /** If true, expense is accounted for in the next month (credit card billing cycle). */
+  /** Marks this as a credit card transaction. */
   isCreditCard: boolean;
+  /** If true, transaction is accounted for in the next month (next billing cycle). */
+  isNextBilling: boolean;
   /** If true, transaction should not be considered in fair split calculation. */
   excludeFromSplit: boolean;
   /** If true, transaction is a forecast entry. */
@@ -59,6 +61,7 @@ export type TransactionPatch = Partial<
     | "categoryId"
     | "paidBy"
     | "isCreditCard"
+    | "isNextBilling"
     | "excludeFromSplit"
     | "isForecast"
     | "date"
@@ -74,6 +77,7 @@ export type BulkTransactionPatch = Partial<
     | "categoryId"
     | "paidBy"
     | "isCreditCard"
+    | "isNextBilling"
     | "excludeFromSplit"
     | "isForecast"
     | "type"
@@ -100,8 +104,10 @@ export type NewTransactionFormState = {
   paidBy: string;
   isRecurring: boolean;
   dayOfMonth: number;
-  /** If true, expense is accounted for in the next month (credit card billing). */
+  /** Marks this as a credit card transaction. */
   isCreditCard: boolean;
+  /** If true, transaction is accounted for in the next month (next billing cycle). */
+  isNextBilling: boolean;
   /** 'month': date set to 1st of selected month, 'specific': user picks exact date */
   dateSelectionMode: DateSelectionMode;
   /** Selected month in YYYY-MM format (used when dateSelectionMode is 'month') */
@@ -148,6 +154,7 @@ export type TransactionRow = {
   paid_by: string;
   recurring_template_id?: number | string | null;
   is_credit_card?: boolean;
+  is_next_billing?: boolean;
   exclude_from_split?: boolean;
   is_forecast?: boolean;
   date: string;
@@ -166,6 +173,7 @@ export type RecurringTemplate = {
   type: TransactionType;
   isIncrement: boolean;
   isCreditCard: boolean;
+  isNextBilling: boolean;
   excludeFromSplit: boolean;
   dayOfMonth: number;
   isActive: boolean;
@@ -184,6 +192,7 @@ export type RecurringTemplatePatch = Partial<
     | "type"
     | "isIncrement"
     | "isCreditCard"
+    | "isNextBilling"
     | "excludeFromSplit"
     | "dayOfMonth"
     | "isActive"
@@ -200,6 +209,7 @@ export type RecurringTemplateRow = {
   type?: TransactionType;
   is_increment?: boolean;
   is_credit_card?: boolean;
+  is_next_billing?: boolean;
   exclude_from_split?: boolean;
   day_of_month: number | string;
   is_active?: boolean;

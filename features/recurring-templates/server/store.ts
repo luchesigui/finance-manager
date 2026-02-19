@@ -74,6 +74,7 @@ export async function createRecurringTemplate(
     type: input.type,
     is_increment: input.isIncrement,
     is_credit_card: input.type === "income" ? false : input.isCreditCard,
+    is_next_billing: input.type === "income" ? false : input.isNextBilling,
     exclude_from_split: input.type === "income" ? false : input.excludeFromSplit,
     day_of_month: input.dayOfMonth,
     is_active: input.isActive,
@@ -99,6 +100,7 @@ function templatePatchToTransactionPatch(patch: RecurringTemplatePatch): Record<
   if (patch.type !== undefined) txPatch.type = patch.type;
   if (patch.isIncrement !== undefined) txPatch.is_increment = patch.isIncrement;
   if (patch.isCreditCard !== undefined) txPatch.is_credit_card = patch.isCreditCard;
+  if (patch.isNextBilling !== undefined) txPatch.is_next_billing = patch.isNextBilling;
   if (patch.excludeFromSplit !== undefined) txPatch.exclude_from_split = patch.excludeFromSplit;
   return txPatch;
 }
@@ -126,13 +128,13 @@ export async function updateRecurringTemplate(
   if (scope === "full_history" && Object.keys(templatePatchToTransactionPatch(patch)).length > 0) {
     const { data: rows, error: fetchError } = await supabase
       .from("transactions")
-      .select("id, date, is_credit_card")
+      .select("id, date, is_next_billing")
       .eq("recurring_template_id", id)
       .eq("household_id", householdId);
 
     if (!fetchError && rows && rows.length > 0) {
       const periods = rows.map((r) => {
-        const { year, month } = getAccountingYearMonthUtc(r.date, r.is_credit_card ?? false);
+        const { year, month } = getAccountingYearMonthUtc(r.date, r.is_next_billing ?? false);
         return { year, month };
       });
       const uniquePeriods = Array.from(
@@ -142,7 +144,7 @@ export async function updateRecurringTemplate(
 
       const toUpdate: number[] = [];
       for (const r of rows) {
-        const { year, month } = getAccountingYearMonthUtc(r.date, r.is_credit_card ?? false);
+        const { year, month } = getAccountingYearMonthUtc(r.date, r.is_next_billing ?? false);
         if (!closedSet.has(`${year},${month}`)) {
           toUpdate.push(Number(r.id));
         }
@@ -189,14 +191,14 @@ export async function deleteRecurringTemplate(
 
   const { data: rows, error: fetchError } = await supabase
     .from("transactions")
-    .select("id, date, is_credit_card")
+    .select("id, date, is_next_billing")
     .eq("recurring_template_id", id)
     .eq("household_id", householdId);
 
   if (fetchError) throw fetchError;
 
   const periods = (rows ?? []).map((r) => {
-    const { year, month } = getAccountingYearMonthUtc(r.date, r.is_credit_card ?? false);
+    const { year, month } = getAccountingYearMonthUtc(r.date, r.is_next_billing ?? false);
     return { year, month };
   });
   const uniquePeriods = Array.from(
@@ -207,7 +209,7 @@ export async function deleteRecurringTemplate(
   const toUnlink: number[] = [];
   const toDelete: number[] = [];
   for (const r of rows ?? []) {
-    const { year, month } = getAccountingYearMonthUtc(r.date, r.is_credit_card ?? false);
+    const { year, month } = getAccountingYearMonthUtc(r.date, r.is_next_billing ?? false);
     const key = `${year},${month}`;
     const isClosed = closedSet.has(key);
     if (scope === "full_history" && isClosed) {

@@ -12,7 +12,7 @@ import { amountSchema, descriptionSchema } from "@/lib/formSchemas";
 import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import type { NewTransactionFormState } from "@/lib/types";
 import {
-  CreditCard,
+  ArrowRight,
   Layers,
   MinusCircle,
   PlusCircle,
@@ -56,6 +56,8 @@ type TransactionFormFieldsProps = {
   showDescription?: boolean;
   /** Prefix for input IDs to avoid conflicts when multiple forms are on the page. */
   idPrefix?: string;
+  /** View mode: "general" shows isCreditCard checkbox, "creditCard" shows isNextBilling checkbox. */
+  viewMode?: "general" | "creditCard";
 };
 
 // ============================================================================
@@ -89,6 +91,7 @@ export function TransactionFormFields({
   showInstallmentFields = true,
   showDescription = true,
   idPrefix = "",
+  viewMode = "general",
 }: TransactionFormFieldsProps) {
   const { categories } = useCategoriesData();
   const { people } = usePeopleData();
@@ -391,25 +394,25 @@ export function TransactionFormFields({
                 </div>
               )}
 
-              {/* Credit Card (expenses only) */}
-              {!isIncome && (
+              {/* Next Billing (expenses only, credit card view) */}
+              {!isIncome && viewMode === "creditCard" && (
                 <div className="flex items-center gap-2">
-                  <form.Field name="isCreditCard">
+                  <form.Field name="isNextBilling">
                     {(field: FieldState<boolean>) => (
                       <>
                         <input
                           type="checkbox"
-                          id={inputId("credit-card")}
+                          id={inputId("next-billing")}
                           checked={field.state.value}
                           onChange={(e) => field.handleChange(e.target.checked)}
                           className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
                         />
                         <label
-                          htmlFor={inputId("credit-card")}
+                          htmlFor={inputId("next-billing")}
                           className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                           title="Se marcado, o lançamento entra no mês seguinte"
                         >
-                          <CreditCard size={14} /> Próxima Fatura
+                          <ArrowRight size={14} /> Próxima Fatura
                         </label>
                       </>
                     )}

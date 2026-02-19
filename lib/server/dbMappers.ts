@@ -60,6 +60,7 @@ export function mapTransactionRow(row: TransactionRow): Transaction {
     paidBy: row.paid_by,
     recurringTemplateId,
     isCreditCard: row.is_credit_card ?? false,
+    isNextBilling: row.is_next_billing ?? false,
     excludeFromSplit: row.exclude_from_split ?? false,
     isForecast: row.is_forecast ?? false,
     date: row.date,
@@ -80,6 +81,7 @@ export function mapRecurringTemplateRow(row: RecurringTemplateRow): RecurringTem
     type: row.type ?? "expense",
     isIncrement: row.is_increment ?? true,
     isCreditCard: row.is_credit_card ?? false,
+    isNextBilling: row.is_next_billing ?? false,
     excludeFromSplit: row.exclude_from_split ?? false,
     dayOfMonth: Number(row.day_of_month),
     isActive: row.is_active ?? true,
@@ -124,6 +126,7 @@ export function toTransactionDbPatch(patch: TransactionPatch): Record<string, un
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.isNextBilling !== undefined) dbPatch.is_next_billing = patch.isNextBilling;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.date !== undefined) dbPatch.date = patch.date;
@@ -137,6 +140,7 @@ export function toBulkTransactionDbPatch(patch: BulkTransactionPatch): Record<st
   if (patch.categoryId !== undefined) dbPatch.category_id = patch.categoryId;
   if (patch.paidBy !== undefined) dbPatch.paid_by = patch.paidBy;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.isNextBilling !== undefined) dbPatch.is_next_billing = patch.isNextBilling;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.isForecast !== undefined) dbPatch.is_forecast = patch.isForecast;
   if (patch.type !== undefined) dbPatch.type = patch.type;
@@ -153,6 +157,7 @@ export function toRecurringTemplateDbPatch(patch: RecurringTemplatePatch): Recor
   if (patch.type !== undefined) dbPatch.type = patch.type;
   if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
   if (patch.isCreditCard !== undefined) dbPatch.is_credit_card = patch.isCreditCard;
+  if (patch.isNextBilling !== undefined) dbPatch.is_next_billing = patch.isNextBilling;
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.dayOfMonth !== undefined) dbPatch.day_of_month = patch.dayOfMonth;
   if (patch.isActive !== undefined) dbPatch.is_active = patch.isActive;

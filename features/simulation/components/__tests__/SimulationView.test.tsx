@@ -27,6 +27,7 @@ const mockTransactions: Transaction[] = [
     paidBy: "p1",
     recurringTemplateId: 1,
     isCreditCard: false,
+    isNextBilling: false,
     excludeFromSplit: false,
     isForecast: false,
     date: "2025-01-01",
