@@ -6,6 +6,9 @@ import { http, HttpResponse } from "msw";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { TransactionsView } from "../TransactionsView";
 
+/** Instant typing/clicks in tests; avoids delay between keystrokes. */
+const user = userEvent.setup({ delay: null });
+
 const mockPeople: Person[] = [
   { id: "p1", name: "Alice", income: 10000 },
   { id: "p2", name: "Bob", income: 8000 },
@@ -27,6 +30,11 @@ vi.mock("next/navigation", () => ({
     prefetch: vi.fn(),
   }),
   usePathname: () => "/lancamentos",
+}));
+
+// Mock Gemini so tests never hit the network
+vi.mock("@/lib/geminiClient", () => ({
+  generateGeminiContent: vi.fn().mockResolvedValue(null),
 }));
 const mockTransactions: Transaction[] = [
   {
@@ -142,6 +150,10 @@ const selectors = {
   getBulkEditDialog: () => screen.getByRole("dialog"),
 };
 
+function renderView() {
+  return render(<TransactionsView />);
+}
+
 describe("TransactionsView", () => {
   beforeEach(() => {
     useCurrentMonthStore.setState({
@@ -152,31 +164,31 @@ describe("TransactionsView", () => {
 
   describe("Page structure", () => {
     it("renders without crashing when API returns minimal data", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findHistorico();
     });
 
     it("renders MonthNavigator", async () => {
-      render(<TransactionsView />);
+      renderView();
       const headings = await selectors.findAllHeadingsLevel2();
       expect(headings.length).toBeGreaterThanOrEqual(1);
       expect(headings[0]).toHaveTextContent(/janeiro|Janeiro/i);
     });
 
     it("renders Nova Despesa Manual form with TransactionFormFields", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findFormTitle();
       expect(selectors.getAdicionarLancamentoButton()).toBeInTheDocument();
     });
 
     it("renders Histórico section with item count badge", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findHistorico();
       await selectors.findDoisItens();
     });
 
     it("renders Filter, Search and Selecionar buttons in toolbar", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findFilterLabel();
       await selectors.findSearchLabel();
       await selectors.getSelecionarButton();
@@ -185,7 +197,7 @@ describe("TransactionsView", () => {
 
   describe("Month navigator", () => {
     it("displays correct month label and N lançamentos count", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findLancamentosCount();
       const headings = selectors.getAllHeadingsLevel2();
       expect(headings.some((h) => /janeiro.*2025|Janeiro.*2025/i.test(h.textContent ?? ""))).toBe(
@@ -194,8 +206,7 @@ describe("TransactionsView", () => {
     });
 
     it("clicking prev updates displayed month", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findLancamentosCount();
       const buttons = selectors.getAllButtons();
       const prevButton = buttons[0];
@@ -211,7 +222,7 @@ describe("TransactionsView", () => {
 
   describe("Transaction list", () => {
     it("displays transactions with description, amount, category, date", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await selectors.findUber();
       expect(selectors.getAmount500().length).toBeGreaterThan(0);
@@ -219,21 +230,20 @@ describe("TransactionsView", () => {
     });
 
     it("shows Marcar como acontecido button for forecast transactions", async () => {
-      render(<TransactionsView />);
+      renderView();
       await selectors.findUber();
       expect(selectors.getMarcarAcontecidoButton("Uber")).toBeInTheDocument();
     });
 
     it("empty state shows Nenhum lançamento neste mês when no transactions", async () => {
       server.use(...setupHandlers([]));
-      render(<TransactionsView />);
+      renderView();
       await selectors.findNenhumLancamento();
     });
   });
 
   describe("Add transaction", () => {
     it("submitting valid form calls POST /api/transactions with correct body", async () => {
-      const user = userEvent.setup();
       let capturedBody: unknown = null;
       server.use(
         ...setupHandlers(),
@@ -251,7 +261,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
 
       const descInput = selectors.form.getDescricaoInput();
@@ -268,8 +278,7 @@ describe("TransactionsView", () => {
     });
 
     it("submit button reflects type Adicionar Lançamento vs Adicionar Renda", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       expect(selectors.getAdicionarLancamentoButton()).toBeInTheDocument();
       await user.click(selectors.getRendaTab());
@@ -281,8 +290,7 @@ describe("TransactionsView", () => {
 
   describe("Edit transaction modal", () => {
     it("clicking Pencil opens EditTransactionModal with pre-filled values", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       const editButton = selectors.getEditButton("Supermercado");
       await user.click(editButton);
@@ -293,7 +301,6 @@ describe("TransactionsView", () => {
     });
 
     it("submitting edit calls PATCH /api/transactions/:id and closes modal", async () => {
-      const user = userEvent.setup();
       let patchUrl: string | null = null;
       let patchBody: unknown = null;
       server.use(
@@ -310,7 +317,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       const editButton = selectors.getEditButton("Supermercado");
       await user.click(editButton);
@@ -338,7 +345,6 @@ describe("TransactionsView", () => {
 
   describe("Mark as happened (joia)", () => {
     it("clicking CheckCircle2 on forecast calls PATCH /api/transactions/:id with isForecast false", async () => {
-      const user = userEvent.setup();
       let patchBody: unknown = null;
       server.use(
         ...setupHandlers(),
@@ -351,7 +357,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findUber();
       const markButton = selectors.getMarcarAcontecidoButton("Uber");
       await user.click(markButton);
@@ -370,7 +376,6 @@ describe("TransactionsView", () => {
 
   describe("Delete transaction", () => {
     it("clicking Trash2 on non-recurring triggers delete and row is removed", async () => {
-      const user = userEvent.setup();
       let deleteCalled = false;
       server.use(
         ...setupHandlers(),
@@ -380,7 +385,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       const deleteButton = selectors.getDeleteButton("Supermercado");
       await user.click(deleteButton);
@@ -395,8 +400,7 @@ describe("TransactionsView", () => {
 
   describe("Filters and search", () => {
     it("opening Filter panel shows Tipo, Atribuído à, Categoria, Cartão, Fora do padrão", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.toolbar.getFilterButton());
       await waitFor(() => {
@@ -406,8 +410,7 @@ describe("TransactionsView", () => {
     });
 
     it("Limpar filtros resets all filters", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.toolbar.getFilterButton());
       const typeSelect = selectors.toolbar.getTypeSelect();
@@ -420,8 +423,7 @@ describe("TransactionsView", () => {
     });
 
     it("search input filters list", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.toolbar.getSearchButton());
       const searchInput = selectors.toolbar.getSearchInput();
@@ -433,7 +435,6 @@ describe("TransactionsView", () => {
     });
 
     it("filtering by Recurring shows only recurring transactions", async () => {
-      const user = userEvent.setup();
       server.use(
         ...setupHandlers([
           { ...mockTransactions[0], description: "NonRecurring", recurringTemplateId: null },
@@ -441,7 +442,7 @@ describe("TransactionsView", () => {
         ]),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findHistorico();
 
       await user.click(selectors.toolbar.getFilterButton());
@@ -474,8 +475,7 @@ describe("TransactionsView", () => {
 
   describe("Selection mode and bulk actions", () => {
     it("clicking Selecionar enters selection mode with checkboxes", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await waitFor(() => {
@@ -485,8 +485,7 @@ describe("TransactionsView", () => {
     });
 
     it("Selecionar Todos selects non-recurring items", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await user.click(selectors.selection.getSelecionarTodos());
@@ -496,8 +495,7 @@ describe("TransactionsView", () => {
     });
 
     it("Editar em Massa opens BulkEditModal", async () => {
-      const user = userEvent.setup();
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await user.click(selectors.selection.getSelecionarTodos());
@@ -510,7 +508,6 @@ describe("TransactionsView", () => {
     });
 
     it("Excluir triggers confirm and DELETE bulk", async () => {
-      const user = userEvent.setup();
       const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
       let bulkDeleteCalled = false;
       server.use(
@@ -521,7 +518,7 @@ describe("TransactionsView", () => {
         }),
       );
 
-      render(<TransactionsView />);
+      renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await user.click(selectors.selection.getSelecionarTodos());
