@@ -24,7 +24,7 @@ const mockTransactions: Transaction[] = [
   },
   {
     id: 2,
-    description: "Test 2",
+    description: "Restaurante",
     amount: 5000,
     categoryId: "cat-1",
     paidBy: "person-1",

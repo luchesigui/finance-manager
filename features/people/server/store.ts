@@ -93,32 +93,50 @@ export async function deletePerson(id: string): Promise<void> {
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
-  const { data: transactions, error: checkError } = await supabase
-    .from("transactions")
-    .select("id")
-    .eq("paid_by", id)
-    .eq("household_id", householdId);
+  const [{ data: transactions, error: txError }, { data: templates, error: tmplError }] =
+    await Promise.all([
+      supabase.from("transactions").select("id").eq("paid_by", id).eq("household_id", householdId),
+      supabase
+        .from("recurring_templates")
+        .select("id")
+        .eq("paid_by", id)
+        .eq("household_id", householdId),
+    ]);
 
-  if (checkError) throw checkError;
+  if (txError) throw txError;
+  if (tmplError) throw tmplError;
 
-  if (transactions && transactions.length > 0) {
+  const hasTransactions = transactions && transactions.length > 0;
+  const hasTemplates = templates && templates.length > 0;
+
+  if (hasTransactions || hasTemplates) {
     const replacementPersonId = await findReplacementPerson(id, householdId, supabase);
 
     if (!replacementPersonId) {
       const error = new Error(
-        "Cannot delete person because they have transactions and there are no other people to reassign them to.",
+        "Cannot delete person because they have transactions or recurring templates and there are no other people to reassign them to.",
       ) as Error & { code: string };
       error.code = "NO_REPLACEMENT_PERSON";
       throw error;
     }
 
-    const { error: updateError } = await supabase
-      .from("transactions")
-      .update({ paid_by: replacementPersonId })
-      .eq("paid_by", id)
-      .eq("household_id", householdId);
+    if (hasTransactions) {
+      const { error: updateError } = await supabase
+        .from("transactions")
+        .update({ paid_by: replacementPersonId })
+        .eq("paid_by", id)
+        .eq("household_id", householdId);
+      if (updateError) throw updateError;
+    }
 
-    if (updateError) throw updateError;
+    if (hasTemplates) {
+      const { error: updateError } = await supabase
+        .from("recurring_templates")
+        .update({ paid_by: replacementPersonId })
+        .eq("paid_by", id)
+        .eq("household_id", householdId);
+      if (updateError) throw updateError;
+    }
   }
 
   const { error } = await supabase

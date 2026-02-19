@@ -1,7 +1,7 @@
 import { useCurrentMonthStore } from "@/lib/stores/currentMonthStore";
 import type { Category, Person, Transaction } from "@/lib/types";
 import { server } from "@/test/server";
-import { render, screen, userEvent, waitFor } from "@/test/test-utils";
+import { render, screen, userEvent, waitFor, within } from "@/test/test-utils";
 import { http, HttpResponse } from "msw";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { TransactionsView } from "../TransactionsView";
@@ -93,16 +93,16 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 const selectors = {
-  findHistorico: () => screen.findByText(/Histórico de/i),
+  findHistorico: () => screen.findByText(/Total de/i),
   findAllHeadingsLevel2: () => screen.findAllByRole("heading", { level: 2 }),
   getAllHeadingsLevel2: () => screen.getAllByRole("heading", { level: 2 }),
   findFormTitle: () => screen.findByText(/Nova Despesa Manual|Novo Lançamento de Renda/i),
   getAdicionarLancamentoButton: () => screen.getByRole("button", { name: /Adicionar Lançamento/i }),
-  findDoisItens: () => screen.findByText(/2 itens/),
+  findDoisItens: () => screen.findByText(/Total de 2 lançamentos/),
   findFilterLabel: () => screen.findByLabelText(/Filtrar lançamentos/i),
   findSearchLabel: () => screen.findByLabelText(/Buscar lançamentos/i),
   getSelecionarButton: () => screen.getByRole("button", { name: /Selecionar/i }),
-  findLancamentosCount: () => screen.findByText(/2 lançamentos/),
+  findLancamentosCount: () => screen.findByText(/Total de 2 lançamentos/),
   getAllButtons: () => screen.getAllByRole("button"),
   findSupermercado: () => screen.findByText("Supermercado"),
   findUber: () => screen.findByText("Uber"),
@@ -118,7 +118,7 @@ const selectors = {
       document.querySelector('input[placeholder*="R$"]') ||
       document.querySelector('input[id*="amount"]'),
   },
-  getRendaTab: () => screen.getByText("Renda"),
+  getRendaTab: () => screen.getAllByRole("button", { name: "Renda" })[0],
   getAdicionarRendaButton: () => screen.getByRole("button", { name: /Adicionar Renda/i }),
   getEditButton: (desc: string) =>
     screen.getByLabelText(new RegExp(`Editar lançamento: ${desc}`, "i")),
@@ -131,13 +131,21 @@ const selectors = {
     screen.getByLabelText(new RegExp(`Excluir lançamento: ${desc}`, "i")),
   toolbar: {
     getFilterButton: () => screen.getByLabelText(/Filtrar lançamentos/i),
-    getTipoLabel: () => screen.getByLabelText(/^Tipo$/i),
-    getAtribuidoLabel: () => screen.getByLabelText(/Atribuído à/i),
-    getTypeSelect: () => screen.getByLabelText(/^Tipo$/i) || document.querySelector("#type-filter"),
-    getTypeFilterValue: () => (document.querySelector("#type-filter") as HTMLSelectElement)?.value,
-    getClearFilters: () => screen.queryByText(/Limpar filtros/i),
+    getFilterBar: () => {
+      const btn = screen.getByLabelText(/Filtrar lançamentos/i);
+      return (btn.closest(".noir-card") ?? document.body) as HTMLElement;
+    },
+    getTipoLabel: () =>
+      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: "Despesa" }),
+    getAtribuidoLabel: () =>
+      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: /Atribuído à/i }),
+    getTypeSelect: () =>
+      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: "Despesa" }),
+    getTypeFilterValue: () =>
+      (document.querySelector("#type-filter") as HTMLInputElement)?.value ?? "",
+    getClearFilters: () => screen.queryByRole("button", { name: /^Limpar$/i }),
     getSearchButton: () => screen.getByLabelText(/Buscar lançamentos/i),
-    getSearchInput: () => screen.getByPlaceholderText(/Buscar por descrição/i),
+    getSearchInput: () => screen.getByPlaceholderText(/Buscar por descrição, categoria, pessoa/i),
   },
   getTransactionText: (text: string) => screen.getByText(text),
   queryTransactionText: (text: string) => screen.queryByText(text),
@@ -404,24 +412,26 @@ describe("TransactionsView", { timeout: 5000 }, () => {
     it("opening Filter panel shows Tipo, Atribuído à, Categoria, Cartão, Fora do padrão", async () => {
       renderView();
       await selectors.findSupermercado();
+      expect(selectors.toolbar.getTipoLabel()).toBeInTheDocument();
+      expect(selectors.toolbar.getAtribuidoLabel()).toBeInTheDocument();
       await user.click(selectors.toolbar.getFilterButton());
       await waitFor(() => {
-        expect(selectors.toolbar.getTipoLabel()).toBeInTheDocument();
-        expect(selectors.toolbar.getAtribuidoLabel()).toBeInTheDocument();
+        expect(screen.getByText(/Filtros Avançados/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/^Cartão$/i)).toBeInTheDocument();
+        expect(screen.getByText(/Fora do padrão/i)).toBeInTheDocument();
       });
     });
 
     it("Limpar filtros resets all filters", async () => {
       renderView();
       await selectors.findSupermercado();
+      await user.click(selectors.toolbar.getTypeSelect());
+      expect(selectors.toolbar.getTypeFilterValue()).toBe("expense");
       await user.click(selectors.toolbar.getFilterButton());
-      const typeSelect = selectors.toolbar.getTypeSelect();
-      if (typeSelect) await user.selectOptions(typeSelect as HTMLSelectElement, "expense");
       const clearBtn = selectors.toolbar.getClearFilters();
-      if (clearBtn) {
-        await user.click(clearBtn);
-        expect(selectors.toolbar.getTypeFilterValue()).toBe("all");
-      }
+      expect(clearBtn).toBeInTheDocument();
+      if (clearBtn) await user.click(clearBtn);
+      expect(selectors.toolbar.getTypeFilterValue()).toBe("all");
     });
 
     it("search input filters list", async () => {
@@ -448,28 +458,18 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       await selectors.findHistorico();
 
       await user.click(selectors.toolbar.getFilterButton());
-
-      // Use getAllByLabelText and pick the select element, or use a more specific query
-      // The filter label is "Recorrente" but associated with a select.
-      // The form label is also "Recorrente" but associated with a checkbox.
-
-      // Option 1: Selector by ID (easiest given we have IDs)
-      const recurringSelect = document.querySelector("#recurring-filter");
-      expect(recurringSelect).toBeInTheDocument();
-      if (recurringSelect) {
-        await user.selectOptions(recurringSelect as HTMLSelectElement, "yes");
-      }
+      const recurringSwitch = screen.getByRole("switch", { name: /Recorrente/i });
+      expect(recurringSwitch).toBeInTheDocument();
+      await user.click(recurringSwitch);
 
       await waitFor(() => {
         expect(screen.getByText("Recurring")).toBeInTheDocument();
         expect(screen.queryByText("NonRecurring")).not.toBeInTheDocument();
       });
 
-      if (recurringSelect) {
-        await user.selectOptions(recurringSelect as HTMLSelectElement, "no");
-      }
+      await user.click(recurringSwitch);
       await waitFor(() => {
-        expect(screen.queryByText("Recurring")).not.toBeInTheDocument();
+        expect(screen.getByText("Recurring")).toBeInTheDocument();
         expect(screen.getByText("NonRecurring")).toBeInTheDocument();
       });
     });
