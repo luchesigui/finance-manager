@@ -37,6 +37,7 @@ const mockTransaction = (
   householdId: "h1",
   recurringTemplateId: null,
   isCreditCard: false,
+  isNextBilling: false,
 
   isForecast: false,
   excludeFromSplit: false,

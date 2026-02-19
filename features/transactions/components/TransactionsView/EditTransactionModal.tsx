@@ -11,6 +11,7 @@ type EditTransactionModalProps = {
   editingTransaction: Transaction;
   recurringEditScope: "template_only" | "full_history";
   onRecurringEditScopeChange: (scope: "template_only" | "full_history") => void;
+  viewMode?: "general" | "creditCard";
 };
 
 export function EditTransactionModal({
@@ -19,6 +20,7 @@ export function EditTransactionModal({
   editingTransaction,
   recurringEditScope,
   onRecurringEditScopeChange,
+  viewMode = "general",
 }: EditTransactionModalProps) {
   const isRecurring = editingTransaction.recurringTemplateId != null;
 
@@ -82,6 +84,7 @@ export function EditTransactionModal({
                 showInstallmentFields={false}
                 showDescription={false}
                 idPrefix="edit-transaction"
+                viewMode={viewMode}
               />
             </div>
             {isRecurring && (

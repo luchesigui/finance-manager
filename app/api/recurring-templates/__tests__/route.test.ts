@@ -57,6 +57,7 @@ describe("/api/recurring-templates", () => {
         type: "income",
         isIncrement: true,
         isCreditCard: false,
+        isNextBilling: false,
         excludeFromSplit: false,
         dayOfMonth: 5,
         isActive: true,
