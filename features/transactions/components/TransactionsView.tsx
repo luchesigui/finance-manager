@@ -281,11 +281,14 @@ export function TransactionsView() {
       // Only set if category exists in categories list
       const categoryExists = categories.some((cat) => cat.id === categoryIdFromUrl);
       if (categoryExists) {
-        setCategoryFilter(new Set([categoryIdFromUrl]));
+        setCategoryFilter((prev) => {
+          if (prev.size === 1 && prev.has(categoryIdFromUrl)) return prev;
+          return new Set([categoryIdFromUrl]);
+        });
       }
     } else {
       // Clear filter if URL parameter is removed
-      setCategoryFilter(new Set());
+      setCategoryFilter((prev) => (prev.size === 0 ? prev : new Set()));
     }
   }, [searchParams, categories]);
 

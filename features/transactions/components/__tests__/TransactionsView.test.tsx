@@ -20,10 +20,10 @@ const mockCategories: Category[] = [
 ];
 
 // Mock Next.js navigation
+const mockSearchParams = new URLSearchParams();
+
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => ({
-    get: vi.fn().mockReturnValue(null),
-  }),
+  useSearchParams: () => mockSearchParams,
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
@@ -86,7 +86,7 @@ function setupHandlers(transactions: Transaction[] = mockTransactions) {
   ];
 }
 
-beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
@@ -154,7 +154,7 @@ function renderView() {
   return render(<TransactionsView />);
 }
 
-describe("TransactionsView", () => {
+describe("TransactionsView", { timeout: 5000 }, () => {
   beforeEach(() => {
     useCurrentMonthStore.setState({
       selectedMonthDate: new Date(2025, 0, 1),
