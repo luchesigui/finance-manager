@@ -27,8 +27,8 @@
 
   /* Text */
   --text-heading: 240 236 228;
-  --text-body: 139 154 181;
-  --text-muted: 148 163 184;
+  --text-body: 148 163 184;
+  --text-muted: 139 154 181;
 
   /* Accents */
   --accent-primary: 91 141 239;
@@ -48,6 +48,34 @@
   --chart-grid: rgba(255, 255, 255, 0.05);
   --chart-axis: rgba(255, 255, 255, 0.1);
   --chart-text: 148 163 184;
+
+  /* shadcn/ui compatibility layer — mapped from Noir tokens */
+  --background: 220 37% 4%; /* noir-primary  rgb(6,9,13)      */
+  --foreground: 37 48% 92%; /* text-heading  rgb(240,236,228) */
+  --card: 217 32% 7%; /* noir-surface  rgb(12,17,23)    */
+  --card-foreground: 37 48% 92%;
+  --popover: 217 32% 7%;
+  --popover-foreground: 37 48% 92%;
+  --primary: 220 81% 65%; /* accent-primary rgb(91,141,239) */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 44 80% 55%; /* accent-spending rgb(232,185,49) — yellow */
+  --secondary-foreground: 220 37% 4%; /* dark text on yellow */
+  --muted: 215 29% 12%;
+  --muted-foreground: 213 22% 63%; /* text-muted rgb(139,154,181) */
+  --accent: 215 29% 12%;
+  --accent-foreground: 37 48% 92%;
+  --destructive: 3 77% 60%; /* accent-negative rgb(229,87,79) */
+  --destructive-foreground: 0 0% 98%;
+  --positive: 154 54% 46%; /* accent-positive rgb(54,179,126) */
+  --positive-foreground: 220 37% 4%;
+  --negative: 3 77% 60%; /* accent-negative rgb(229,87,79)  */
+  --negative-foreground: 0 0% 98%;
+  --warning: 30 79% 57%; /* accent-warning  rgb(232,145,58) */
+  --warning-foreground: 220 37% 4%;
+  --border: 217 29% 15%; /* approximation of rgba(255,255,255,0.06) on dark */
+  --input: 215 29% 12%;
+  --ring: 220 81% 65%;
+  --radius: 0.625rem; /* interactive = 10px */
 }
 
 /* Light Theme */
@@ -63,8 +91,8 @@
   --noir-border-light: #b8c4d4;
 
   --text-heading: 15 23 42;
-  --text-body: 71 85 105;
-  --text-muted: 100 116 139;
+  --text-body: 100 116 139;
+  --text-muted: 71 85 105;
 
   --accent-primary: 37 99 235;
   --accent-primary-light: 59 130 246;
@@ -81,6 +109,33 @@
   --chart-grid: rgba(0, 0, 0, 0.06);
   --chart-axis: rgba(0, 0, 0, 0.1);
   --chart-text: 100 116 139;
+
+  /* shadcn/ui compatibility layer */
+  --background: 210 40% 98%; /* noir-primary  rgb(248,250,252) */
+  --foreground: 222 47% 11%; /* text-heading  rgb(15,23,42)    */
+  --card: 0 0% 100%; /* noir-surface  rgb(255,255,255) */
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 220 83% 53%; /* accent-primary rgb(37,99,235)  */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 26 90% 37%; /* accent-spending rgb(180,83,9) — amber */
+  --secondary-foreground: 0 0% 98%; /* light text on amber */
+  --muted: 214 33% 93%;
+  --muted-foreground: 215 19% 35%; /* text-muted rgb(71,85,105) */
+  --accent: 214 33% 93%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 72% 51%; /* accent-negative rgb(220,38,38) */
+  --destructive-foreground: 0 0% 98%;
+  --positive: 142 76% 36%; /* accent-positive rgb(22,163,74)  */
+  --positive-foreground: 0 0% 98%;
+  --negative: 0 72% 51%; /* accent-negative rgb(220,38,38)  */
+  --negative-foreground: 0 0% 98%;
+  --warning: 32 95% 44%; /* accent-warning  rgb(217,119,6)  */
+  --warning-foreground: 0 0% 98%;
+  --border: 214 28% 87%; /* noir-border   #d4dbe6          */
+  --input: 214 28% 87%;
+  --ring: 220 83% 53%;
 }
 
 html,
@@ -144,6 +199,32 @@ body {
   ::selection {
     background-color: rgb(var(--accent-primary) / 0.25);
     color: rgb(var(--text-heading));
+  }
+
+  /* ── Semantic HTML element defaults ─────────────────────────────────────── */
+  h1 {
+    @apply text-4xl font-display text-heading leading-tight; /* 36px */
+  }
+  h2 {
+    @apply text-[22px] font-bold text-heading leading-snug; /* 22px */
+  }
+  h3 {
+    @apply text-lg font-semibold text-heading leading-snug; /* 18px */
+  }
+  h4 {
+    @apply text-base font-semibold text-heading leading-normal; /* 16px */
+  }
+  h5 {
+    @apply text-sm font-semibold text-heading leading-normal; /* 14px */
+  }
+  h6 {
+    @apply text-[10px] font-semibold text-muted uppercase tracking-widest; /* 10px */
+  }
+  p {
+    @apply text-sm text-body leading-relaxed; /* 14px */
+  }
+  small {
+    @apply text-[11px] text-muted leading-snug; /* 11px */
   }
 }
 
