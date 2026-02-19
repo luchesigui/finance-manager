@@ -26,5 +26,8 @@ enable_confirmations = false
 [storage]
 enabled = false
 
+[analytics]
+enabled = false
+
 [db.seed]
 enabled = true
