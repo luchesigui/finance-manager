@@ -1,6 +1,7 @@
 "use client";
 
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatDateString } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
 import {
@@ -137,44 +138,43 @@ export function TransactionRow({
                 <span>{formatDateString(transaction.date)}</span>
               </p>
               {isIncome && (
-                <span
-                  className={`${
-                    isIncrement ? "noir-badge-positive" : "noir-badge-warning"
-                  } flex items-center gap-1`}
+                <Badge
+                  variant={isIncrement ? "positive" : "warning"}
+                  className="flex items-center gap-1"
                 >
                   {isIncrement ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
                   <span className="hidden md:inline">{isIncrement ? "Renda" : "Dedução"}</span>
-                </span>
+                </Badge>
               )}
               {isForecast && (
-                <span className="noir-badge-warning flex items-center gap-1">
+                <Badge variant="warning" className="flex items-center gap-1">
                   <CrystalBallLine size={13} />
                   <span className="hidden md:inline">Previsão</span>
-                </span>
+                </Badge>
               )}
               {isFromTemplate && (
-                <span className="noir-badge-accent flex items-center gap-1">
+                <Badge variant="accent" className="flex items-center gap-1">
                   <RefreshCw size={13} />
                   <span className="hidden md:inline">Recorrente</span>
-                </span>
+                </Badge>
               )}
               {transaction.isCreditCard && (
-                <span className="noir-badge-accent flex items-center gap-1">
+                <Badge variant="accent" className="flex items-center gap-1">
                   <CreditCard size={13} />
                   <span className="hidden md:inline">Cartão</span>
-                </span>
+                </Badge>
               )}
               {transaction.excludeFromSplit && (
-                <span className="noir-badge-muted flex items-center gap-1">
+                <Badge variant="secondary" className="flex items-center gap-1">
                   <UserX size={13} />
                   <span className="hidden md:inline">Fora da divisão</span>
-                </span>
+                </Badge>
               )}
               {isOutlier && (
-                <span className="noir-badge-negative flex items-center gap-1">
+                <Badge variant="negative" className="flex items-center gap-1">
                   <AlertTriangle size={13} />
                   <span className="hidden md:inline">Fora do padrão</span>
-                </span>
+                </Badge>
               )}
             </div>
             {!isSelectionMode && (

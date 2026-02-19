@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, Eye, EyeOff, ThumbsUp } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { formatCurrency, formatDateString } from "@/lib/format";
 import type { Category, Transaction } from "@/lib/types";
 
@@ -88,7 +90,7 @@ export function ForecastSpotlight({
     totalExpenses > 0 ? (totalForecastAmount / totalExpenses) * 100 : 0;
 
   return (
-    <div className="noir-card overflow-hidden">
+    <Card className="overflow-hidden">
       <button
         type="button"
         onClick={() => setCollapsed(!isCollapsed)}
@@ -96,9 +98,9 @@ export function ForecastSpotlight({
       >
         <CrystalBallLine size={20} className="text-accent-spending" />
         <h2 className="text-lg font-semibold text-heading">Gastos Previstos</h2>
-        <span className="noir-badge-muted text-xs">
+        <Badge variant="secondary">
           {forecasts.length} {forecasts.length === 1 ? "item" : "itens"}
-        </span>
+        </Badge>
         <span className="ml-auto text-muted">
           {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
         </span>
@@ -195,6 +197,6 @@ export function ForecastSpotlight({
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

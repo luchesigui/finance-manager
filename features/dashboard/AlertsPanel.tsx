@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { Alert, AlertType } from "@/features/dashboard/hooks/useDashboardAlerts";
 
 // ============================================================================
@@ -121,17 +123,17 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
   const successAlerts = alerts.filter((a) => a.type === "success");
 
   // Determine badge color based on most severe alert
-  const badgeClass =
+  const badgeVariant: "negative" | "warning" | "positive" | "secondary" =
     criticalAlerts.length > 0
-      ? "noir-badge-negative"
+      ? "negative"
       : warningAlerts.length > 0
-        ? "noir-badge-warning"
+        ? "warning"
         : successAlerts.length > 0
-          ? "noir-badge-positive"
-          : "noir-badge-muted";
+          ? "positive"
+          : "secondary";
 
   return (
-    <div className="noir-card overflow-hidden">
+    <Card className="overflow-hidden">
       <button
         type="button"
         onClick={() => setCollapsed(!isCollapsed)}
@@ -139,7 +141,9 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
       >
         <Bell size={20} className="text-accent-primary" />
         <h2 className="text-lg font-semibold text-heading">Atenção Necessária</h2>
-        <span className={`ml-2 ${badgeClass}`}>{alerts.length}</span>
+        <Badge variant={badgeVariant} className="ml-2">
+          {alerts.length}
+        </Badge>
         <span className="ml-auto text-muted">
           {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
         </span>
@@ -168,6 +172,6 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

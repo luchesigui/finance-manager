@@ -3,6 +3,8 @@
 import { AlertOctagon, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
 import type { Category, Transaction } from "@/lib/types";
 
@@ -78,7 +80,7 @@ export function OutlierSpotlight({ outliers, categories, totalExpenses }: Outlie
   const outlierPercentOfTotal = totalExpenses > 0 ? (totalOutlierAmount / totalExpenses) * 100 : 0;
 
   return (
-    <div className="noir-card overflow-hidden">
+    <Card className="overflow-hidden">
       <button
         type="button"
         onClick={() => setCollapsed(!isCollapsed)}
@@ -86,9 +88,9 @@ export function OutlierSpotlight({ outliers, categories, totalExpenses }: Outlie
       >
         <AlertOctagon size={20} className="text-accent-warning" />
         <h2 className="text-lg font-semibold text-heading">Gastos Fora do Padrão</h2>
-        <span className="noir-badge-warning text-xs">
+        <Badge variant="warning">
           {outliers.length} {outliers.length === 1 ? "item" : "itens"}
-        </span>
+        </Badge>
         <span className="ml-auto text-muted">
           {isCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
         </span>
@@ -157,6 +159,6 @@ export function OutlierSpotlight({ outliers, categories, totalExpenses }: Outlie
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

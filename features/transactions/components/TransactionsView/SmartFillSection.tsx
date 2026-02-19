@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { isSmartFillEnabled } from "@/lib/featureFlags";
 import { BrainCircuit, Loader2 } from "lucide-react";
 
@@ -28,23 +30,18 @@ export function SmartFillSection({
         PREENCHIMENTO INTELIGENTE (BETA)
       </label>
       <div className="flex gap-2">
-        <input
+        <Input
           id="smart-input"
           type="text"
           value={smartInput}
           onChange={(event) => onSmartInputChange(event.target.value)}
           placeholder="Ex: Almoço com Amanda hoje custou 45 reais"
-          className="noir-input flex-1 text-sm"
+          className="flex-1 text-sm"
           onKeyDown={(event) => event.key === "Enter" && onSmartFill()}
         />
-        <button
-          type="button"
-          onClick={onSmartFill}
-          disabled={isLoading || !smartInput}
-          className="noir-btn-primary"
-        >
+        <Button type="button" size="icon" onClick={onSmartFill} disabled={isLoading || !smartInput}>
           {isLoading ? <Loader2 size={18} className="animate-spin" /> : <BrainCircuit size={18} />}
-        </button>
+        </Button>
       </div>
     </div>
   );

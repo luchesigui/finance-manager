@@ -3,6 +3,14 @@
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { FieldError } from "@/components/ui/FieldError";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
 import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
@@ -11,6 +19,7 @@ import { zodValidator } from "@/lib/form";
 import { amountSchema, descriptionSchema } from "@/lib/formSchemas";
 import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import type { NewTransactionFormState } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import {
   CreditCard,
   Layers,
@@ -219,7 +228,7 @@ export function TransactionFormFields({
                       >
                         Descrição
                       </label>
-                      <input
+                      <Input
                         id={inputId("description")}
                         type="text"
                         placeholder={
@@ -227,9 +236,10 @@ export function TransactionFormFields({
                             ? "Ex: Salário, Freelance, Bônus..."
                             : "Ex: Luz, Mercado, iFood..."
                         }
-                        className={`noir-input w-full ${
-                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
-                        }`}
+                        className={cn(
+                          "w-full",
+                          field.state.meta.errors.length > 0 && "border-accent-negative",
+                        )}
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
@@ -261,9 +271,10 @@ export function TransactionFormFields({
                     <CurrencyInput
                       id={inputId("amount")}
                       placeholder="R$ 0,00"
-                      className={`noir-input w-full ${
-                        field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
-                      }`}
+                      className={cn(
+                        "w-full",
+                        field.state.meta.errors.length > 0 && "border-accent-negative",
+                      )}
                       value={field.state.value}
                       onValueChange={(value) => field.handleChange(value)}
                       required
@@ -286,18 +297,18 @@ export function TransactionFormFields({
                       >
                         Categoria
                       </label>
-                      <select
-                        id={inputId("category")}
-                        className="noir-select w-full"
-                        value={field.state.value}
-                        onChange={(e) => handleCategoryChange(e.target.value)}
-                      >
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={field.state.value} onValueChange={handleCategoryChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </>
                   )}
                 </form.Field>
@@ -447,7 +458,7 @@ export function TransactionFormFields({
                   <span className="text-sm text-muted">x</span>
                   <form.Field name="installments">
                     {(field: FieldState<number>) => (
-                      <input
+                      <Input
                         type="number"
                         min={2}
                         max={60}
@@ -455,7 +466,7 @@ export function TransactionFormFields({
                         onChange={(e) =>
                           field.handleChange(Number.parseInt(e.target.value, 10) || 2)
                         }
-                        className="noir-input w-16 text-sm py-1 text-center"
+                        className="w-16 text-sm py-1 text-center h-auto"
                       />
                     )}
                   </form.Field>
@@ -468,7 +479,7 @@ export function TransactionFormFields({
                   <span className="text-xs text-muted">Dia do mês</span>
                   <form.Field name="dayOfMonth">
                     {(field: FieldState<number>) => (
-                      <input
+                      <Input
                         type="number"
                         min={1}
                         max={31}
@@ -479,7 +490,7 @@ export function TransactionFormFields({
                             Number.isFinite(day) ? Math.min(31, Math.max(1, day)) : 1,
                           );
                         }}
-                        className="noir-input w-16 text-sm py-1 text-center"
+                        className="w-16 text-sm py-1 text-center h-auto"
                       />
                     )}
                   </form.Field>
@@ -502,31 +513,34 @@ export function TransactionFormFields({
                   >
                     Mês {showInstallmentFields && "(Opcional)"}
                   </label>
-                  <select
-                    id={inputId("month-selector")}
-                    className="noir-select w-full"
+                  <Select
                     value={
                       values.dateSelectionMode === "specific"
                         ? "specific"
                         : values.selectedMonth || currentYearMonth
                     }
-                    onChange={(e) => handleDateSelectionChange(e.target.value)}
+                    onValueChange={handleDateSelectionChange}
                   >
-                    {monthOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                    <option value="specific">Data específica</option>
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="specific">Data específica</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {values.dateSelectionMode === "specific" && (
                     <div className="mt-2 animate-in slide-in-from-top-1 duration-200">
                       <form.Field name="date">
                         {(field: FieldState<string>) => (
-                          <input
+                          <Input
                             id={inputId("date")}
                             type="date"
-                            className="noir-input w-full"
+                            className="w-full"
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                           />
@@ -547,18 +561,18 @@ export function TransactionFormFields({
                         >
                           Atribuir à
                         </label>
-                        <select
-                          id={inputId("paid-by")}
-                          className="noir-select w-full"
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        >
-                          {people.map((person) => (
-                            <option key={person.id} value={person.id}>
-                              {person.name}
-                            </option>
-                          ))}
-                        </select>
+                        <Select value={field.state.value} onValueChange={field.handleChange}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {people.map((person) => (
+                              <SelectItem key={person.id} value={person.id}>
+                                {person.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </>
                     )}
                   </form.Field>

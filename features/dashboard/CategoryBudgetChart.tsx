@@ -2,6 +2,7 @@
 
 import { AlertTriangle, BarChart3 } from "lucide-react";
 
+import { Card } from "@/components/ui/card";
 import type { CategorySummaryRow } from "@/features/transactions/hooks/useFinanceCalculations";
 import { normalizeCategoryName } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
@@ -124,7 +125,7 @@ export function CategoryBudgetChart({ categorySummary, totalIncome }: CategoryBu
   const sortedCategories = [...categorySummary].sort((a, b) => b.totalSpent - a.totalSpent);
 
   return (
-    <div className="noir-card p-card-padding">
+    <Card className="p-card-padding">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
           <BarChart3 size={20} className="text-accent-primary" />
@@ -148,6 +149,6 @@ export function CategoryBudgetChart({ categorySummary, totalIncome }: CategoryBu
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

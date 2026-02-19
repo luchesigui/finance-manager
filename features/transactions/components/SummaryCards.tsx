@@ -1,6 +1,8 @@
 "use client";
 
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import {
   calculateIncomeBreakdown,
   calculateTotalExpenses,
@@ -74,7 +76,7 @@ export function SummaryCards({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-grid-gap">
       {/* Total Income Card */}
-      <div className="noir-card p-card-padding group">
+      <Card className="p-card-padding group">
         <h3 className="text-body text-sm font-medium mb-1">Renda Total Familiar</h3>
         <p className="text-2xl font-bold text-heading tabular-nums">
           {formatCurrency(effectiveIncome)}
@@ -97,21 +99,21 @@ export function SummaryCards({
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Total Expenses Card */}
-      <div className="noir-card p-card-padding group">
+      <Card className="p-card-padding group">
         <h3 className="text-body text-sm font-medium mb-1">
           Total Gasto ({formatMonthYear(selectedMonthDate)})
         </h3>
         <p className="text-2xl font-bold text-accent-negative tabular-nums">
           {formatCurrency(totalExpenses)}
         </p>
-      </div>
+      </Card>
 
       {/* Free Balance Card */}
-      <div
-        className={`noir-card p-card-padding group relative overflow-hidden ${
+      <Card
+        className={`p-card-padding group relative overflow-hidden ${
           isPositiveBalance ? "border-accent-positive/30" : "border-accent-negative/30"
         }`}
       >
@@ -132,10 +134,10 @@ export function SummaryCards({
             {formatCurrency(freeBalance)}
           </p>
         </div>
-      </div>
+      </Card>
 
       {hasForecastExpenses && (
-        <div className="md:col-span-3 noir-card p-card-padding border-accent-spending/30 relative overflow-hidden">
+        <Card className="md:col-span-3 p-card-padding border-accent-spending/30 relative overflow-hidden">
           <div className="absolute inset-0 bg-accent-spending/5" />
           <div className="relative">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -148,7 +150,9 @@ export function SummaryCards({
                   {formatCurrency(forecastTotal)}
                 </p>
               </div>
-              <span className="noir-badge-muted w-fit">{forecastCountLabel}</span>
+              <Badge variant="secondary" className="w-fit">
+                {forecastCountLabel}
+              </Badge>
             </div>
 
             <div className="mt-4">
@@ -202,7 +206,7 @@ export function SummaryCards({
               </ul>
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

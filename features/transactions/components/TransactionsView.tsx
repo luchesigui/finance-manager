@@ -15,6 +15,18 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { useDefaultPayerData } from "@/features/people/hooks/useDefaultPayerData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
@@ -514,7 +526,7 @@ Retorne APENAS o JSON, sem markdown.
     <div className="space-y-6 animate-in fade-in duration-500">
       <MonthNavigator />
 
-      <div className="noir-card p-card-padding relative overflow-hidden border-accent-primary/30">
+      <Card className="p-card-padding relative overflow-hidden border-accent-primary/30">
         <div className="absolute inset-0 bg-accent-primary/5" />
         <div className="relative">
           <SmartFillSection
@@ -578,17 +590,17 @@ Retorne APENAS o JSON, sem markdown.
             </div>
           </form>
         </div>
-      </div>
+      </Card>
 
-      <div className="noir-card">
+      <Card>
         <div className="p-4 border-b border-noir-border bg-noir-active/50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-t-card">
           <h2 className="font-semibold text-heading">
             Histórico de {formatMonthYear(selectedMonthDate)}
           </h2>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <span className="noir-badge-muted w-fit">
+            <Badge variant="secondary" className="w-fit">
               {visibleTransactionsForSelectedMonth.length} itens
-            </span>
+            </Badge>
             <button
               type="button"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -659,34 +671,34 @@ Retorne APENAS o JSON, sem markdown.
                 <label htmlFor="type-filter" className="text-xs font-medium text-body">
                   Tipo
                 </label>
-                <select
-                  id="type-filter"
-                  className="noir-select text-sm py-1"
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                >
-                  <option value="all">Todos</option>
-                  <option value="expense">Despesas</option>
-                  <option value="income">Renda</option>
-                </select>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger id="type-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="expense">Despesas</SelectItem>
+                    <SelectItem value="income">Renda</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
                 <label htmlFor="paid-by-filter" className="text-xs font-medium text-body">
                   Atribuído à
                 </label>
-                <select
-                  id="paid-by-filter"
-                  className="noir-select text-sm py-1"
-                  value={paidByFilter}
-                  onChange={(e) => setPaidByFilter(e.target.value)}
-                >
-                  <option value="all">Todos</option>
-                  {people.map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={paidByFilter} onValueChange={setPaidByFilter}>
+                  <SelectTrigger id="paid-by-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {people.map((person) => (
+                      <SelectItem key={person.id} value={person.id}>
+                        {person.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div ref={categoryDropdownRef} className="flex items-center gap-2 relative">
                 <label htmlFor="category-filter" className="text-xs font-medium text-body">
@@ -780,16 +792,16 @@ Retorne APENAS o JSON, sem markdown.
                   <CreditCard size={12} />
                   Cartão
                 </label>
-                <select
-                  id="credit-card-filter"
-                  className="noir-select text-sm py-1"
-                  value={creditCardFilter}
-                  onChange={(e) => setCreditCardFilter(e.target.value)}
-                >
-                  <option value="all">Todos</option>
-                  <option value="yes">Cartão</option>
-                  <option value="no">Não cartão</option>
-                </select>
+                <Select value={creditCardFilter} onValueChange={setCreditCardFilter}>
+                  <SelectTrigger id="credit-card-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="yes">Cartão</SelectItem>
+                    <SelectItem value="no">Não cartão</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
                 <label
@@ -799,16 +811,19 @@ Retorne APENAS o JSON, sem markdown.
                   <AlertTriangle size={12} />
                   Fora do padrão
                 </label>
-                <select
-                  id="outlier-filter"
-                  className="noir-select text-sm py-1"
+                <Select
                   value={outlierFilter}
-                  onChange={(e) => setOutlierFilter(e.target.value as "all" | "yes" | "no")}
+                  onValueChange={(v) => setOutlierFilter(v as "all" | "yes" | "no")}
                 >
-                  <option value="all">Todos</option>
-                  <option value="yes">Sim</option>
-                  <option value="no">Não</option>
-                </select>
+                  <SelectTrigger id="outlier-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="yes">Sim</SelectItem>
+                    <SelectItem value="no">Não</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -819,12 +834,12 @@ Retorne APENAS o JSON, sem markdown.
           <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por descrição, categoria, pessoa..."
-                className="noir-input w-full pl-9 pr-8 py-2 text-sm"
+                className="w-full pl-9 pr-8 py-2 text-sm"
               />
               {searchQuery && (
                 <button
@@ -843,44 +858,47 @@ Retorne APENAS o JSON, sem markdown.
         {isSelectionMode && (
           <div className="p-3 border-b border-noir-border bg-accent-primary/10 flex flex-wrap items-center gap-3 animate-in slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={selectAllVisibleTransactions}
-                className="noir-btn-secondary text-xs px-2 py-1"
+                className="text-xs px-2 py-1 h-auto"
               >
                 Selecionar Todos
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={clearSelection}
-                className="noir-btn-secondary text-xs px-2 py-1"
+                className="text-xs px-2 py-1 h-auto"
               >
                 Limpar
-              </button>
+              </Button>
             </div>
             <span className="text-xs text-accent-primary font-medium">
               {selectedIds.size} selecionado(s)
             </span>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={handleOpenBulkEditModal}
                 disabled={selectedIds.size === 0}
-                className="noir-btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
+                className="text-xs px-3 py-1.5 h-auto"
               >
                 <Pencil size={12} />
                 Editar em Massa
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="destructive"
                 onClick={handleBulkDelete}
                 disabled={selectedIds.size === 0}
-                className="noir-btn-danger text-xs px-3 py-1.5 flex items-center gap-1"
+                className="text-xs px-3 py-1.5 h-auto"
               >
                 <Trash2 size={12} />
                 Excluir
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -957,7 +975,7 @@ Retorne APENAS o JSON, sem markdown.
             </span>
           </div>
         )}
-      </div>
+      </Card>
 
       {editingTransaction && (
         <EditTransactionModal
@@ -993,7 +1011,7 @@ Retorne APENAS o JSON, sem markdown.
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           aria-labelledby="recurring-delete-modal-title"
         >
-          <div className="noir-card max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+          <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
               <h3
                 id="recurring-delete-modal-title"
@@ -1061,15 +1079,16 @@ Retorne APENAS o JSON, sem markdown.
                   </p>
                 </button>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setDeletingRecurringTemplateId(null)}
-                className="w-full noir-btn-secondary py-2.5 mt-2"
+                className="w-full py-2.5 mt-2 h-auto"
               >
                 Cancelar
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </dialog>
       )}
     </div>
