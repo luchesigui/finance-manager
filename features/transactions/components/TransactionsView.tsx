@@ -4,6 +4,8 @@ import { useForm } from "@tanstack/react-form";
 import {
   AlertTriangle,
   CreditCard,
+  Eye,
+  EyeOff,
   Filter,
   Loader2,
   Pencil,
@@ -52,6 +54,7 @@ function createDefaultFormState(
     isRecurring: false,
     dayOfMonth: 1,
     isCreditCard: false,
+    isNextBilling: false,
     dateSelectionMode: "month",
     selectedMonth: yearMonth,
     date: "",
@@ -98,6 +101,8 @@ export function TransactionsView() {
   const searchParams = useSearchParams();
   const initialCategoryId = searchParams.get("categoryId");
 
+  const [viewMode, setViewMode] = useState<"general" | "creditCard">("general");
+  const [hideNextBilling, setHideNextBilling] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [smartInput, setSmartInput] = useState("");
   const [paidByFilter, setPaidByFilter] = useState<string>("all");
@@ -137,11 +142,13 @@ export function TransactionsView() {
     categoryId: string | null;
     paidBy: string | null;
     isCreditCard: boolean | null;
+    isNextBilling: boolean | null;
     excludeFromSplit: boolean | null;
   }>({
     categoryId: null,
     paidBy: null,
     isCreditCard: null,
+    isNextBilling: null,
     excludeFromSplit: null,
   });
 
@@ -172,6 +179,11 @@ export function TransactionsView() {
     return `${year}-${month}`;
   };
 
+  const isTransactionDateInSelectedMonth = (dateStr: string) => {
+    const prefix = getCurrentYearMonth();
+    return dateStr.startsWith(prefix);
+  };
+
   // Edit modal state
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
 
@@ -183,11 +195,16 @@ export function TransactionsView() {
       getCurrentYearMonth(),
     ),
     onSubmit: async ({ value }) => {
+      const preserveNextBilling = value.isNextBilling;
       addTransactionsFromFormState(value);
       newTransactionForm.reset();
       newTransactionForm.setFieldValue("categoryId", categories[0]?.id ?? "c1");
       newTransactionForm.setFieldValue("paidBy", defaultPayerId);
       newTransactionForm.setFieldValue("selectedMonth", getCurrentYearMonth());
+      if (viewMode === "creditCard") {
+        newTransactionForm.setFieldValue("isCreditCard", true);
+        newTransactionForm.setFieldValue("isNextBilling", preserveNextBilling);
+      }
       setSmartInput("");
     },
   });
@@ -220,6 +237,7 @@ export function TransactionsView() {
             type: value.type,
             isIncrement: value.isIncrement,
             isCreditCard: value.type === "income" ? false : value.isCreditCard,
+            isNextBilling: value.type === "income" ? false : value.isNextBilling,
             excludeFromSplit: value.type === "income" ? false : value.excludeFromSplit,
             dayOfMonth: selectedDay,
             isActive: value.isRecurring,
@@ -236,6 +254,7 @@ export function TransactionsView() {
         categoryId: value.categoryId,
         paidBy: value.paidBy,
         isCreditCard: value.isCreditCard,
+        isNextBilling: value.isNextBilling,
         excludeFromSplit: value.excludeFromSplit,
         isForecast: value.isForecast,
         date: value.date,
@@ -293,18 +312,43 @@ export function TransactionsView() {
   }, [searchParams, categories]);
 
   const matchesFilters = (transaction: Transaction) => {
+    // Credit card view: filter by actual date and isCreditCard
+    if (viewMode === "creditCard") {
+      if (!transaction.isCreditCard) return false;
+
+      // Filter by actual date month (not accounting month)
+      const txDate = new Date(`${transaction.date}T00:00:00`);
+      const txYear = txDate.getFullYear();
+      const txMonth = txDate.getMonth() + 1;
+      const selYear = selectedMonthDate.getFullYear();
+      const selMonth = selectedMonthDate.getMonth() + 1;
+      if (txYear !== selYear || txMonth !== selMonth) return false;
+
+      // Hide next billing toggle
+      if (hideNextBilling && transaction.isNextBilling) return false;
+    }
+
+    // General view: hide current-month + next-billing credit card transactions (they only show in credit card mode)
+    if (
+      viewMode === "general" &&
+      transaction.isCreditCard &&
+      transaction.isNextBilling &&
+      isTransactionDateInSelectedMonth(transaction.date)
+    ) {
+      return false;
+    }
+
     if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
     if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
 
     // Multi-category filter
     if (categoryFilter.size > 0) {
-      // Income transactions have no category, so they don't match category filter
       if (transaction.categoryId === null) return false;
       if (!categoryFilter.has(transaction.categoryId)) return false;
     }
 
-    // Credit card filter
-    if (creditCardFilter !== "all") {
+    // Credit card filter (only in general view)
+    if (viewMode === "general" && creditCardFilter !== "all") {
       const isCreditCard = creditCardFilter === "yes";
       if (transaction.isCreditCard !== isCreditCard) return false;
     }
@@ -375,6 +419,7 @@ export function TransactionsView() {
     editTransactionForm.setFieldValue("isRecurring", transaction.recurringTemplateId != null);
     editTransactionForm.setFieldValue("dayOfMonth", day);
     editTransactionForm.setFieldValue("isCreditCard", transaction.isCreditCard);
+    editTransactionForm.setFieldValue("isNextBilling", transaction.isNextBilling);
     editTransactionForm.setFieldValue("dateSelectionMode", isFirstOfMonth ? "month" : "specific");
     editTransactionForm.setFieldValue("selectedMonth", selectedMonth);
     editTransactionForm.setFieldValue("date", transaction.date);
@@ -504,6 +549,7 @@ Retorne APENAS o JSON, sem markdown.
       categoryId: null,
       paidBy: null,
       isCreditCard: null,
+      isNextBilling: null,
       excludeFromSplit: null,
     });
     setIsBulkEditModalOpen(true);
@@ -521,6 +567,8 @@ Retorne APENAS o JSON, sem markdown.
     if (bulkEditFormState.paidBy !== null) patch.paidBy = bulkEditFormState.paidBy;
     if (bulkEditFormState.isCreditCard !== null)
       patch.isCreditCard = bulkEditFormState.isCreditCard;
+    if (bulkEditFormState.isNextBilling !== null)
+      patch.isNextBilling = bulkEditFormState.isNextBilling;
     if (bulkEditFormState.excludeFromSplit !== null)
       patch.excludeFromSplit = bulkEditFormState.excludeFromSplit;
 
@@ -563,15 +611,44 @@ Retorne APENAS o JSON, sem markdown.
 
           <newTransactionForm.Subscribe selector={(state) => state.values}>
             {(values) => (
-              <h3 className="font-semibold text-heading mb-4 flex items-center gap-2">
-                <Plus
-                  className={`${
-                    values.type === "income" ? "bg-accent-positive" : "bg-accent-primary"
-                  } text-white rounded-interactive p-1`}
-                  size={24}
-                />
-                {values.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-heading flex items-center gap-2">
+                  <Plus
+                    className={`${
+                      values.type === "income" ? "bg-accent-positive" : "bg-accent-primary"
+                    } text-white rounded-interactive p-1`}
+                    size={24}
+                  />
+                  {values.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
+                </h3>
+                {values.type !== "income" && (
+                  <div className="flex items-center gap-2 select-none">
+                    <span className="text-xs font-medium text-body mr-2">Cartão de crédito</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={viewMode === "creditCard"}
+                      aria-label="Ativar modo cartão de crédito"
+                      onClick={() => {
+                        const next = viewMode === "general" ? "creditCard" : "general";
+                        setViewMode(next);
+                        newTransactionForm.setFieldValue("isCreditCard", next === "creditCard");
+                        if (next === "general")
+                          newTransactionForm.setFieldValue("isNextBilling", false);
+                      }}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-noir-border transition-colors duration-200 ease-in-out outline-none ring-2 ring-accent-primary ring-offset-2 ring-offset-noir-surface ${
+                        viewMode === "creditCard" ? "bg-accent-primary" : "bg-noir-active"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                          viewMode === "creditCard" ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </newTransactionForm.Subscribe>
 
@@ -588,6 +665,7 @@ Retorne APENAS o JSON, sem markdown.
               showInstallmentFields={true}
               showDescription={true}
               idPrefix="new-transaction"
+              viewMode={viewMode}
             />
 
             <div className="lg:col-span-4 mt-2">
@@ -811,25 +889,40 @@ Retorne APENAS o JSON, sem markdown.
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="credit-card-filter"
-                  className="text-xs font-medium text-body flex items-center gap-1"
+              {viewMode === "general" ? (
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="credit-card-filter"
+                    className="text-xs font-medium text-body flex items-center gap-1"
+                  >
+                    <CreditCard size={12} />
+                    Cartão
+                  </label>
+                  <select
+                    id="credit-card-filter"
+                    className="noir-select text-sm py-1"
+                    value={creditCardFilter}
+                    onChange={(e) => setCreditCardFilter(e.target.value)}
+                  >
+                    <option value="all">Todos</option>
+                    <option value="yes">Cartão</option>
+                    <option value="no">Não cartão</option>
+                  </select>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setHideNextBilling(!hideNextBilling)}
+                  className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-interactive transition-all duration-200 ${
+                    hideNextBilling
+                      ? "bg-accent-warning/20 text-accent-warning"
+                      : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
+                  }`}
                 >
-                  <CreditCard size={12} />
-                  Cartão
-                </label>
-                <select
-                  id="credit-card-filter"
-                  className="noir-select text-sm py-1"
-                  value={creditCardFilter}
-                  onChange={(e) => setCreditCardFilter(e.target.value)}
-                >
-                  <option value="all">Todos</option>
-                  <option value="yes">Cartão</option>
-                  <option value="no">Não cartão</option>
-                </select>
-              </div>
+                  {hideNextBilling ? <EyeOff size={12} /> : <Eye size={12} />}
+                  Ocultar Próxima Fatura
+                </button>
+              )}
               <div className="flex items-center gap-2">
                 <label
                   htmlFor="recurring-filter"
@@ -980,6 +1073,9 @@ Retorne APENAS o JSON, sem markdown.
                 isSelectionMode={isSelectionMode}
                 isSelected={selectedIds.has(transaction.id)}
                 canSelect={transaction.recurringTemplateId == null}
+                displayNextBillingTag={
+                  transaction.isNextBilling && isTransactionDateInSelectedMonth(transaction.date)
+                }
                 onToggleSelection={() => toggleTransactionSelection(transaction.id)}
                 onEdit={() => handleOpenEditModal(transaction)}
                 onMarkAsHappened={
@@ -1024,6 +1120,7 @@ Retorne APENAS o JSON, sem markdown.
           editingTransaction={editingTransaction}
           recurringEditScope={recurringEditScope}
           onRecurringEditScopeChange={setRecurringEditScope}
+          viewMode={viewMode}
         />
       )}
 
@@ -1040,6 +1137,7 @@ Retorne APENAS o JSON, sem markdown.
             bulkEditFormState.categoryId === null &&
             bulkEditFormState.paidBy === null &&
             bulkEditFormState.isCreditCard === null &&
+            bulkEditFormState.isNextBilling === null &&
             bulkEditFormState.excludeFromSplit === null
           }
         />
