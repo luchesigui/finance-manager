@@ -1,7 +1,9 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import type { SimulationSummary } from "@/features/simulation/types";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { AlertCircle, Gem, Info, TrendingUp, Wallet } from "lucide-react";
 
 // ============================================================================
@@ -44,7 +46,7 @@ function SummaryCard({
   footnote,
 }: SummaryCardProps) {
   return (
-    <div className={`noir-card p-4 ${glowClass || ""}`}>
+    <Card className={cn("p-4", glowClass)}>
       <div className="flex items-center gap-2 mb-3">
         <Icon size={16} className="text-accent-primary" />
         <span className="text-section-label text-muted uppercase tracking-widest">{title}</span>
@@ -75,7 +77,7 @@ function SummaryCard({
           <span>{footnote}</span>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -85,7 +87,7 @@ function SummaryCard({
 
 function SummaryCardSkeleton() {
   return (
-    <div className="noir-card p-4 animate-pulse">
+    <Card className="p-4 animate-pulse">
       <div className="flex items-center gap-2 mb-3">
         <div className="w-5 h-5 bg-noir-active rounded" />
         <div className="h-3 w-20 bg-noir-active rounded" />
@@ -93,7 +95,7 @@ function SummaryCardSkeleton() {
       <div className="h-8 w-28 bg-noir-active rounded mb-2" />
       <div className="h-4 w-24 bg-noir-active rounded mb-2" />
       <div className="h-2 w-full bg-noir-active rounded mt-3" />
-    </div>
+    </Card>
   );
 }
 

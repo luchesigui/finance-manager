@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Loader2, Save, X } from "lucide-react";
 import { useState } from "react";
 
@@ -28,7 +31,7 @@ export function SaveSimulationModal({ onSave, onClose, isSaving }: SaveSimulatio
       aria-modal="true"
       aria-labelledby="save-simulation-modal-title"
     >
-      <div className="noir-card max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+      <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
         <div className="p-6 border-b border-noir-border flex items-center justify-between">
           <h3
             id="save-simulation-modal-title"
@@ -51,36 +54,37 @@ export function SaveSimulationModal({ onSave, onClose, isSaving }: SaveSimulatio
             <label htmlFor="simulation-name" className="block text-sm text-body mb-2">
               Nome da simulação
             </label>
-            <input
+            <Input
               id="simulation-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Cenário sem aluguel"
-              className="noir-input w-full"
+              className="w-full"
               disabled={isSaving}
             />
             <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
-              <button
+              <Button
                 type="button"
                 onClick={onClose}
-                className="noir-btn-secondary flex-1 py-3"
+                variant="secondary"
+                className="flex-1 py-3 h-auto"
                 disabled={isSaving}
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={!name.trim() || isSaving}
-                className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"
+                className="flex-1 py-3 h-auto flex items-center justify-center gap-2"
               >
                 {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 {isSaving ? "Salvando..." : "Salvar"}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
