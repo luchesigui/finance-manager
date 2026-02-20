@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import type { SimulationSummary } from "@/features/simulation/types";
 import { formatCurrency } from "@/lib/format";
 import {
@@ -36,7 +37,7 @@ type DeficitAlertCardProps = {
 
 function DeficitAlertCard({ monthlyDeficit, totalDeficit, incomePercent }: DeficitAlertCardProps) {
   return (
-    <div className="noir-card p-card-padding h-full flex flex-col">
+    <Card className="p-card-padding h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-heading flex items-center gap-2">
           <AlertTriangle size={20} className="text-accent-negative" />
@@ -71,7 +72,7 @@ function DeficitAlertCard({ monthlyDeficit, totalDeficit, incomePercent }: Defic
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -95,7 +96,7 @@ function EmergencyFundCard({
   if (emergencyFund <= 0) return null;
 
   return (
-    <div className="noir-card p-card-padding h-full flex flex-col">
+    <Card className="p-card-padding h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-heading flex items-center gap-2">
           <Shield size={20} className="text-accent-primary" />
@@ -132,7 +133,7 @@ function EmergencyFundCard({
           )}
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -155,7 +156,7 @@ function FreedomImpactCard({
   const changeAmount = simulatedFreedom - currentFreedom;
 
   return (
-    <div className="noir-card p-card-padding h-full flex flex-col">
+    <Card className="p-card-padding h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-heading flex items-center gap-2">
           <Target
@@ -210,7 +211,7 @@ function FreedomImpactCard({
           {changePercent.toFixed(1)}%)
         </span>
       </div>
-    </div>
+    </Card>
   );
 }
 

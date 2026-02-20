@@ -1,6 +1,9 @@
 "use client";
 
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { EditableExpense, ExpenseScenario } from "@/features/simulation/types";
 import { formatCurrency } from "@/lib/format";
 import { ChevronDown, ClipboardList, Plus, Trash2 } from "lucide-react";
@@ -50,26 +53,26 @@ function AddExpenseForm({ onAdd }: AddExpenseFormProps) {
         <span className="text-sm font-medium text-heading">Adicionar Gasto na Simulação</span>
       </div>
       <div className="flex flex-col sm:flex-row gap-2">
-        <input
+        <Input
           type="text"
           placeholder="Descrição"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="noir-input flex-1 text-sm"
+          className="flex-1 text-sm"
         />
         <CurrencyInput
           value={amount}
           onValueChange={setAmount}
           placeholder="R$ 0,00"
-          className="noir-input w-full sm:w-32 text-sm"
+          className="w-full sm:w-32 text-sm"
         />
-        <button
+        <Button
           type="submit"
           disabled={!description.trim() || amount === null || amount <= 0}
-          className="noir-btn-primary text-sm py-2 disabled:opacity-50"
+          className="text-sm py-2 h-auto"
         >
           Adicionar
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -183,7 +186,7 @@ export function EditableExpensesCard({
   const canRemoveManualExpenses = true;
 
   return (
-    <div className="noir-card overflow-hidden">
+    <Card className="overflow-hidden">
       {/* Header - clickable to expand */}
       <button
         type="button"
@@ -284,6 +287,6 @@ export function EditableExpensesCard({
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

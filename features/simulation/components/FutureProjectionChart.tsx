@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import type { ChartDataPoint } from "@/features/simulation/types";
 import { formatCurrency } from "@/lib/format";
 import { Activity } from "lucide-react";
@@ -181,7 +182,7 @@ export function FutureProjectionChart({
 
   if (isLoading) {
     return (
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         {headerContent}
         <div className="flex items-center justify-center h-[400px]">
           <div className="flex flex-col items-center gap-2 text-muted">
@@ -189,23 +190,23 @@ export function FutureProjectionChart({
             <span className="text-sm">Calculando projeção...</span>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         {headerContent}
         <div className="py-8 text-center text-muted">Dados insuficientes para projeção</div>
-      </div>
+      </Card>
     );
   }
 
   const currentMonth = data[0]?.period || "Hoje";
 
   return (
-    <div className="noir-card p-card-padding">
+    <Card className="p-card-padding">
       {headerContent}
       <div>
         <div className="h-[400px] w-full">
@@ -314,6 +315,6 @@ export function FutureProjectionChart({
           hasEmergencyFund={hasEmergencyFund && !showFreedom}
         />
       </div>
-    </div>
+    </Card>
   );
 }

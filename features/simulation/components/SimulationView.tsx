@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { useEmergencyFundData } from "@/features/people/hooks/useEmergencyFundData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
@@ -187,33 +189,34 @@ export function SimulationView() {
       {/* Action buttons */}
       {hasChanges && (
         <div className="flex justify-center gap-3">
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => {
               resetToBaseline();
               setActiveSimulationId(null);
               setLastSavedStateSnapshot(null);
             }}
-            className="noir-btn-secondary flex items-center gap-2"
+            className="flex items-center gap-2"
           >
             <RefreshCw size={16} />
             Resetar para valores reais
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => setIsSaveModalOpen(true)}
             disabled={isSaveDisabled || isSaving}
-            className="noir-btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2"
           >
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             {isSaving ? "Salvando..." : "Salvar simulação"}
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Status indicator */}
       {hasChanges && (
-        <div className="noir-card p-3 bg-accent-primary/10 border-accent-primary/30 flex items-center gap-3">
+        <Card className="p-3 bg-accent-primary/10 border-accent-primary/30 flex items-center gap-3">
           <Sparkles size={18} className="text-accent-primary" />
           <div className="flex-1">
             <span className="text-sm text-heading font-medium">Simulação ativa</span>
@@ -221,7 +224,7 @@ export function SimulationView() {
               Alterações aplicadas aos participantes e/ou cenário
             </span>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Saved simulations list */}
@@ -282,13 +285,13 @@ export function SimulationView() {
       <FutureProjectionChart data={projection.chartData} emergencyFund={emergencyFund} />
 
       {/* Disclaimer */}
-      <div className="noir-card p-4 bg-noir-active/30">
+      <Card className="p-4 bg-noir-active/30">
         <p className="text-sm text-muted text-center">
           <strong className="text-body">Nota:</strong> Esta simulação é apenas uma projeção baseada
           nos dados atuais. Os valores reais podem variar. Nenhuma alteração feita aqui afeta seus
           dados reais.
         </p>
-      </div>
+      </Card>
 
       {/* Save Modal */}
       {isSaveModalOpen && (

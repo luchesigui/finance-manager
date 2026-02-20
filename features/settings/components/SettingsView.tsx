@@ -7,6 +7,9 @@ import { useEffect, useState } from "react";
 
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { FieldError } from "@/components/ui/FieldError";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { getCategoryColorStyle } from "@/features/categories/utils/categoryColors";
 import { PersonEditRow } from "@/features/people/components/PersonEditRow";
@@ -20,6 +23,7 @@ import { zodValidator } from "@/lib/form";
 import { incomeSchema, personNameSchema } from "@/lib/formSchemas";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import type { Category, CurrentUserResponse, Person, PersonPatch } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 // ============================================================================
 // Types
@@ -328,22 +332,22 @@ export function SettingsView() {
       </div>
 
       {/* Participants Section */}
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
             <Users size={20} className="text-accent-primary" />
             Participantes & Salários
           </h2>
           {hasUnsavedChanges && (
-            <button
+            <Button
               type="button"
               onClick={handleSaveAll}
               disabled={isSaving}
-              className="noir-btn-primary flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 text-sm"
             >
               <Save size={16} />
               {isSaving ? "Salvando..." : "Salvar Alterações"}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -401,16 +405,17 @@ export function SettingsView() {
                       <label htmlFor="new-person-name" className="text-xs text-body font-medium">
                         Nome
                       </label>
-                      <input
+                      <Input
                         id="new-person-name"
                         type="text"
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
                         required
-                        className={`noir-input w-full text-sm ${
-                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
-                        }`}
+                        className={cn(
+                          "w-full text-sm",
+                          field.state.meta.errors.length > 0 && "border-accent-negative",
+                        )}
                         placeholder="Nome do participante"
                       />
                       <FieldError errors={field.state.meta.errors} />
@@ -435,9 +440,10 @@ export function SettingsView() {
                         value={field.state.value}
                         onValueChange={(value) => field.handleChange(value)}
                         required
-                        className={`noir-input w-full text-sm ${
-                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
-                        }`}
+                        className={cn(
+                          "w-full text-sm",
+                          field.state.meta.errors.length > 0 && "border-accent-negative",
+                        )}
                         placeholder="R$ 0,00"
                       />
                       <FieldError errors={field.state.meta.errors} />
@@ -446,20 +452,17 @@ export function SettingsView() {
                 </createPersonForm.Field>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
-                <button
-                  type="submit"
-                  disabled={isCreatingPerson}
-                  className="noir-btn-primary text-sm py-1.5"
-                >
+                <Button type="submit" disabled={isCreatingPerson} className="text-sm py-1.5 h-auto">
                   {isCreatingPerson ? "Adicionando..." : "Adicionar"}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={handleCancelNewPerson}
-                  className="noir-btn-secondary text-sm py-1.5"
+                  className="text-sm py-1.5 h-auto"
                 >
                   Cancelar
-                </button>
+                </Button>
               </div>
             </form>
           ) : (
@@ -505,25 +508,25 @@ export function SettingsView() {
             ))}
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Emergency Fund Section */}
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
             <Shield size={20} className="text-accent-primary" />
             Reserva de Emergência
           </h2>
           {hasEmergencyFundChanged && (
-            <button
+            <Button
               type="button"
               onClick={handleSaveEmergencyFund}
               disabled={isUpdatingEmergencyFund}
-              className="noir-btn-primary flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 text-sm"
             >
               <Save size={16} />
               {isUpdatingEmergencyFund ? "Salvando..." : "Salvar"}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -541,29 +544,29 @@ export function SettingsView() {
             id="emergency-fund"
             value={emergencyFundEdit}
             onValueChange={(value) => setEmergencyFundEdit(value ?? 0)}
-            className="noir-input w-full"
+            className="w-full"
             placeholder="R$ 0,00"
           />
         </div>
-      </div>
+      </Card>
 
       {/* Categories Section */}
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
             <PieChart size={20} className="text-accent-primary" />
             Categorias & Metas (%)
           </h2>
           {hasUnsavedCategoryChanges && (
-            <button
+            <Button
               type="button"
               onClick={handleSaveCategories}
               disabled={isSavingCategories || totalCategoryPercent !== 100}
-              className="noir-btn-primary flex items-center gap-2 text-sm"
+              className="flex items-center gap-2 text-sm"
             >
               <Save size={16} />
               {isSavingCategories ? "Salvando..." : "Salvar Alterações"}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -581,13 +584,13 @@ export function SettingsView() {
                   {cat.name}
                 </span>
                 <div className="flex items-center justify-end gap-2 w-32">
-                  <input
+                  <Input
                     type="number"
                     value={edits.targetPercent}
                     onChange={(e) =>
                       updateCategoryEdit(cat.id, Number.parseFloat(e.target.value) || 0)
                     }
-                    className="noir-input w-16 text-right text-sm py-1"
+                    className="w-16 text-right text-sm py-1 h-auto"
                     min="0"
                     max="100"
                   />
@@ -608,10 +611,10 @@ export function SettingsView() {
             </span>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Appearance Section */}
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
@@ -688,7 +691,7 @@ export function SettingsView() {
             </div>
           </fieldset>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
