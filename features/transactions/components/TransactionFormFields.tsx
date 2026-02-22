@@ -309,64 +309,97 @@ export function TransactionFormFields({
 
             {/* Checkbox Options */}
             <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
-              {/* Recurring Checkbox */}
-              {(showInstallmentFields ? !values.isInstallment : true) && (
-                <div className="flex items-center gap-2">
-                  <form.Field name="isRecurring">
-                    {(field: FieldState<boolean>) => (
-                      <>
-                        <input
-                          type="checkbox"
-                          id={inputId("recurring")}
-                          checked={field.state.value}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            field.handleChange(checked);
-                            if (checked) {
-                              const day = Number.parseInt(values.date.split("-")[2] ?? "1", 10);
-                              form.setFieldValue(
-                                "dayOfMonth",
-                                Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1,
-                              );
-                            }
-                          }}
-                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
-                        />
-                        <label
-                          htmlFor={inputId("recurring")}
-                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
-                        >
-                          <RefreshCw size={14} /> Recorrente?
-                        </label>
-                      </>
-                    )}
-                  </form.Field>
-                </div>
-              )}
+              {/* Recurring Checkbox (always visible to avoid flicker) */}
+              <div className="flex items-center gap-2">
+                <form.Field name="isRecurring">
+                  {(field: FieldState<boolean>) => (
+                    <>
+                      <input
+                        type="checkbox"
+                        id={inputId("recurring")}
+                        checked={field.state.value}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          field.handleChange(checked);
+                          if (checked) {
+                            form.setFieldValue("isInstallment", false);
+                            form.setFieldValue("installments", 2);
+                            const day = Number.parseInt(values.date.split("-")[2] ?? "1", 10);
+                            form.setFieldValue(
+                              "dayOfMonth",
+                              Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1,
+                            );
+                          }
+                        }}
+                        className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
+                      />
+                      <label
+                        htmlFor={inputId("recurring")}
+                        className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
+                      >
+                        <RefreshCw size={14} /> Recorrente?
+                      </label>
+                    </>
+                  )}
+                </form.Field>
+              </div>
 
-              {/* Installment Checkbox (expenses only) */}
-              {!isIncome && showInstallmentFields && !values.isRecurring && (
-                <div className="flex items-center gap-2">
-                  <form.Field name="isInstallment">
-                    {(field: FieldState<boolean>) => (
-                      <>
-                        <input
-                          type="checkbox"
-                          id={inputId("installment")}
-                          checked={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.checked)}
-                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
-                        />
-                        <label
-                          htmlFor={inputId("installment")}
-                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
-                        >
-                          <Layers size={14} /> Parcelado?
-                        </label>
-                      </>
-                    )}
-                  </form.Field>
-                </div>
+              {/* Installment Checkbox + count (expenses only, credit card mode; always visible in credit card to avoid flicker) */}
+              {!isIncome && showInstallmentFields && viewMode === "creditCard" && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <form.Field name="isInstallment">
+                      {(field: FieldState<boolean>) => (
+                        <>
+                          <input
+                            type="checkbox"
+                            id={inputId("installment")}
+                            checked={field.state.value}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              field.handleChange(checked);
+                              if (checked) form.setFieldValue("isRecurring", false);
+                            }}
+                            className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
+                          />
+                          <label
+                            htmlFor={inputId("installment")}
+                            className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
+                          >
+                            <Layers size={14} /> Parcelado?
+                          </label>
+                        </>
+                      )}
+                    </form.Field>
+                  </div>
+                  {/* Parcelas count right after checkbox */}
+                  {values.isInstallment && (
+                    <>
+                      <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
+                        <span className="text-sm text-muted">x</span>
+                        <form.Field name="installments">
+                          {(field: FieldState<number>) => (
+                            <input
+                              type="number"
+                              min={2}
+                              max={60}
+                              value={field.state.value}
+                              onChange={(e) =>
+                                field.handleChange(Number.parseInt(e.target.value, 10) || 2)
+                              }
+                              className="noir-input w-16 text-sm py-1 text-center"
+                            />
+                          )}
+                        </form.Field>
+                        <span className="text-xs text-muted">parcelas</span>
+                      </div>
+                      <p className="w-full text-xs text-muted animate-in slide-in-from-left-2 duration-300">
+                        Adicione o valor completo; o app calcula automaticamente o valor das
+                        parcelas.
+                      </p>
+                    </>
+                  )}
+                </>
               )}
 
               {/* Exclude from Split (expenses only) */}
@@ -443,51 +476,6 @@ export function TransactionFormFields({
                   )}
                 </form.Field>
               </div>
-
-              {/* Installment Count */}
-              {!isIncome && showInstallmentFields && values.isInstallment && (
-                <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
-                  <span className="text-sm text-muted">x</span>
-                  <form.Field name="installments">
-                    {(field: FieldState<number>) => (
-                      <input
-                        type="number"
-                        min={2}
-                        max={60}
-                        value={field.state.value}
-                        onChange={(e) =>
-                          field.handleChange(Number.parseInt(e.target.value, 10) || 2)
-                        }
-                        className="noir-input w-16 text-sm py-1 text-center"
-                      />
-                    )}
-                  </form.Field>
-                  <span className="text-xs text-muted">parcelas</span>
-                </div>
-              )}
-
-              {values.isRecurring && (
-                <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
-                  <span className="text-xs text-muted">Dia do mês</span>
-                  <form.Field name="dayOfMonth">
-                    {(field: FieldState<number>) => (
-                      <input
-                        type="number"
-                        min={1}
-                        max={31}
-                        value={field.state.value}
-                        onChange={(e) => {
-                          const day = Number.parseInt(e.target.value, 10);
-                          field.handleChange(
-                            Number.isFinite(day) ? Math.min(31, Math.max(1, day)) : 1,
-                          );
-                        }}
-                        className="noir-input w-16 text-sm py-1 text-center"
-                      />
-                    )}
-                  </form.Field>
-                </div>
-              )}
             </div>
 
             {/* Additional Information (collapsible) */}
