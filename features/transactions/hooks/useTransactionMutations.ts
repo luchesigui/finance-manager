@@ -14,6 +14,13 @@ function compareByCreationDesc(a: Transaction, b: Transaction): number {
   return createdAtCompare !== 0 ? createdAtCompare : b.id - a.id;
 }
 
+function mergeTransactions(existing: Transaction[], additions: Transaction[]): Transaction[] {
+  const byId = new Map<number, Transaction>();
+  for (const transaction of existing) byId.set(transaction.id, transaction);
+  for (const transaction of additions) byId.set(transaction.id, transaction);
+  return Array.from(byId.values()).sort(compareByCreationDesc);
+}
+
 /**
  * Hook for managing transaction mutations (create, update, delete, bulk operations).
  * Handles cache updates and optimistic updates.
@@ -33,17 +40,35 @@ export function useTransactionMutations(
         jsonRequestInit("POST", payload),
       ).then((response) => (Array.isArray(response) ? response : [response])),
     onSuccess: (created) => {
-      // Filter to only transactions in the current month
-      const inCurrentMonth = created.filter((transaction) => {
+      // Group created transactions by their accounting (year, month)
+      const byMonth = new Map<string, Transaction[]>();
+      for (const transaction of created) {
         const accounting = getAccountingYearMonth(transaction.date, transaction.isNextBilling);
-        return accounting.year === selectedYear && accounting.month === selectedMonthNumber;
-      });
+        const key = `${accounting.year}-${accounting.month}`;
+        const list = byMonth.get(key) ?? [];
+        list.push(transaction);
+        byMonth.set(key, list);
+      }
+      // Update cache for each affected month so lists show new items without refetch
+      for (const [key, transactions] of byMonth) {
+        const [y, m] = key.split("-").map(Number);
+        const monthQueryKey: readonly ["transactions", number, number] = ["transactions", y, m];
+        queryClient.setQueryData<Transaction[]>(monthQueryKey, (existing = []) =>
+          mergeTransactions(existing, transactions),
+        );
+      }
 
-      if (inCurrentMonth.length === 0) return;
-
-      queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
-        [...inCurrentMonth, ...existing].sort(compareByCreationDesc),
+      // Mirror API behavior: in selected month, also show next-billing entries whose date is in that month.
+      const currentMonthPrefix = `${selectedYear}-${String(selectedMonthNumber).padStart(2, "0")}`;
+      const selectedMonthPreview = created.filter(
+        (transaction) =>
+          transaction.isNextBilling && transaction.date.startsWith(currentMonthPrefix),
       );
+      if (selectedMonthPreview.length > 0) {
+        queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
+          mergeTransactions(existing, selectedMonthPreview),
+        );
+      }
     },
   });
 
