@@ -351,6 +351,46 @@ describe("TransactionsView", { timeout: 5000 }, () => {
         expect(patchBody).toBeTruthy();
       });
     });
+
+    it("submitting edit with Recorrente? checked sends patch.isRecurring true", async () => {
+      let patchBody: unknown = null;
+      server.use(
+        ...setupHandlers(),
+        http.patch("/api/transactions/:id", async ({ request }) => {
+          patchBody = await request.json();
+          return HttpResponse.json({
+            ...mockTransactions[0],
+            recurringTemplateId: 99,
+          });
+        }),
+      );
+
+      renderView();
+      await selectors.findSupermercado();
+      const editButton = selectors.getEditButton("Supermercado");
+      await user.click(editButton);
+
+      await waitFor(() => {
+        expect(selectors.getEditDescriptionInput()).toBeInTheDocument();
+      });
+
+      const editRecurringCheckbox = document.querySelector(
+        "#edit-transaction-recurring",
+      ) as HTMLInputElement;
+      expect(editRecurringCheckbox).toBeInTheDocument();
+      if (!editRecurringCheckbox.checked) {
+        await user.click(editRecurringCheckbox);
+      }
+
+      const saveButton = selectors.getSaveConfirmButton();
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(patchBody).toBeTruthy();
+        const body = patchBody as { patch?: { isRecurring?: boolean } };
+        expect(body?.patch?.isRecurring).toBe(true);
+      });
+    });
   });
 
   describe("Mark as happened (joia)", () => {

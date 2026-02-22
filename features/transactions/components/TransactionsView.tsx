@@ -278,6 +278,7 @@ export function TransactionsView() {
         date: value.date,
         type: value.type,
         isIncrement: value.isIncrement,
+        isRecurring: value.isRecurring,
       });
 
       setEditingTransaction(null);
