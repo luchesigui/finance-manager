@@ -1,0 +1,52 @@
+---
+description: How to run tests, verify, lint, format, or start the dev server in this project.
+alwaysApply: false
+---
+
+# Project scripts and dev workflow
+
+Use these npm scripts when running tests, quality checks, or the dev server. See root [README.md](/README.md) for full setup.
+
+## Tests
+
+- **`npm run test`** — Vitest in watch mode
+- **`npm run test:run`** — Single test run (e.g. for CI)
+- **`npm run test:coverage`** — Tests with coverage
+
+Use Vitest; follow the unit-testing rule for test style and structure.
+
+## Quality gate
+
+- **`npm run verify`** — Lint + typecheck + build (run before pushing)
+
+## Format and lint
+
+- **`npm run format`** — Format code with Biome
+- **`npm run lint`** — Lint with Biome
+- **`npm run typecheck`** — TypeScript type check
+
+## Development
+
+- **`npm run dev`** — Starts Supabase local (via `db:start`) then the Next.js dev server
+
+**First run:** After `npm run dev`, copy the local Supabase URL and keys from the terminal into `.env.local`:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+**Test user (local):** `dev@example.com` / `password123`
+
+## Build
+
+- **`npm run build`** — Production build
+
+## Project structure
+
+- `app/` — Next.js App Router routes and layouts
+- `features/` — Domain modules (dashboard, despesas, simulador, etc.)
+- `lib/` — Utilities, Zustand stores, Supabase clients
+- `components/` — Shared UI components
+- `infra/` — Database, migrations, Supabase config
+- `test/` — Test setup and utilities
+
+See root README for details.

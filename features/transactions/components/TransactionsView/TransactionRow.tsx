@@ -6,6 +6,7 @@ import { formatCurrency, formatDateString } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
 import {
   AlertTriangle,
+  ArrowRight,
   Check,
   CheckCircle2,
   CreditCard,
@@ -25,6 +26,8 @@ type TransactionRowProps = {
   isSelectionMode: boolean;
   isSelected: boolean;
   canSelect: boolean;
+  /** When set, overrides whether to show the "Próxima Fatura" tag (e.g. only when tx date is in selected month). */
+  displayNextBillingTag?: boolean;
   onToggleSelection: () => void;
   onEdit: () => void;
   onMarkAsHappened?: () => void;
@@ -39,6 +42,7 @@ export function TransactionRow({
   isSelectionMode,
   isSelected,
   canSelect,
+  displayNextBillingTag,
   onToggleSelection,
   onEdit,
   onMarkAsHappened,
@@ -163,6 +167,14 @@ export function TransactionRow({
                   <CreditCard size={13} />
                   <span className="hidden md:inline">Cartão</span>
                 </Badge>
+              )}
+              {(displayNextBillingTag !== undefined
+                ? displayNextBillingTag
+                : transaction.isNextBilling) && (
+                <span className="noir-badge-warning flex items-center gap-1">
+                  <ArrowRight size={13} />
+                  <span className="hidden md:inline">Próxima Fatura</span>
+                </span>
               )}
               {transaction.excludeFromSplit && (
                 <Badge variant="secondary" className="flex items-center gap-1">

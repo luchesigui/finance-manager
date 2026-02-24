@@ -32,6 +32,7 @@ function recurringTemplateToTransaction(
     paidBy: template.paidBy,
     recurringTemplateId: template.id,
     isCreditCard: template.type === "income" ? false : template.isCreditCard,
+    isNextBilling: template.type === "income" ? false : template.isNextBilling,
     excludeFromSplit: template.type === "income" ? false : template.excludeFromSplit,
     isForecast: false,
     date,
@@ -85,7 +86,7 @@ function filterByAccountingMonth(
   month: number,
 ): TransactionRow[] {
   return rows.filter((row) => {
-    const accounting = getAccountingYearMonthUtc(row.date, row.is_credit_card ?? false);
+    const accounting = getAccountingYearMonthUtc(row.date, row.is_next_billing ?? false);
     return accounting.year === year && accounting.month === month;
   });
 }
@@ -124,12 +125,12 @@ async function materializeRecurringTemplates(year: number, month: number): Promi
     const day = clampDay(year, month, tpl.dayOfMonth);
     const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-    if (!tpl.isCreditCard) {
+    if (!tpl.isNextBilling) {
       results.push(recurringTemplateToTransaction(tpl, dateStr, toVirtualId(tpl.id, year, month)));
     }
 
-    // Credit card: transaction from previous month appears in current accounting month
-    if (tpl.isCreditCard) {
+    // Next billing: transaction from previous month appears in current accounting month
+    if (tpl.isNextBilling) {
       const prevMonth = month === 1 ? 12 : month - 1;
       const prevYear = month === 1 ? year - 1 : year;
       const prevDay = clampDay(prevYear, prevMonth, tpl.dayOfMonth);
@@ -164,7 +165,15 @@ async function getTransactionsForMonth(
   if (currentError) throw currentError;
 
   const filteredRows = filterByAccountingMonth(rawData ?? [], year, month);
-  const realTransactions = filteredRows.map(mapTransactionRow);
+  const currentMonthPrefix = `${year}-${String(month).padStart(2, "0")}`;
+  const currentMonthNextBillingRows = (rawData ?? []).filter(
+    (row: TransactionRow) =>
+      row.date?.startsWith(currentMonthPrefix) === true && row.is_next_billing === true,
+  );
+  const realTransactions = [
+    ...filteredRows.map(mapTransactionRow),
+    ...currentMonthNextBillingRows.map((row: TransactionRow) => mapTransactionRow(row)),
+  ];
 
   const closed = await isMonthClosed(householdId, year, month);
   if (closed) {
@@ -236,6 +245,7 @@ export async function createTransaction(
     paid_by: t.paidBy,
     recurring_template_id: recurringTemplateId,
     is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
+    is_next_billing: isIncome ? false : (t.isNextBilling ?? false),
     exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
     is_forecast: isForecast,
     date: t.date,
@@ -329,7 +339,7 @@ export async function getOutlierStatistics(
 
   const { data, error } = await supabase
     .from("transactions")
-    .select("category_id, amount, date, is_credit_card")
+    .select("category_id, amount, date, is_next_billing")
     .eq("household_id", householdId)
     .eq("type", "expense")
     .is("recurring_template_id", null)
@@ -344,7 +354,7 @@ export async function getOutlierStatistics(
   for (const row of data ?? []) {
     if (!row.category_id) continue;
 
-    if (row.is_credit_card && row.date?.startsWith(prevMonthStr)) {
+    if (row.is_next_billing && row.date?.startsWith(prevMonthStr)) {
       continue;
     }
 

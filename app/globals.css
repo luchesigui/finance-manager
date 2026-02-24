@@ -91,8 +91,8 @@
   --noir-border-light: #b8c4d4;
 
   --text-heading: 15 23 42;
-  --text-body: 100 116 139;
-  --text-muted: 71 85 105;
+  --text-body: 71 85 105;
+  --text-muted: 51 65 85;
 
   --accent-primary: 37 99 235;
   --accent-primary-light: 59 130 246;
@@ -122,7 +122,7 @@
   --secondary: 26 90% 37%; /* accent-spending rgb(180,83,9) — amber */
   --secondary-foreground: 0 0% 98%; /* light text on amber */
   --muted: 214 33% 93%;
-  --muted-foreground: 215 19% 35%; /* text-muted rgb(71,85,105) */
+  --muted-foreground: 215 28% 25%; /* darker for contrast on white */
   --accent: 214 33% 93%;
   --accent-foreground: 222 47% 11%;
   --destructive: 0 72% 51%; /* accent-negative rgb(220,38,38) */
@@ -136,6 +136,11 @@
   --border: 214 28% 87%; /* noir-border   #d4dbe6          */
   --input: 214 28% 87%;
   --ring: 220 83% 53%;
+}
+
+/* Use muted-foreground for .text-muted so it’s theme-aware (dark on light, light on dark) */
+.text-muted {
+  color: hsl(var(--muted-foreground));
 }
 
 html,

@@ -39,6 +39,7 @@ export async function POST(request: Request) {
       ...transaction,
       recurringTemplateId: transaction.recurringTemplateId ?? null,
       isCreditCard: transaction.isCreditCard ?? false,
+      isNextBilling: false,
       excludeFromSplit: transaction.excludeFromSplit ?? false,
       isForecast: transaction.isForecast ?? false,
       type: transaction.type ?? "expense",

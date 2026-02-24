@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import type { CategorySummaryRow } from "@/features/transactions/hooks/useFinanceCalculations";
 import { normalizeCategoryName } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
+import Link from "next/link";
 
 // ============================================================================
 // Types
@@ -72,11 +73,16 @@ function CategoryBar({ category, totalIncome, isSavingsCategory }: CategoryBarPr
   }
 
   return (
-    <div className="group py-2">
+    <Link
+      href={`/lancamentos?categoryId=${category.id}`}
+      className="group py-2 block hover:bg-noir-active/30 transition-colors rounded-sm px-2 -mx-2"
+    >
       <div className="flex items-center gap-3 mb-1.5">
         {/* Category name */}
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="text-sm font-medium truncate text-heading">{category.name}</span>
+          <span className="text-sm font-medium truncate text-heading group-hover:text-accent-primary transition-colors">
+            {category.name}
+          </span>
           {showWarning && (
             <AlertTriangle size={14} className="text-accent-negative flex-shrink-0" />
           )}
@@ -116,7 +122,7 @@ function CategoryBar({ category, totalIncome, isSavingsCategory }: CategoryBarPr
         <span>0</span>
         <span>Meta: {formatCurrency(targetAmount)}</span>
       </div>
-    </div>
+    </Link>
   );
 }
 

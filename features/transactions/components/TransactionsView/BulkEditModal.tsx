@@ -11,12 +11,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Category, Person } from "@/lib/types";
-import { CreditCard, Pencil, UserX, X } from "lucide-react";
+import { ArrowRight, CreditCard, Pencil, UserX, X } from "lucide-react";
 
 type BulkEditFormState = {
   categoryId: string | null;
   paidBy: string | null;
   isCreditCard: boolean | null;
+  isNextBilling: boolean | null;
   excludeFromSplit: boolean | null;
 };
 
@@ -172,7 +173,7 @@ export function BulkEditModal({
                 htmlFor="bulk-creditcard-enable"
                 className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
               >
-                <CreditCard size={14} /> Alterar Próxima Fatura
+                <CreditCard size={14} /> Alterar Cartão de Crédito
               </label>
               {formState.isCreditCard !== null && (
                 <Select
@@ -189,6 +190,42 @@ export function BulkEditModal({
                     <SelectItem value="false">Não</SelectItem>
                   </SelectContent>
                 </Select>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="bulk-nextbilling-enable"
+                checked={formState.isNextBilling !== null}
+                onChange={(event) =>
+                  onFormStateChange({
+                    ...formState,
+                    isNextBilling: event.target.checked ? false : null,
+                  })
+                }
+                className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
+              />
+              <label
+                htmlFor="bulk-nextbilling-enable"
+                className="text-sm font-medium text-heading cursor-pointer flex items-center gap-1"
+              >
+                <ArrowRight size={14} /> Alterar Próxima Fatura
+              </label>
+              {formState.isNextBilling !== null && (
+                <select
+                  className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
+                  value={formState.isNextBilling ? "true" : "false"}
+                  onChange={(event) =>
+                    onFormStateChange({
+                      ...formState,
+                      isNextBilling: event.target.value === "true",
+                    })
+                  }
+                >
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
               )}
             </div>
 

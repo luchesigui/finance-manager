@@ -101,7 +101,7 @@ BEGIN
   SELECT hc.id INTO v_hc_custos
   FROM public.household_categories hc
   JOIN public.categories c ON c.id = hc.category_id
-  WHERE hc.household_id = v_household_id AND c.name = 'Custos Fixos';
+  WHERE hc.household_id = v_household_id AND c.name = 'Gastos Essenciais';
 
   SELECT hc.id INTO v_hc_conforto
   FROM public.household_categories hc
@@ -145,8 +145,14 @@ BEGIN
   -- Insert only non-recurring sample transactions
   -- Recurring templates will appear as virtual transactions in the month view
   INSERT INTO public.transactions (
-    description, amount, category_id, paid_by, date, household_id, type
+    description, amount, category_id, paid_by, date, household_id, type, is_credit_card, is_next_billing
   ) VALUES
-    ('Supermercado',   800, v_hc_conforto,     v_person_id, make_date(v_year, v_month, 10), v_household_id, 'expense'),
-    ('Curso online',   200, v_hc_conhecimento, v_person_id, make_date(v_year, v_month, 15), v_household_id, 'expense');
+    ('Supermercado',   800, v_hc_conforto,     v_person_id, make_date(v_year, v_month, 10), v_household_id, 'expense', false, false),
+    ('Curso online',   200, v_hc_conhecimento, v_person_id, make_date(v_year, v_month, 15), v_household_id, 'expense', false, false),
+    -- Credit card transactions (visible in credit card mode for current month)
+    ('Posto Shell',    250, v_hc_conforto,     v_person_id, make_date(v_year, v_month, 3),  v_household_id, 'expense', true, false),
+    ('Assinatura Netflix', 55.90, v_hc_prazeres, v_person_id, make_date(v_year, v_month, 12), v_household_id, 'expense', true, false),
+    ('iFood',          78.50, v_hc_conforto,   v_person_id, make_date(v_year, v_month, 18), v_household_id, 'expense', true, false),
+    -- Credit card expense for next billing (shows in credit card view when "Ocultar próxima fatura" is off)
+    ('Farmácia',       42, v_hc_custos,       v_person_id, make_date(v_year, v_month, 25), v_household_id, 'expense', true, true);
 END $$;

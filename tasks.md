@@ -1,0 +1,48 @@
+# Project Tasks
+
+Implement tasks in the following order. Each task MUST be done in a separate branch and have a PR opened upon completion.
+
+- [ ] (Meta) Branching & PR Workflow: Create branch, implement, verify, PR.
+- [ ] Renomear "Custo Fixo" para "Gastos Essenciais"
+    - [ ] Create branch `feat/rename-custo-fixo`
+    - [ ] Find and replace occurrences in code
+    - [ ] Create migration for `categories` table
+    - [ ] Update `seed.sql`
+    - [ ] Open PR using GitHub MCP
+- [ ] Aumentar peso de "liberdade financeira" na conta de saúde
+    - [ ] Create branch `feat/health-score-weight`
+    - [ ] Locate health score calculation logic
+    - [ ] Adjust weight constant
+    - [ ] Open PR using GitHub MCP
+- [ ] Clique na categoria leva para página de lançamentos filtrado
+    - [ ] Create branch `feat/category-click-filter`
+    - [ ] Update dashboard category charts/tables to be clickable
+    - [ ] Implement query param handling in transactions page
+    - [ ] Open PR using GitHub MCP
+- [ ] Adicionar filtro por transações recorrentes
+    - [ ] Create branch `feat/recurring-filter`
+    - [ ] Add filter toggle in transactions view
+    - [ ] Update data fetching logic
+    - [ ] Open PR using GitHub MCP
+- [ ] Mover cálculo de outlier para fase de incluir transação
+    - [ ] Create branch `feat/move-outlier-calc`
+    - [ ] Analyze current on-read calculation
+    - [ ] Move logic to `createTransaction` / `updateTransaction`
+    - [ ] Update table schema if needed to store outlier status
+    - [ ] Open PR using GitHub MCP
+- [ ] Editar data de lançamento em lote
+    - [ ] Create branch `feat/batch-edit-date`
+    - [ ] Enable multi-selection in transactions table
+    - [ ] Implement bulk update server action/API
+    - [ ] Create bulk edit modal
+    - [ ] Open PR using GitHub MCP
+- [ ] Esqueci minha senha
+    - [ ] Create branch `feat/forgot-password`
+    - [ ] Add "Forgot Password" link to login
+    - [ ] Create password recovery page/flow
+    - [ ] Open PR using GitHub MCP
+- [ ] Adicionar feature de trocar senha/email
+    - [ ] Create branch `feat/settings-change-auth`
+    - [ ] Create user settings page
+    - [ ] Implement update logic
+    - [ ] Open PR using GitHub MCP

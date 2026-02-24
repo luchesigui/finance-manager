@@ -40,13 +40,7 @@ type SettlementRow = PersonWithShare & {
 
 const LIBERDADE_FINANCEIRA_CATEGORY = "liberdade financeira";
 
-const WEIGHTS = {
-  liberdadeFinanceira: 0.4,
-  categoriesOnBudget: 0.25,
-  outliers: 0.15,
-  settlement: 0.1,
-  freeBalance: 0.1,
-} as const;
+// const WEIGHTS removed - using dynamic weights inside calculateHealthScore
 
 // ============================================================================
 // Transaction Filters
@@ -439,12 +433,42 @@ export function calculateHealthScore(
   const settlementFactor = calculateSettlementFactor(settlementData);
   const freeBalanceFactor = calculateFreeBalanceFactor(freeBalance, effectiveIncome);
 
+  // Dynamic Weighting Logic
+  const isGoalReached = liberdadeFactor.percentAchieved >= 100;
+
+  const baseWeights = {
+    liberdadeFinanceira: 0.5,
+    categoriesOnBudget: 0.2,
+    outliers: 0.15,
+    settlement: 0.05,
+    freeBalance: 0.1,
+  };
+
+  let activeWeights = { ...baseWeights };
+
+  if (isGoalReached) {
+    const liberdadeWeight = 0.8;
+    const remainingWeight = 1 - liberdadeWeight; // 0.2
+
+    // Distribute remaining 0.2 proportionally among other factors based on their original relative weights
+    // Original sum of others = 0.5 (0.5 base for others)
+    // Scale factor = 0.2 / 0.5 = 0.4
+
+    activeWeights = {
+      liberdadeFinanceira: liberdadeWeight,
+      categoriesOnBudget: baseWeights.categoriesOnBudget * 0.4,
+      outliers: baseWeights.outliers * 0.4,
+      settlement: baseWeights.settlement * 0.4,
+      freeBalance: baseWeights.freeBalance * 0.4,
+    };
+  }
+
   const score = Math.round(
-    liberdadeFactor.score * WEIGHTS.liberdadeFinanceira +
-      categoriesFactor.score * WEIGHTS.categoriesOnBudget +
-      outliersFactor.score * WEIGHTS.outliers +
-      settlementFactor.score * WEIGHTS.settlement +
-      freeBalanceFactor.score * WEIGHTS.freeBalance,
+    liberdadeFactor.score * activeWeights.liberdadeFinanceira +
+      categoriesFactor.score * activeWeights.categoriesOnBudget +
+      outliersFactor.score * activeWeights.outliers +
+      settlementFactor.score * activeWeights.settlement +
+      freeBalanceFactor.score * activeWeights.freeBalance,
   );
 
   const status = getHealthStatus(score);
