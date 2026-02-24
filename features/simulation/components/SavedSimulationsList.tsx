@@ -1,5 +1,8 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import type { SavedSimulation } from "@/lib/types";
 import { ChevronDown, ChevronRight, FolderOpen, Loader2, Play, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -29,17 +32,17 @@ export function SavedSimulationsList({
 
   if (isLoading) {
     return (
-      <div className="noir-card p-4 flex items-center gap-3">
+      <Card className="p-4 flex items-center gap-3">
         <Loader2 size={18} className="animate-spin text-muted" />
         <span className="text-sm text-muted">Carregando simulações salvas...</span>
-      </div>
+      </Card>
     );
   }
 
   if (simulations.length === 0) return null;
 
   return (
-    <div className="noir-card">
+    <Card>
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -52,7 +55,9 @@ export function SavedSimulationsList({
         )}
         <FolderOpen size={18} className="text-accent-primary" />
         <span className="text-sm font-medium text-heading">Simulações salvas</span>
-        <span className="noir-badge-muted ml-auto">{simulations.length}</span>
+        <Badge variant="secondary" className="ml-auto">
+          {simulations.length}
+        </Badge>
       </button>
 
       {isExpanded && (
@@ -68,11 +73,11 @@ export function SavedSimulationsList({
                   <p className="text-sm font-medium text-heading truncate">{sim.name}</p>
                 </div>
                 {isActive && (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => onUpdate(sim.id)}
                     disabled={isSaveDisabled || updatingSimulationId === sim.id}
-                    className="noir-btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-xs px-3 py-1.5 h-auto flex items-center gap-1.5"
                   >
                     {updatingSimulationId === sim.id ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -80,16 +85,17 @@ export function SavedSimulationsList({
                       <Save size={14} />
                     )}
                     {updatingSimulationId === sim.id ? "Salvando..." : "Salvar"}
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   type="button"
                   onClick={() => onLoad(sim)}
-                  className="noir-btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                  variant="secondary"
+                  className="text-xs px-3 py-1.5 h-auto flex items-center gap-1.5"
                 >
                   <Play size={14} />
                   Carregar
-                </button>
+                </Button>
                 <button
                   type="button"
                   onClick={() => onDelete(sim.id)}
@@ -103,6 +109,6 @@ export function SavedSimulationsList({
           })}
         </div>
       )}
-    </div>
+    </Card>
   );
 }

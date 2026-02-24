@@ -1,5 +1,7 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { SimulationParticipant } from "@/features/simulation/types";
 import { formatCurrency, formatPercent } from "@/lib/format";
 import { Check, User, X } from "lucide-react";
@@ -116,7 +118,7 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
       {/* Inactive badge */}
       {!participant.isActive && (
         <div className="mt-2">
-          <span className="noir-badge-warning">Desativado</span>
+          <Badge variant="warning">Desativado</Badge>
         </div>
       )}
 
@@ -183,7 +185,7 @@ export function ParticipantSimulator({
   onMultiplierChange,
 }: ParticipantSimulatorProps) {
   return (
-    <div className="noir-card p-card-padding">
+    <Card className="p-card-padding">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
           <User size={20} className="text-accent-primary" />
@@ -200,6 +202,6 @@ export function ParticipantSimulator({
           />
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

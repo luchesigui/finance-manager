@@ -1,6 +1,7 @@
 "use client";
 
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { Card } from "@/components/ui/card";
 import type { ExpenseScenario } from "@/features/simulation/types";
 import { formatCurrency } from "@/lib/format";
 import { BarChart3, Calendar, Check, Home, Settings2 } from "lucide-react";
@@ -105,7 +106,7 @@ function ScenarioOption({
             id="custom-expense-value"
             value={customValue ?? null}
             onValueChange={(val) => onCustomValueChange?.(val ?? 0)}
-            className="noir-input w-full"
+            className="w-full"
             placeholder="R$ 0,00"
           />
         </div>
@@ -128,7 +129,7 @@ export function ScenarioSelector({
   onCustomValueChange,
 }: ScenarioSelectorProps) {
   return (
-    <div className="noir-card p-card-padding">
+    <Card className="p-card-padding">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
           <BarChart3 size={20} className="text-accent-primary" />
@@ -172,6 +173,6 @@ export function ScenarioSelector({
           onCustomValueChange={onCustomValueChange}
         />
       </div>
-    </div>
+    </Card>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+
 type CurrencyInputProps = {
   id?: string;
   name?: string;
@@ -36,7 +38,7 @@ export function CurrencyInput({
   const displayValue = value == null ? "" : currencyFormatter.format(value);
 
   return (
-    <input
+    <Input
       id={id}
       name={name}
       type="text"

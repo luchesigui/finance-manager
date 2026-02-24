@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { TransactionFormFields } from "@/features/transactions/components/TransactionFormFields";
 import type { Transaction } from "@/lib/types";
 import { Pencil, X } from "lucide-react";
@@ -32,7 +35,7 @@ export function EditTransactionModal({
       aria-modal="true"
       aria-labelledby="edit-modal-title"
     >
-      <div className="noir-card max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+      <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
         <div className="p-6 border-b border-noir-border flex items-center justify-between">
           <h3 id="edit-modal-title" className="font-semibold text-heading flex items-center gap-2">
             <Pencil className="text-accent-primary" size={20} />
@@ -65,11 +68,11 @@ export function EditTransactionModal({
                     >
                       Descrição
                     </label>
-                    <input
+                    <Input
                       id="edit-description"
                       type="text"
                       placeholder="Ex: Luz, Mercado, iFood..."
-                      className="noir-input w-full"
+                      className="w-full"
                       value={field.state.value}
                       onChange={(event) => field.handleChange(event.target.value)}
                       required
@@ -84,7 +87,6 @@ export function EditTransactionModal({
                 showInstallmentFields={false}
                 showDescription={false}
                 idPrefix="edit-transaction"
-                viewMode={viewMode}
               />
             </div>
             {isRecurring && (
@@ -117,20 +119,22 @@ export function EditTransactionModal({
               </div>
             )}
             <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
-              <button type="button" onClick={onClose} className="noir-btn-secondary flex-1 py-3">
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                className="flex-1 py-3 h-auto"
               >
+                Cancelar
+              </Button>
+              <Button type="submit" className="flex-1 py-3 h-auto">
                 <Pencil size={18} />
                 Salvar Alterações
-              </button>
+              </Button>
             </div>
           </form>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

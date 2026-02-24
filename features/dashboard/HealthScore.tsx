@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import { Activity, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 
 import type { HealthScoreResult, HealthStatus } from "@/features/dashboard/hooks/useHealthScore";
@@ -65,7 +66,7 @@ export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
 
   if (isLoading) {
     return (
-      <div className="noir-card p-6 border-2 border-noir-border animate-pulse">
+      <Card className="p-6 border-2 border-noir-border animate-pulse">
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           {/* Header skeleton */}
           <div className="flex items-center gap-3">
@@ -89,13 +90,13 @@ export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
         <div className="mt-4 pt-4">
           <div className="h-4 w-3/4 bg-noir-active rounded" />
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div
-      className={`noir-card p-6 ${config.bgColor} border-2 ${
+    <Card
+      className={`p-6 ${config.bgColor} border-2 ${
         status === "healthy"
           ? "border-accent-positive/30"
           : status === "warning"
@@ -139,6 +140,6 @@ export function HealthScore({ healthScore, isLoading }: HealthScoreProps) {
       <div className="mt-4 pt-4">
         <p className="text-body text-sm">{summary}</p>
       </div>
-    </div>
+    </Card>
   );
 }

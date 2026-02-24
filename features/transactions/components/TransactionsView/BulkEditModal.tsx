@@ -1,5 +1,15 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Category, Person } from "@/lib/types";
 import { ArrowRight, CreditCard, Pencil, UserX, X } from "lucide-react";
 
@@ -40,7 +50,7 @@ export function BulkEditModal({
       aria-modal="true"
       aria-labelledby="bulk-edit-modal-title"
     >
-      <div className="noir-card max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+      <Card className="max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-outer">
         <div className="p-6 border-b border-noir-border flex items-center justify-between">
           <h3
             id="bulk-edit-modal-title"
@@ -48,7 +58,7 @@ export function BulkEditModal({
           >
             <Pencil className="text-accent-primary" size={20} />
             Editar em Massa
-            <span className="noir-badge-muted">{selectedCount} lançamento(s)</span>
+            <Badge variant="secondary">{selectedCount} lançamento(s)</Badge>
           </h3>
           <button
             type="button"
@@ -87,20 +97,21 @@ export function BulkEditModal({
               </label>
             </div>
             {formState.categoryId !== null && (
-              <select
-                id="bulk-category"
-                className="noir-select w-full animate-in slide-in-from-top-1 duration-200"
+              <Select
                 value={formState.categoryId}
-                onChange={(event) =>
-                  onFormStateChange({ ...formState, categoryId: event.target.value })
-                }
+                onValueChange={(value) => onFormStateChange({ ...formState, categoryId: value })}
               >
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full animate-in slide-in-from-top-1 duration-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 
@@ -126,20 +137,21 @@ export function BulkEditModal({
               </label>
             </div>
             {formState.paidBy !== null && (
-              <select
-                id="bulk-paidby"
-                className="noir-select w-full animate-in slide-in-from-top-1 duration-200"
+              <Select
                 value={formState.paidBy}
-                onChange={(event) =>
-                  onFormStateChange({ ...formState, paidBy: event.target.value })
-                }
+                onValueChange={(value) => onFormStateChange({ ...formState, paidBy: value })}
               >
-                {people.map((person) => (
-                  <option key={person.id} value={person.id}>
-                    {person.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full animate-in slide-in-from-top-1 duration-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {people.map((person) => (
+                    <SelectItem key={person.id} value={person.id}>
+                      {person.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
 
@@ -164,19 +176,20 @@ export function BulkEditModal({
                 <CreditCard size={14} /> Alterar Cartão de Crédito
               </label>
               {formState.isCreditCard !== null && (
-                <select
-                  className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
+                <Select
                   value={formState.isCreditCard ? "true" : "false"}
-                  onChange={(event) =>
-                    onFormStateChange({
-                      ...formState,
-                      isCreditCard: event.target.value === "true",
-                    })
+                  onValueChange={(value) =>
+                    onFormStateChange({ ...formState, isCreditCard: value === "true" })
                   }
                 >
-                  <option value="true">Sim</option>
-                  <option value="false">Não</option>
-                </select>
+                  <SelectTrigger className="ml-auto w-auto h-8 text-sm animate-in slide-in-from-left-1 duration-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Sim</SelectItem>
+                    <SelectItem value="false">Não</SelectItem>
+                  </SelectContent>
+                </Select>
               )}
             </div>
 
@@ -236,39 +249,45 @@ export function BulkEditModal({
                 <UserX size={14} /> Alterar Fora da Divisão
               </label>
               {formState.excludeFromSplit !== null && (
-                <select
-                  className="noir-select ml-auto text-sm py-1 animate-in slide-in-from-left-1 duration-200"
+                <Select
                   value={formState.excludeFromSplit ? "true" : "false"}
-                  onChange={(event) =>
-                    onFormStateChange({
-                      ...formState,
-                      excludeFromSplit: event.target.value === "true",
-                    })
+                  onValueChange={(value) =>
+                    onFormStateChange({ ...formState, excludeFromSplit: value === "true" })
                   }
                 >
-                  <option value="true">Sim</option>
-                  <option value="false">Não</option>
-                </select>
+                  <SelectTrigger className="ml-auto w-auto h-8 text-sm animate-in slide-in-from-left-1 duration-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Sim</SelectItem>
+                    <SelectItem value="false">Não</SelectItem>
+                  </SelectContent>
+                </Select>
               )}
             </div>
           </div>
 
           <div className="flex gap-3 mt-6 pt-4 border-t border-noir-border">
-            <button type="button" onClick={onClose} className="noir-btn-secondary flex-1 py-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              className="flex-1 py-3 h-auto"
+            >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={onSave}
               disabled={isSaveDisabled}
-              className="noir-btn-primary flex-1 py-3 flex items-center justify-center gap-2"
+              className="flex-1 py-3 h-auto"
             >
               <Pencil size={18} />
               Aplicar Alterações
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

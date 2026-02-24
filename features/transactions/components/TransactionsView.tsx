@@ -1,32 +1,23 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import {
-  AlertTriangle,
-  ChevronDown,
-  CreditCard,
-  Eye,
-  EyeOff,
-  Filter,
-  Loader2,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Repeat,
-  Search,
-  SlidersHorizontal,
-  Trash2,
-  X,
-} from "lucide-react";
+import { AlertTriangle, CreditCard, Filter, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { useDefaultPayerData } from "@/features/people/hooks/useDefaultPayerData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
@@ -125,6 +116,7 @@ export function TransactionsView() {
   const [isNextBillingFilter, setIsNextBillingFilter] = useState<"all" | "yes" | "no">("all");
   const [recurringFilter, setRecurringFilter] = useState<"all" | "yes" | "no">("all");
   const [outlierFilter, setOutlierFilter] = useState<"all" | "yes" | "no">("all");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
@@ -634,7 +626,7 @@ Retorne APENAS o JSON, sem markdown.
     <div className="space-y-6 animate-in fade-in duration-500">
       <MonthNavigator />
 
-      <div className="noir-card p-card-padding relative overflow-hidden border-accent-primary/30">
+      <Card className="p-card-padding relative overflow-hidden border-accent-primary/30">
         <div className="absolute inset-0 bg-accent-primary/5" />
         <div className="relative">
           <SmartFillSection
@@ -667,7 +659,7 @@ Retorne APENAS o JSON, sem markdown.
                     <Switch
                       id="view-mode-switch"
                       checked={viewMode === "creditCard"}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         const next = checked ? "creditCard" : "general";
                         setViewMode(next);
                         newTransactionForm.setFieldValue("isCreditCard", next === "creditCard");
@@ -694,7 +686,6 @@ Retorne APENAS o JSON, sem markdown.
               showInstallmentFields={true}
               showDescription={true}
               idPrefix="new-transaction"
-              viewMode={viewMode}
             />
 
             <div className="lg:col-span-4 mt-2">
@@ -722,242 +713,31 @@ Retorne APENAS o JSON, sem markdown.
             </div>
           </form>
         </div>
-      </div>
+      </Card>
 
-      <div className="noir-card">
-        <div className="p-4 border-b border-noir-border bg-noir-active/30 flex flex-wrap items-center gap-3">
-          {viewMode === "general" && (
-            <div className="bg-noir-active p-1 rounded-interactive flex gap-1 border border-noir-border">
-              <button
-                type="button"
-                onClick={() => setTypeFilter(typeFilter === "expense" ? "all" : "expense")}
-                className={`px-4 py-1.5 text-sm font-medium rounded-interactive transition-all duration-200 ${
-                  typeFilter === "expense"
-                    ? "bg-accent-primary text-white shadow-glow-accent"
-                    : "text-body hover:text-heading hover:bg-noir-surface"
-                }`}
-              >
-                Despesa
-              </button>
-              <button
-                type="button"
-                onClick={() => setTypeFilter(typeFilter === "income" ? "all" : "income")}
-                className={`px-4 py-1.5 text-sm font-medium rounded-interactive transition-all duration-200 ${
-                  typeFilter === "income"
-                    ? "bg-accent-primary text-white shadow-glow-accent"
-                    : "text-body hover:text-heading hover:bg-noir-surface"
-                }`}
-              >
-                Renda
-              </button>
-            </div>
-          )}
-
-          {people.length > 1 && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-[42px] rounded-interactive bg-noir-active border-noir-border text-body hover:text-heading hover:bg-noir-surface flex items-center gap-2"
-                >
-                  <Plus size={16} className="text-muted" />
-                  {paidByFilter === "all"
-                    ? "Atribuído à"
-                    : people.find((p) => p.id === paidByFilter)?.name}
-                  <ChevronDown size={14} className="text-muted" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-1 bg-noir-surface border-noir-border">
-                <button
-                  type="button"
-                  className="w-full text-left p-2 text-sm text-heading hover:bg-noir-active cursor-pointer rounded-interactive border-0 bg-transparent"
-                  onClick={() => setPaidByFilter("all")}
-                >
-                  Todos
-                </button>
-                {people.map((person) => (
-                  <button
-                    key={person.id}
-                    type="button"
-                    className="w-full text-left p-2 text-sm text-heading hover:bg-noir-active cursor-pointer rounded-interactive border-0 bg-transparent"
-                    onClick={() => setPaidByFilter(person.id)}
-                  >
-                    {person.name}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
-          )}
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-[42px] rounded-interactive bg-noir-active border-noir-border text-body hover:text-heading hover:bg-noir-surface flex items-center gap-2"
-              >
-                <Plus size={16} className="text-muted" />
-                Categoria
-                {categoryFilter.size > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-accent-primary text-white">
-                    {categoryFilter.size}
-                  </Badge>
-                )}
-                <ChevronDown size={14} className="text-muted" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-0 bg-noir-surface border-noir-border">
-              <div className="max-h-[300px] overflow-y-auto p-1">
-                {categories.map((category) => (
-                  <label
-                    key={category.id}
-                    className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-noir-active/50 transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={categoryFilter.has(category.id)}
-                      onChange={(e) => {
-                        const newSet = new Set(categoryFilter);
-                        if (e.target.checked) {
-                          newSet.add(category.id);
-                        } else {
-                          newSet.delete(category.id);
-                        }
-                        setCategoryFilter(newSet);
-                      }}
-                      className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-                    />
-                    <span className="text-sm text-heading">{category.name}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="p-2 border-t border-noir-border flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter(new Set(categories.map((c) => c.id)))}
-                  className="text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 bg-accent-primary text-white shadow-glow-accent"
-                >
-                  Selecionar Todas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter(new Set())}
-                  className="text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
-                >
-                  Limpar
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          <input type="hidden" id="type-filter" value={typeFilter} readOnly aria-hidden />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-[42px] rounded-interactive bg-noir-active border-noir-border text-body hover:text-heading hover:bg-noir-surface flex items-center gap-2"
-                aria-label="Filtrar lançamentos"
-              >
-                <SlidersHorizontal size={16} className="text-muted" />
-                Mais filtros
-                {getActiveFilterCount() > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-accent-primary text-white">
-                    {getActiveFilterCount()}
-                  </Badge>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-4 bg-noir-surface border-noir-border space-y-6">
-              <h4 className="text-xs font-bold text-muted uppercase tracking-wider">
-                Filtros Avançados
-              </h4>
-
-              <div className="space-y-4">
-                {viewMode === "general" && (
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="card-filter" className="text-sm font-medium text-heading">
-                      Cartão
-                    </Label>
-                    <Switch
-                      id="card-filter"
-                      size="sm"
-                      checked={creditCardFilter === "yes"}
-                      onCheckedChange={(checked) => setCreditCardFilter(checked ? "yes" : "all")}
-                      className="data-[state=unchecked]:bg-noir-active"
-                    />
-                  </div>
-                )}
-
-                {viewMode === "creditCard" && (
-                  <div className="flex items-center justify-between">
-                    <Label
-                      htmlFor="next-billing-filter"
-                      className="text-sm font-medium text-heading"
-                    >
-                      Ocultar gastos da próxima fatura
-                    </Label>
-                    <Switch
-                      id="next-billing-filter"
-                      size="sm"
-                      checked={isNextBillingFilter === "yes"}
-                      onCheckedChange={(checked) => setIsNextBillingFilter(checked ? "yes" : "all")}
-                      className="data-[state=unchecked]:bg-noir-active"
-                    />
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="recurring-adv-filter"
-                    className="text-sm font-medium text-heading"
-                  >
-                    Recorrente
-                  </Label>
-                  <Switch
-                    id="recurring-adv-filter"
-                    size="sm"
-                    checked={recurringFilter === "yes"}
-                    onCheckedChange={(checked) => setRecurringFilter(checked ? "yes" : "all")}
-                    className="data-[state=unchecked]:bg-noir-active"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="outlier-adv-filter" className="text-sm font-medium text-heading">
-                    Fora do padrão
-                  </Label>
-                  <Switch
-                    id="outlier-adv-filter"
-                    size="sm"
-                    checked={outlierFilter === "yes"}
-                    onCheckedChange={(checked) => setOutlierFilter(checked ? "yes" : "all")}
-                    className="data-[state=unchecked]:bg-noir-active"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-noir-border flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTypeFilter("all");
-                    setPaidByFilter("all");
-                    setCategoryFilter(new Set());
-                    setCreditCardFilter("all");
-                    setIsNextBillingFilter("all");
-                    setRecurringFilter("all");
-                    setOutlierFilter("all");
-                  }}
-                  className="text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
-                >
-                  Limpar
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          <div className="flex-1" />
-
-          <div className="flex items-center gap-2">
+      <Card>
+        <div className="p-4 border-b border-noir-border bg-noir-active/50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-t-card">
+          <h2 className="font-semibold text-heading">
+            Histórico de {formatMonthYear(selectedMonthDate)}
+          </h2>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <Badge variant="secondary" className="w-fit">
+              {visibleTransactionsForSelectedMonth.length} itens
+            </Badge>
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className={`p-1.5 rounded-interactive transition-all duration-200 ${
+                isFilterOpen
+                  ? "bg-accent-primary text-white shadow-glow-accent"
+                  : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
+              }`}
+              title="Filtrar lançamentos"
+              aria-label="Filtrar lançamentos"
+              aria-expanded={isFilterOpen}
+            >
+              <Filter size={16} />
+            </button>
             <button
               type="button"
               onClick={() => setIsSearchOpen(!isSearchOpen)}
@@ -985,17 +765,219 @@ Retorne APENAS o JSON, sem markdown.
           </div>
         </div>
 
+        {/* Filter options */}
+        {isFilterOpen && (
+          <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200 overflow-visible">
+            <h3 className="text-xs font-semibold text-body mb-3">Filtros Avançados</h3>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              {(typeFilter !== "all" ||
+                paidByFilter !== "all" ||
+                categoryFilter.size > 0 ||
+                creditCardFilter !== "all" ||
+                outlierFilter !== "all" ||
+                recurringFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("all");
+                    setPaidByFilter("all");
+                    setCategoryFilter(new Set());
+                    setCreditCardFilter("all");
+                    setOutlierFilter("all");
+                    setRecurringFilter("all");
+                  }}
+                  className="text-xs text-accent-primary hover:text-blue-400 font-medium flex items-center gap-1"
+                >
+                  <X size={12} />
+                  Limpar filtros
+                </button>
+              )}
+              <div className="flex items-center gap-2">
+                <label htmlFor="type-filter" className="text-xs font-medium text-body">
+                  Tipo
+                </label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger id="type-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="expense">Despesas</SelectItem>
+                    <SelectItem value="income">Renda</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="paid-by-filter" className="text-xs font-medium text-body">
+                  Atribuído à
+                </label>
+                <Select value={paidByFilter} onValueChange={setPaidByFilter}>
+                  <SelectTrigger id="paid-by-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {people.map((person) => (
+                      <SelectItem key={person.id} value={person.id}>
+                        {person.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div ref={categoryDropdownRef} className="flex items-center gap-2 relative">
+                <label htmlFor="category-filter" className="text-xs font-medium text-body">
+                  Categoria
+                </label>
+                <button
+                  type="button"
+                  id="category-filter"
+                  onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  disabled={typeFilter === "income"}
+                  className={`noir-select text-sm py-1 min-w-[140px] text-left flex items-center justify-between gap-2 ${
+                    typeFilter === "income" ? "opacity-50 cursor-not-allowed" : ""
+                  } ${categoryFilter.size > 0 ? "ring-1 ring-accent-primary" : ""}`}
+                >
+                  <span className="truncate">
+                    {categoryFilter.size === 0
+                      ? "Todas"
+                      : `${categoryFilter.size} selecionada${categoryFilter.size > 1 ? "s" : ""}`}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 transition-transform ${
+                      isCategoryDropdownOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {isCategoryDropdownOpen && typeFilter !== "income" && (
+                  <div className="absolute top-full right-0 mt-1 z-50 bg-noir-surface border border-noir-border rounded-interactive shadow-lg min-w-[220px] animate-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 border-b border-noir-border flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryFilter(new Set(categories.map((c) => c.id)));
+                        }}
+                        className="text-xs text-accent-primary hover:text-blue-400 font-medium"
+                      >
+                        Selecionar Todas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryFilter(new Set());
+                        }}
+                        className="text-xs text-muted hover:text-body font-medium"
+                      >
+                        Limpar
+                      </button>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto p-1">
+                      {categories.map((category) => (
+                        <label
+                          key={category.id}
+                          className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-noir-active/50 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={categoryFilter.has(category.id)}
+                            onChange={(e) => {
+                              const newSet = new Set(categoryFilter);
+                              if (e.target.checked) {
+                                newSet.add(category.id);
+                              } else {
+                                newSet.delete(category.id);
+                              }
+                              setCategoryFilter(newSet);
+                            }}
+                            className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
+                          />
+                          <span className="text-sm text-heading">{category.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="credit-card-filter"
+                  className="text-xs font-medium text-body flex items-center gap-1"
+                >
+                  <CreditCard size={12} />
+                  Cartão
+                </label>
+                <Select value={creditCardFilter} onValueChange={setCreditCardFilter}>
+                  <SelectTrigger id="credit-card-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="yes">Cartão</SelectItem>
+                    <SelectItem value="no">Não cartão</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="outlier-filter"
+                  className="text-xs font-medium text-body flex items-center gap-1"
+                >
+                  <AlertTriangle size={12} />
+                  Fora do padrão
+                </label>
+                <Select
+                  value={outlierFilter}
+                  onValueChange={(v) => setOutlierFilter(v as "all" | "yes" | "no")}
+                >
+                  <SelectTrigger id="outlier-filter" className="text-sm h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="yes">Sim</SelectItem>
+                    <SelectItem value="no">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor="recurring-filter-switch"
+                  className="text-xs font-medium text-body cursor-pointer"
+                >
+                  Recorrente
+                </Label>
+                <Switch
+                  id="recurring-filter-switch"
+                  checked={recurringFilter === "yes"}
+                  onCheckedChange={(checked) => setRecurringFilter(checked ? "yes" : "all")}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Search input */}
         {isSearchOpen && (
           <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar por descrição, categoria, pessoa..."
-                className="noir-input w-full pl-9 pr-8 py-2 text-sm"
+                className="w-full pl-9 pr-8 py-2 text-sm"
               />
               {searchQuery && (
                 <button
@@ -1012,48 +994,49 @@ Retorne APENAS o JSON, sem markdown.
 
         {/* Bulk action bar */}
         {isSelectionMode && (
-          <div className="border-b border-noir-border bg-accent-primary/10 animate-in slide-in-from-top-2 duration-200">
-            <div className="p-3 flex flex-wrap items-center gap-3">
-              <span className="text-xs text-accent-primary font-medium">
-                {selectedIds.size} selecionado(s)
-              </span>
-              <div className="flex-1" />
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleOpenBulkEditModal}
-                  disabled={selectedIds.size === 0}
-                  className="noir-btn-primary text-xs px-3 py-1.5 flex items-center gap-1"
-                >
-                  <Pencil size={12} />
-                  Editar em Massa
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkDelete}
-                  disabled={selectedIds.size === 0}
-                  className="noir-btn-danger text-xs px-3 py-1.5 flex items-center gap-1"
-                >
-                  <Trash2 size={12} />
-                  Excluir
-                </button>
-              </div>
-            </div>
-            <div className="px-3 pb-3 pt-0 flex items-center gap-2 border-t border-noir-border mt-0 pt-3">
-              <button
+          <div className="p-3 border-b border-noir-border bg-accent-primary/10 flex flex-wrap items-center gap-3 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-2">
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={selectAllVisibleTransactions}
-                className="text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 bg-accent-primary text-white shadow-glow-accent"
+                className="text-xs px-2 py-1 h-auto"
               >
                 Selecionar Todos
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={clearSelection}
-                className="text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
+                className="text-xs px-2 py-1 h-auto"
               >
                 Limpar
-              </button>
+              </Button>
+            </div>
+            <span className="text-xs text-accent-primary font-medium">
+              {selectedIds.size} selecionado(s)
+            </span>
+            <div className="flex-1" />
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={handleOpenBulkEditModal}
+                disabled={selectedIds.size === 0}
+                className="text-xs px-3 py-1.5 h-auto"
+              >
+                <Pencil size={12} />
+                Editar em Massa
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleBulkDelete}
+                disabled={selectedIds.size === 0}
+                className="text-xs px-3 py-1.5 h-auto"
+              >
+                <Trash2 size={12} />
+                Excluir
+              </Button>
             </div>
           </div>
         )}
@@ -1142,7 +1125,7 @@ Retorne APENAS o JSON, sem markdown.
             </span>
           </div>
         )}
-      </div>
+      </Card>
 
       {editingTransaction && (
         <EditTransactionModal
@@ -1180,7 +1163,7 @@ Retorne APENAS o JSON, sem markdown.
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           aria-labelledby="recurring-delete-modal-title"
         >
-          <div className="noir-card max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+          <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
             <div className="p-6 border-b border-noir-border flex items-center justify-between">
               <h3
                 id="recurring-delete-modal-title"
@@ -1248,15 +1231,16 @@ Retorne APENAS o JSON, sem markdown.
                   </p>
                 </button>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setDeletingRecurringTemplateId(null)}
-                className="w-full noir-btn-secondary py-2.5 mt-2"
+                className="w-full py-2.5 mt-2 h-auto"
               >
                 Cancelar
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </dialog>
       )}
     </div>

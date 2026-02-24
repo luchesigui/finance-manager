@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import { Activity, TrendingDown, TrendingUp } from "lucide-react";
 import { useMemo } from "react";
 import {
@@ -129,7 +130,7 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
 
   if (isLoading) {
     return (
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
             <Activity size={20} className="text-accent-primary" />
@@ -142,13 +143,13 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
             <span className="text-sm text-muted">Carregando dados...</span>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="noir-card p-card-padding">
+      <Card className="p-card-padding">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
             <Activity size={20} className="text-accent-primary" />
@@ -156,12 +157,12 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
           </h2>
         </div>
         <div className="py-8 text-center text-muted">Dados históricos não disponíveis</div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="noir-card p-card-padding">
+    <Card className="p-card-padding">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
           <Activity size={20} className="text-accent-primary" />
@@ -304,6 +305,6 @@ export function HealthTrendChart({ data, currentScore, isLoading }: HealthTrendC
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

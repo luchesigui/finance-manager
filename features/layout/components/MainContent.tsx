@@ -10,7 +10,12 @@ export function MainContent({ children }: MainContentProps) {
   const pathname = usePathname();
 
   // Landing page and login page have their own full-screen layouts
-  if (pathname === "/" || pathname === "/entrar" || pathname === "/signup") {
+  if (
+    pathname === "/" ||
+    pathname === "/entrar" ||
+    pathname === "/signup" ||
+    pathname === "/styleguide"
+  ) {
     return <>{children}</>;
   }
 

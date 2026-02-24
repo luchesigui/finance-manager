@@ -3,6 +3,14 @@
 import { CrystalBallLine } from "@/components/ui/CrystalBallLine";
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { FieldError } from "@/components/ui/FieldError";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
 import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
@@ -11,8 +19,9 @@ import { zodValidator } from "@/lib/form";
 import { amountSchema, descriptionSchema } from "@/lib/formSchemas";
 import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import type { NewTransactionFormState } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import {
-  ArrowRight,
+  CreditCard,
   Layers,
   MinusCircle,
   PlusCircle,
@@ -56,8 +65,6 @@ type TransactionFormFieldsProps = {
   showDescription?: boolean;
   /** Prefix for input IDs to avoid conflicts when multiple forms are on the page. */
   idPrefix?: string;
-  /** View mode: "general" shows isCreditCard checkbox, "creditCard" shows isNextBilling checkbox. */
-  viewMode?: "general" | "creditCard";
 };
 
 // ============================================================================
@@ -91,7 +98,6 @@ export function TransactionFormFields({
   showInstallmentFields = true,
   showDescription = true,
   idPrefix = "",
-  viewMode = "general",
 }: TransactionFormFieldsProps) {
   const { categories } = useCategoriesData();
   const { people } = usePeopleData();
@@ -222,7 +228,7 @@ export function TransactionFormFields({
                       >
                         Descrição
                       </label>
-                      <input
+                      <Input
                         id={inputId("description")}
                         type="text"
                         placeholder={
@@ -230,9 +236,10 @@ export function TransactionFormFields({
                             ? "Ex: Salário, Freelance, Bônus..."
                             : "Ex: Luz, Mercado, iFood..."
                         }
-                        className={`noir-input w-full ${
-                          field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
-                        }`}
+                        className={cn(
+                          "w-full",
+                          field.state.meta.errors.length > 0 && "border-accent-negative",
+                        )}
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
@@ -264,9 +271,10 @@ export function TransactionFormFields({
                     <CurrencyInput
                       id={inputId("amount")}
                       placeholder="R$ 0,00"
-                      className={`noir-input w-full ${
-                        field.state.meta.errors.length > 0 ? "border-accent-negative" : ""
-                      }`}
+                      className={cn(
+                        "w-full",
+                        field.state.meta.errors.length > 0 && "border-accent-negative",
+                      )}
                       value={field.state.value}
                       onValueChange={(value) => field.handleChange(value)}
                       required
@@ -289,18 +297,18 @@ export function TransactionFormFields({
                       >
                         Categoria
                       </label>
-                      <select
-                        id={inputId("category")}
-                        className="noir-select w-full"
-                        value={field.state.value}
-                        onChange={(e) => handleCategoryChange(e.target.value)}
-                      >
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Select value={field.state.value} onValueChange={handleCategoryChange}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </>
                   )}
                 </form.Field>
@@ -309,97 +317,64 @@ export function TransactionFormFields({
 
             {/* Checkbox Options */}
             <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
-              {/* Recurring Checkbox (always visible to avoid flicker) */}
-              <div className="flex items-center gap-2">
-                <form.Field name="isRecurring">
-                  {(field: FieldState<boolean>) => (
-                    <>
-                      <input
-                        type="checkbox"
-                        id={inputId("recurring")}
-                        checked={field.state.value}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          field.handleChange(checked);
-                          if (checked) {
-                            form.setFieldValue("isInstallment", false);
-                            form.setFieldValue("installments", 2);
-                            const day = Number.parseInt(values.date.split("-")[2] ?? "1", 10);
-                            form.setFieldValue(
-                              "dayOfMonth",
-                              Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1,
-                            );
-                          }
-                        }}
-                        className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
-                      />
-                      <label
-                        htmlFor={inputId("recurring")}
-                        className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
-                      >
-                        <RefreshCw size={14} /> Recorrente?
-                      </label>
-                    </>
-                  )}
-                </form.Field>
-              </div>
+              {/* Recurring Checkbox */}
+              {(showInstallmentFields ? !values.isInstallment : true) && (
+                <div className="flex items-center gap-2">
+                  <form.Field name="isRecurring">
+                    {(field: FieldState<boolean>) => (
+                      <>
+                        <input
+                          type="checkbox"
+                          id={inputId("recurring")}
+                          checked={field.state.value}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            field.handleChange(checked);
+                            if (checked) {
+                              const day = Number.parseInt(values.date.split("-")[2] ?? "1", 10);
+                              form.setFieldValue(
+                                "dayOfMonth",
+                                Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1,
+                              );
+                            }
+                          }}
+                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
+                        />
+                        <label
+                          htmlFor={inputId("recurring")}
+                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
+                        >
+                          <RefreshCw size={14} /> Recorrente?
+                        </label>
+                      </>
+                    )}
+                  </form.Field>
+                </div>
+              )}
 
-              {/* Installment Checkbox + count (expenses only, credit card mode; always visible in credit card to avoid flicker) */}
-              {!isIncome && showInstallmentFields && viewMode === "creditCard" && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <form.Field name="isInstallment">
-                      {(field: FieldState<boolean>) => (
-                        <>
-                          <input
-                            type="checkbox"
-                            id={inputId("installment")}
-                            checked={field.state.value}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              field.handleChange(checked);
-                              if (checked) form.setFieldValue("isRecurring", false);
-                            }}
-                            className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
-                          />
-                          <label
-                            htmlFor={inputId("installment")}
-                            className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
-                          >
-                            <Layers size={14} /> Parcelado?
-                          </label>
-                        </>
-                      )}
-                    </form.Field>
-                  </div>
-                  {/* Parcelas count right after checkbox */}
-                  {values.isInstallment && (
-                    <>
-                      <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
-                        <span className="text-sm text-muted">x</span>
-                        <form.Field name="installments">
-                          {(field: FieldState<number>) => (
-                            <input
-                              type="number"
-                              min={2}
-                              max={60}
-                              value={field.state.value}
-                              onChange={(e) =>
-                                field.handleChange(Number.parseInt(e.target.value, 10) || 2)
-                              }
-                              className="noir-input w-16 text-sm py-1 text-center"
-                            />
-                          )}
-                        </form.Field>
-                        <span className="text-xs text-muted">parcelas</span>
-                      </div>
-                      <p className="w-full text-xs text-muted animate-in slide-in-from-left-2 duration-300">
-                        Adicione o valor completo; o app calcula automaticamente o valor das
-                        parcelas.
-                      </p>
-                    </>
-                  )}
-                </>
+              {/* Installment Checkbox (expenses only) */}
+              {!isIncome && showInstallmentFields && !values.isRecurring && (
+                <div className="flex items-center gap-2">
+                  <form.Field name="isInstallment">
+                    {(field: FieldState<boolean>) => (
+                      <>
+                        <input
+                          type="checkbox"
+                          id={inputId("installment")}
+                          checked={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.checked)}
+                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
+                        />
+                        <label
+                          htmlFor={inputId("installment")}
+                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
+                        >
+                          <Layers size={14} /> Parcelado?
+                        </label>
+                      </>
+                    )}
+                  </form.Field>
+                </div>
               )}
 
               {/* Exclude from Split (expenses only) */}
@@ -427,25 +402,25 @@ export function TransactionFormFields({
                 </div>
               )}
 
-              {/* Next Billing (expenses only, credit card view) */}
-              {!isIncome && viewMode === "creditCard" && (
+              {/* Credit Card (expenses only) */}
+              {!isIncome && (
                 <div className="flex items-center gap-2">
-                  <form.Field name="isNextBilling">
+                  <form.Field name="isCreditCard">
                     {(field: FieldState<boolean>) => (
                       <>
                         <input
                           type="checkbox"
-                          id={inputId("next-billing")}
+                          id={inputId("credit-card")}
                           checked={field.state.value}
                           onChange={(e) => field.handleChange(e.target.checked)}
                           className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
                         />
                         <label
-                          htmlFor={inputId("next-billing")}
+                          htmlFor={inputId("credit-card")}
                           className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                           title="Se marcado, o lançamento entra no mês seguinte"
                         >
-                          <ArrowRight size={14} /> Próxima Fatura
+                          <CreditCard size={14} /> Próxima Fatura
                         </label>
                       </>
                     )}
@@ -476,6 +451,51 @@ export function TransactionFormFields({
                   )}
                 </form.Field>
               </div>
+
+              {/* Installment Count */}
+              {!isIncome && showInstallmentFields && values.isInstallment && (
+                <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
+                  <span className="text-sm text-muted">x</span>
+                  <form.Field name="installments">
+                    {(field: FieldState<number>) => (
+                      <Input
+                        type="number"
+                        min={2}
+                        max={60}
+                        value={field.state.value}
+                        onChange={(e) =>
+                          field.handleChange(Number.parseInt(e.target.value, 10) || 2)
+                        }
+                        className="w-16 text-sm py-1 text-center h-auto"
+                      />
+                    )}
+                  </form.Field>
+                  <span className="text-xs text-muted">parcelas</span>
+                </div>
+              )}
+
+              {values.isRecurring && (
+                <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
+                  <span className="text-xs text-muted">Dia do mês</span>
+                  <form.Field name="dayOfMonth">
+                    {(field: FieldState<number>) => (
+                      <Input
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={field.state.value}
+                        onChange={(e) => {
+                          const day = Number.parseInt(e.target.value, 10);
+                          field.handleChange(
+                            Number.isFinite(day) ? Math.min(31, Math.max(1, day)) : 1,
+                          );
+                        }}
+                        className="w-16 text-sm py-1 text-center h-auto"
+                      />
+                    )}
+                  </form.Field>
+                </div>
+              )}
             </div>
 
             {/* Additional Information (collapsible) */}
@@ -493,31 +513,34 @@ export function TransactionFormFields({
                   >
                     Mês {showInstallmentFields && "(Opcional)"}
                   </label>
-                  <select
-                    id={inputId("month-selector")}
-                    className="noir-select w-full"
+                  <Select
                     value={
                       values.dateSelectionMode === "specific"
                         ? "specific"
                         : values.selectedMonth || currentYearMonth
                     }
-                    onChange={(e) => handleDateSelectionChange(e.target.value)}
+                    onValueChange={handleDateSelectionChange}
                   >
-                    {monthOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                    <option value="specific">Data específica</option>
-                  </select>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="specific">Data específica</SelectItem>
+                    </SelectContent>
+                  </Select>
                   {values.dateSelectionMode === "specific" && (
                     <div className="mt-2 animate-in slide-in-from-top-1 duration-200">
                       <form.Field name="date">
                         {(field: FieldState<string>) => (
-                          <input
+                          <Input
                             id={inputId("date")}
                             type="date"
-                            className="noir-input w-full"
+                            className="w-full"
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                           />
@@ -538,18 +561,18 @@ export function TransactionFormFields({
                         >
                           Atribuir à
                         </label>
-                        <select
-                          id={inputId("paid-by")}
-                          className="noir-select w-full"
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                        >
-                          {people.map((person) => (
-                            <option key={person.id} value={person.id}>
-                              {person.name}
-                            </option>
-                          ))}
-                        </select>
+                        <Select value={field.state.value} onValueChange={field.handleChange}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {people.map((person) => (
+                              <SelectItem key={person.id} value={person.id}>
+                                {person.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </>
                     )}
                   </form.Field>

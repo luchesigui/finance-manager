@@ -135,15 +135,11 @@ const selectors = {
       const btn = screen.getByLabelText(/Filtrar lançamentos/i);
       return (btn.closest(".noir-card") ?? document.body) as HTMLElement;
     },
-    getTipoLabel: () =>
-      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: "Despesa" }),
-    getAtribuidoLabel: () =>
-      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: /Atribuído à/i }),
-    getTypeSelect: () =>
-      within(selectors.toolbar.getFilterBar()).getByRole("button", { name: "Despesa" }),
+    /** Type filter combobox (only in DOM when filter panel is open). */
+    getTypeSelect: () => screen.getByLabelText(/^Tipo$/i),
     getTypeFilterValue: () =>
-      (document.querySelector("#type-filter") as HTMLInputElement)?.value ?? "",
-    getClearFilters: () => screen.queryByRole("button", { name: /^Limpar$/i }),
+      (document.querySelector("#type-filter") as HTMLElement)?.textContent?.trim() ?? "",
+    getClearFilters: () => screen.queryByRole("button", { name: /Limpar filtros/i }),
     getSearchButton: () => screen.getByLabelText(/Buscar lançamentos/i),
     getSearchInput: () => screen.getByPlaceholderText(/Buscar por descrição, categoria, pessoa/i),
   },
@@ -412,26 +408,36 @@ describe("TransactionsView", { timeout: 5000 }, () => {
     it("opening Filter panel shows Tipo, Atribuído à, Categoria, Cartão, Fora do padrão", async () => {
       renderView();
       await selectors.findSupermercado();
-      expect(selectors.toolbar.getTipoLabel()).toBeInTheDocument();
-      expect(selectors.toolbar.getAtribuidoLabel()).toBeInTheDocument();
       await user.click(selectors.toolbar.getFilterButton());
       await waitFor(() => {
         expect(screen.getByText(/Filtros Avançados/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/^Cartão$/i)).toBeInTheDocument();
-        expect(screen.getByText(/Fora do padrão/i)).toBeInTheDocument();
       });
+      const filterPanel = screen.getByText(/Filtros Avançados/i).parentElement;
+      expect(filterPanel).toBeTruthy();
+      if (filterPanel) {
+        expect(within(filterPanel).getByText(/^Tipo$/i)).toBeInTheDocument();
+        expect(within(filterPanel).getByText(/Atribuído à/i)).toBeInTheDocument();
+        expect(within(filterPanel).getByText(/^Categoria$/i)).toBeInTheDocument();
+        expect(within(filterPanel).getByText(/Fora do padrão/i)).toBeInTheDocument();
+      }
+      expect(screen.getByLabelText(/^Cartão$/i)).toBeInTheDocument();
     });
 
     it("Limpar filtros resets all filters", async () => {
       renderView();
       await selectors.findSupermercado();
-      await user.click(selectors.toolbar.getTypeSelect());
-      expect(selectors.toolbar.getTypeFilterValue()).toBe("expense");
       await user.click(selectors.toolbar.getFilterButton());
+      const recurringSwitch = screen.getByRole("switch", { name: /Recorrente/i });
+      await user.click(recurringSwitch);
+      await waitFor(() => {
+        expect(recurringSwitch).toHaveAttribute("data-state", "checked");
+      });
       const clearBtn = selectors.toolbar.getClearFilters();
       expect(clearBtn).toBeInTheDocument();
       if (clearBtn) await user.click(clearBtn);
-      expect(selectors.toolbar.getTypeFilterValue()).toBe("all");
+      await waitFor(() => {
+        expect(recurringSwitch).toHaveAttribute("data-state", "unchecked");
+      });
     });
 
     it("search input filters list", async () => {

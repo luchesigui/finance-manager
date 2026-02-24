@@ -12,6 +12,8 @@ import {
   Wallet,
 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import type { HealthScoreFactors } from "@/features/dashboard/hooks/useHealthScore";
 import { formatCurrency } from "@/lib/format";
 
@@ -52,8 +54,8 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-grid-gap">
       {/* Card A: Liberdade Financeira (highlighted) */}
-      <div
-        className={`noir-card p-6 relative overflow-hidden ${
+      <Card
+        className={`p-6 relative overflow-hidden ${
           savingsGoalAchieved
             ? "border-2 border-accent-positive/50 shadow-glow-positive"
             : "border-2 border-accent-spending/30"
@@ -111,22 +113,22 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
           {/* Status badge */}
           <div className="mt-3">
             {savingsGoalAchieved ? (
-              <span className="noir-badge-positive flex items-center gap-1.5 w-fit">
+              <Badge variant="positive" className="flex items-center gap-1.5 w-fit">
                 <CheckCircle2 size={12} />
                 Meta Atingida
-              </span>
+              </Badge>
             ) : (
-              <span className="noir-badge-warning flex items-center gap-1.5 w-fit">
+              <Badge variant="warning" className="flex items-center gap-1.5 w-fit">
                 <Target size={12} />
                 Faltam {formatCurrency(liberdadeFinanceira.target - liberdadeFinanceira.actual)}
-              </span>
+              </Badge>
             )}
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Card B: Total Gasto vs Orçamento */}
-      <div className="noir-card p-6">
+      <Card className="p-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <TrendingDown size={20} className="text-accent-negative" />
@@ -175,22 +177,22 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
         {/* Status */}
         <div className="mt-3">
           {budgetUsagePercent <= 100 ? (
-            <span className="noir-badge-positive flex items-center gap-1.5 w-fit">
+            <Badge variant="positive" className="flex items-center gap-1.5 w-fit">
               <CheckCircle2 size={12} />
               Dentro do orçamento
-            </span>
+            </Badge>
           ) : (
-            <span className="noir-badge-negative flex items-center gap-1.5 w-fit">
+            <Badge variant="negative" className="flex items-center gap-1.5 w-fit">
               <ArrowUp size={12} />
               Acima do orçamento
-            </span>
+            </Badge>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Card C: Saldo Livre */}
-      <div
-        className={`noir-card p-6 relative overflow-hidden ${
+      <Card
+        className={`p-6 relative overflow-hidden ${
           isPositiveBalance ? "border-accent-positive/30" : "border-accent-negative/30"
         }`}
       >
@@ -237,19 +239,19 @@ export function QuickStatsGrid({ factors, totalExpenses, effectiveIncome }: Quic
           {/* Status badge */}
           <div className="mt-3">
             {isPositiveBalance ? (
-              <span className="noir-badge-positive flex items-center gap-1.5 w-fit">
+              <Badge variant="positive" className="flex items-center gap-1.5 w-fit">
                 <ArrowUp size={12} />
                 Positivo
-              </span>
+              </Badge>
             ) : (
-              <span className="noir-badge-negative flex items-center gap-1.5 w-fit">
+              <Badge variant="negative" className="flex items-center gap-1.5 w-fit">
                 <ArrowDown size={12} />
                 Negativo
-              </span>
+              </Badge>
             )}
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

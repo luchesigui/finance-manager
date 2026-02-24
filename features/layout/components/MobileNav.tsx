@@ -15,7 +15,12 @@ export function MobileNav() {
   const pathname = usePathname();
 
   // Hide nav on authentication pages and landing page
-  if (pathname === "/" || pathname === "/entrar" || pathname === "/signup") {
+  if (
+    pathname === "/" ||
+    pathname === "/entrar" ||
+    pathname === "/signup" ||
+    pathname === "/styleguide"
+  ) {
     return null;
   }
 
