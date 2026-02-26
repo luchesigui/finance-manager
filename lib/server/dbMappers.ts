@@ -132,6 +132,8 @@ export function toTransactionDbPatch(patch: TransactionPatch): Record<string, un
   if (patch.date !== undefined) dbPatch.date = patch.date;
   if (patch.type !== undefined) dbPatch.type = patch.type;
   if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
+  if (patch.recurringTemplateId !== undefined)
+    dbPatch.recurring_template_id = patch.recurringTemplateId;
   return dbPatch;
 }
 
