@@ -117,6 +117,8 @@ const selectors = {
     getAmountInput: () =>
       document.querySelector('input[placeholder*="R$"]') ||
       document.querySelector('input[id*="amount"]'),
+    getInformacoesAdicionaisSummary: () => screen.getByText(/Informações adicionais/i),
+    getDatePickerButton: () => screen.getByLabelText(/Data/i),
   },
   getRendaTab: () => screen.getAllByRole("button", { name: "Renda" })[0],
   getAdicionarRendaButton: () => screen.getByRole("button", { name: /Adicionar Renda/i }),
@@ -249,6 +251,16 @@ describe("TransactionsView", { timeout: 5000 }, () => {
   });
 
   describe("Add transaction", () => {
+    it("form shows date picker in Informações adicionais", async () => {
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.form.getInformacoesAdicionaisSummary());
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toBeInTheDocument();
+      });
+      expect(selectors.form.getDatePickerButton()).toHaveTextContent(/Selecione a data|[\d/]+/);
+    });
+
     it("submitting valid form calls POST /api/transactions with correct body", async () => {
       let capturedBody: unknown = null;
       server.use(
@@ -281,6 +293,10 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       await waitFor(() => {
         expect(capturedBody).toBeTruthy();
       });
+      const payload = Array.isArray(capturedBody) ? (capturedBody as unknown[])[0] : capturedBody;
+      const payloadObj = payload as { date?: string };
+      expect(payloadObj?.date).toBeDefined();
+      expect(payloadObj?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     it("submit button reflects type Adicionar Lançamento vs Adicionar Renda", async () => {

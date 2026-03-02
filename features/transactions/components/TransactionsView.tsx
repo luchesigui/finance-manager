@@ -258,7 +258,8 @@ export function TransactionsView() {
         return;
       }
 
-      updateTransactionById(editingTransaction.id, {
+      // Patch for non-recurring transaction: include isRecurring so API can create a template when user turns recurring on. Do not send dayOfMonth (API derives from tx date).
+      const patch = {
         description: value.description,
         amount: value.amount,
         categoryId: value.categoryId,
@@ -271,7 +272,8 @@ export function TransactionsView() {
         type: value.type,
         isIncrement: value.isIncrement,
         isRecurring: value.isRecurring,
-      });
+      };
+      updateTransactionById(editingTransaction.id, patch);
 
       setEditingTransaction(null);
     },

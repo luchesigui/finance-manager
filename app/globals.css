@@ -76,6 +76,11 @@
   --input: 215 29% 12%;
   --ring: 220 81% 65%;
   --radius: 0.625rem; /* interactive = 10px */
+
+  /* Calendar */
+  .rdp-root {
+    --rdp-accent-color: rgb(var(--accent-primary));
+  }
 }
 
 /* Light Theme */
@@ -230,6 +235,12 @@ body {
   }
   small {
     @apply text-[11px] text-muted leading-snug; /* 11px */
+  }
+
+  *,
+  :before,
+  :after {
+    border: 0 solid var(--noir-border);
   }
 }
 
