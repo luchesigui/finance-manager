@@ -13,14 +13,15 @@ import {
 } from "@/components/ui/select";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
-import { MONTH_NAMES_PT_BR, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
-import { toYearMonthString } from "@/lib/dateUtils";
+import { shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import { parseDateString, toDateString } from "@/lib/dateUtils";
 import { zodValidator } from "@/lib/form";
 import { amountSchema, descriptionSchema } from "@/lib/formSchemas";
 import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import type { NewTransactionFormState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
+  Calendar as CalendarIcon,
   CreditCard,
   Layers,
   MinusCircle,
@@ -31,14 +32,14 @@ import {
   UserX,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatDateString } from "@/lib/format";
+
 // ============================================================================
 // Types
 // ============================================================================
-
-type MonthOption = {
-  value: string;
-  label: string;
-};
 
 // TanStack Form has complex generic types. We use simplified interfaces
 // that capture the methods we actually use from the form instance.
@@ -68,28 +69,6 @@ type TransactionFormFieldsProps = {
 };
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-/**
- * Generates month options for the selector (2 months before and after current).
- */
-function generateMonthOptions(currentDate: Date): MonthOption[] {
-  const options: MonthOption[] = [];
-
-  for (let offset = -2; offset <= 2; offset++) {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const value = `${year}-${String(month + 1).padStart(2, "0")}`;
-    const label = `${MONTH_NAMES_PT_BR[month]} ${year}`;
-    options.push({ value, label });
-  }
-
-  return options;
-}
-
-// ============================================================================
 // Component
 // ============================================================================
 
@@ -102,9 +81,6 @@ export function TransactionFormFields({
   const { categories } = useCategoriesData();
   const { people } = usePeopleData();
   const { selectedMonthDate } = useCurrentMonth();
-
-  const monthOptions = generateMonthOptions(selectedMonthDate);
-  const currentYearMonth = toYearMonthString(selectedMonthDate);
 
   const inputId = (name: string) => (idPrefix ? `${idPrefix}-${name}` : name);
 
@@ -120,16 +96,20 @@ export function TransactionFormFields({
   };
 
   /**
-   * Handles month/date selection change.
+   * Handles date picker selection. Updates date (YYYY-MM-DD), selectedMonth (YYYY-MM),
+   * and dateSelectionMode for compatibility with existing submission logic.
+   * If the selected date is after today, automatically flags the transaction as "previsão" (forecast).
    */
-  const handleDateSelectionChange = (value: string) => {
-    if (value === "specific") {
-      form.setFieldValue("dateSelectionMode", "specific");
-    } else {
-      form.setFieldValue("dateSelectionMode", "month");
-      form.setFieldValue("selectedMonth", value);
-      form.setFieldValue("date", `${value}-01`);
-    }
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    const dateStr = toDateString(date);
+    const todayStr = toDateString(new Date());
+    const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    form.setFieldValue("date", dateStr);
+    form.setFieldValue("selectedMonth", yearMonth);
+    form.setFieldValue("dateSelectionMode", "specific");
+    form.setFieldValue("dayOfMonth", date.getDate());
+    form.setFieldValue("isForecast", dateStr > todayStr);
   };
 
   return (
@@ -505,49 +485,51 @@ export function TransactionFormFields({
                 <span className="ml-2 text-xs font-normal text-muted">(Data, Atribuído à)</span>
               </summary>
               <div className="px-4 pb-4 pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-noir-border">
-                {/* Month/Date Selector */}
+                {/* Date Picker */}
                 <div>
                   <label
-                    htmlFor={inputId("month-selector")}
+                    htmlFor={inputId("date-picker")}
                     className="block text-xs font-medium text-body mb-1"
                   >
-                    Mês {showInstallmentFields && "(Opcional)"}
+                    Data {showInstallmentFields && "(Opcional)"}
                   </label>
-                  <Select
-                    value={
-                      values.dateSelectionMode === "specific"
-                        ? "specific"
-                        : values.selectedMonth || currentYearMonth
-                    }
-                    onValueChange={handleDateSelectionChange}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {monthOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="specific">Data específica</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {values.dateSelectionMode === "specific" && (
-                    <div className="mt-2 animate-in slide-in-from-top-1 duration-200">
-                      <form.Field name="date">
-                        {(field: FieldState<string>) => (
-                          <Input
-                            id={inputId("date")}
-                            type="date"
-                            className="w-full"
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                          />
-                        )}
-                      </form.Field>
-                    </div>
-                  )}
+                  <form.Field name="date">
+                    {(field: FieldState<string>) => {
+                      const selectedDate = field.state.value
+                        ? parseDateString(field.state.value)
+                        : new Date(
+                            selectedMonthDate.getFullYear(),
+                            selectedMonthDate.getMonth(),
+                            1,
+                          );
+                      return (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              id={inputId("date-picker")}
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal border-noir-border bg-noir-active text-body hover:bg-noir-surface hover:text-heading",
+                                !field.state.value && "text-muted-foreground",
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.state.value
+                                ? formatDateString(field.state.value)
+                                : "Selecione a data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={handleDateSelect}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      );
+                    }}
+                  </form.Field>
                 </div>
 
                 {/* Person Selector */}

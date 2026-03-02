@@ -68,7 +68,12 @@ export type TransactionPatch = Partial<
     | "type"
     | "isIncrement"
   >
->;
+> & {
+  /** Client sends to turn recurring on/off; API sets recurringTemplateId when creating/unlinking template */
+  isRecurring?: boolean;
+  /** Set only by API when creating template or unlinking */
+  recurringTemplateId?: number | null;
+};
 
 /** Fields that can be updated in bulk operations (excludes description, amount, date) */
 export type BulkTransactionPatch = Partial<

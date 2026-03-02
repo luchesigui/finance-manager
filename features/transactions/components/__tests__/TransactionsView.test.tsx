@@ -117,6 +117,8 @@ const selectors = {
     getAmountInput: () =>
       document.querySelector('input[placeholder*="R$"]') ||
       document.querySelector('input[id*="amount"]'),
+    getInformacoesAdicionaisSummary: () => screen.getByText(/Informações adicionais/i),
+    getDatePickerButton: () => screen.getByLabelText(/Data/i),
   },
   getRendaTab: () => screen.getAllByRole("button", { name: "Renda" })[0],
   getAdicionarRendaButton: () => screen.getByRole("button", { name: /Adicionar Renda/i }),
@@ -249,6 +251,16 @@ describe("TransactionsView", { timeout: 5000 }, () => {
   });
 
   describe("Add transaction", () => {
+    it("form shows date picker in Informações adicionais", async () => {
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.form.getInformacoesAdicionaisSummary());
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toBeInTheDocument();
+      });
+      expect(selectors.form.getDatePickerButton()).toHaveTextContent(/Selecione a data|[\d/]+/);
+    });
+
     it("submitting valid form calls POST /api/transactions with correct body", async () => {
       let capturedBody: unknown = null;
       server.use(
@@ -281,6 +293,10 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       await waitFor(() => {
         expect(capturedBody).toBeTruthy();
       });
+      const payload = Array.isArray(capturedBody) ? (capturedBody as unknown[])[0] : capturedBody;
+      const payloadObj = payload as { date?: string };
+      expect(payloadObj?.date).toBeDefined();
+      expect(payloadObj?.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
     it("submit button reflects type Adicionar Lançamento vs Adicionar Renda", async () => {
@@ -291,6 +307,58 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       await waitFor(() => {
         expect(selectors.getAdicionarRendaButton()).toBeInTheDocument();
       });
+    });
+
+    it("selecting a date after today auto-checks Previsão (forecast)", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2025, 0, 10)); // Jan 10, 2025
+
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.form.getInformacoesAdicionaisSummary());
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toBeInTheDocument();
+      });
+      await user.click(selectors.form.getDatePickerButton());
+
+      const dialog = screen.getByRole("dialog");
+      const day25 = within(dialog).getByRole("button", { name: /January 25/i });
+      await user.click(day25);
+
+      const forecastCheckbox = document.getElementById(
+        "new-transaction-forecast",
+      ) as HTMLInputElement;
+      await waitFor(() => {
+        expect(forecastCheckbox).toBeChecked();
+      });
+
+      vi.useRealTimers();
+    });
+
+    it("selecting a date on or before today leaves Previsão unchecked", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2025, 0, 10)); // Jan 10, 2025
+
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.form.getInformacoesAdicionaisSummary());
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toBeInTheDocument();
+      });
+      await user.click(selectors.form.getDatePickerButton());
+
+      const dialog = screen.getByRole("dialog");
+      const day5 = within(dialog).getByRole("button", { name: /January 5/i });
+      await user.click(day5);
+
+      const forecastCheckbox = document.getElementById(
+        "new-transaction-forecast",
+      ) as HTMLInputElement;
+      await waitFor(() => {
+        expect(forecastCheckbox).not.toBeChecked();
+      });
+
+      vi.useRealTimers();
     });
   });
 
@@ -345,6 +413,46 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       await waitFor(() => {
         expect(patchUrl).toContain("/api/transactions/1");
         expect(patchBody).toBeTruthy();
+      });
+    });
+
+    it("submitting edit with Recorrente? checked sends patch.isRecurring true", async () => {
+      let patchBody: unknown = null;
+      server.use(
+        ...setupHandlers(),
+        http.patch("/api/transactions/:id", async ({ request }) => {
+          patchBody = await request.json();
+          return HttpResponse.json({
+            ...mockTransactions[0],
+            recurringTemplateId: 99,
+          });
+        }),
+      );
+
+      renderView();
+      await selectors.findSupermercado();
+      const editButton = selectors.getEditButton("Supermercado");
+      await user.click(editButton);
+
+      await waitFor(() => {
+        expect(selectors.getEditDescriptionInput()).toBeInTheDocument();
+      });
+
+      const editRecurringCheckbox = document.querySelector(
+        "#edit-transaction-recurring",
+      ) as HTMLInputElement;
+      expect(editRecurringCheckbox).toBeInTheDocument();
+      if (!editRecurringCheckbox.checked) {
+        await user.click(editRecurringCheckbox);
+      }
+
+      const saveButton = selectors.getSaveConfirmButton();
+      await user.click(saveButton);
+
+      await waitFor(() => {
+        expect(patchBody).toBeTruthy();
+        const body = patchBody as { patch?: { isRecurring?: boolean } };
+        expect(body?.patch?.isRecurring).toBe(true);
       });
     });
   });

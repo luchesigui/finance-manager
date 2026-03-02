@@ -31,6 +31,7 @@ import { TransactionRow } from "@/features/transactions/components/TransactionsV
 import { fuzzyMatch } from "@/features/transactions/components/TransactionsView/fuzzyMatch";
 import { useOutlierDetection } from "@/features/transactions/hooks/useOutlierDetection";
 import { useTransactionsData } from "@/features/transactions/hooks/useTransactionsData";
+import { toDateString } from "@/lib/dateUtils";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
@@ -45,18 +46,20 @@ function createDefaultFormState(
   paidBy: string,
   yearMonth: string,
 ): NewTransactionFormState {
+  const today = new Date();
+  const dateStr = toDateString(today);
   return {
     description: "",
     amount: null,
     categoryId,
     paidBy,
     isRecurring: false,
-    dayOfMonth: 1,
+    dayOfMonth: today.getDate(),
     isCreditCard: false,
     isNextBilling: false,
-    dateSelectionMode: "month",
+    dateSelectionMode: "specific",
     selectedMonth: yearMonth,
-    date: "",
+    date: dateStr,
     isInstallment: false,
     installments: 2,
     excludeFromSplit: false,
@@ -211,6 +214,10 @@ export function TransactionsView() {
       newTransactionForm.setFieldValue("categoryId", categories[0]?.id ?? "c1");
       newTransactionForm.setFieldValue("paidBy", defaultPayerId);
       newTransactionForm.setFieldValue("selectedMonth", getCurrentYearMonth());
+      const today = new Date();
+      newTransactionForm.setFieldValue("date", toDateString(today));
+      newTransactionForm.setFieldValue("dateSelectionMode", "specific");
+      newTransactionForm.setFieldValue("dayOfMonth", today.getDate());
       if (viewMode === "creditCard") {
         newTransactionForm.setFieldValue("isCreditCard", true);
         newTransactionForm.setFieldValue("isNextBilling", preserveNextBilling);
@@ -258,7 +265,8 @@ export function TransactionsView() {
         return;
       }
 
-      updateTransactionById(editingTransaction.id, {
+      // Patch for non-recurring transaction: include isRecurring so API can create a template when user turns recurring on. Do not send dayOfMonth (API derives from tx date).
+      const patch = {
         description: value.description,
         amount: value.amount,
         categoryId: value.categoryId,
@@ -270,7 +278,9 @@ export function TransactionsView() {
         date: value.date,
         type: value.type,
         isIncrement: value.isIncrement,
-      });
+        isRecurring: value.isRecurring,
+      };
+      updateTransactionById(editingTransaction.id, patch);
 
       setEditingTransaction(null);
     },

@@ -1,10 +1,18 @@
 "use client";
 
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toDateString } from "@/lib/dateUtils";
+import { formatDateString } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon } from "lucide-react";
 import { useState } from "react";
 
 export function UiComponentsSection() {
   const [currencyValue, setCurrencyValue] = useState<number | null>(null);
+  const [dateValue, setDateValue] = useState<string | null>(null);
 
   return (
     <div className="space-y-10">
@@ -37,6 +45,63 @@ export function UiComponentsSection() {
           </p>
           <p>
             <span className="text-heading">File:</span> components/ui/CurrencyInput.tsx
+          </p>
+        </div>
+      </div>
+
+      {/* Date Picker (Calendar + Popover) */}
+      <div>
+        <h3 className="text-section-title text-heading mb-2">Date Picker</h3>
+        <p className="text-sm text-muted mb-4">
+          Single-date selection using{" "}
+          <code className="font-mono-nums text-accent-primary text-xs">react-day-picker</code> in a
+          popover. Displays and stores date as{" "}
+          <code className="font-mono-nums text-accent-primary text-xs">YYYY-MM-DD</code>.
+        </p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 max-w-xs">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="styleguide-date-picker"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal noir-input",
+                    !dateValue && "text-muted",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateValue ? formatDateString(dateValue) : "Pick a date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateValue ? new Date(`${dateValue}T12:00:00`) : undefined}
+                  onSelect={(d) => setDateValue(d ? toDateString(d) : null)}
+                />
+              </PopoverContent>
+            </Popover>
+            <p className="font-mono-nums text-xs text-muted">
+              Value: <span className="text-accent-primary">{dateValue ?? "null"}</span>
+            </p>
+          </div>
+          <div className="p-3 bg-noir-active rounded-interactive font-mono-nums text-xs text-muted">
+            {"<Popover><PopoverTrigger asChild><Button>...</Button></PopoverTrigger>"}
+            <br />
+            {
+              '<PopoverContent><Calendar mode="single" selected={...} onSelect={...} /></PopoverContent></Popover>'
+            }
+          </div>
+        </div>
+        <div className="mt-2 text-xs text-muted space-y-1">
+          <p>
+            <span className="text-heading">Components:</span> Calendar (components/ui/calendar.tsx),
+            Popover (components/ui/popover.tsx)
+          </p>
+          <p>
+            <span className="text-heading">Utils:</span> formatDateString, toDateString (lib/format,
+            lib/dateUtils)
           </p>
         </div>
       </div>

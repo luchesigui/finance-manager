@@ -23,6 +23,7 @@ export const transactionPatchSchema = z
     date: z.string(),
     type: transactionTypeSchema,
     isIncrement: z.boolean(),
+    isRecurring: z.boolean(),
   })
   .partial();
 
