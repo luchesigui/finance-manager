@@ -98,15 +98,18 @@ export function TransactionFormFields({
   /**
    * Handles date picker selection. Updates date (YYYY-MM-DD), selectedMonth (YYYY-MM),
    * and dateSelectionMode for compatibility with existing submission logic.
+   * If the selected date is after today, automatically flags the transaction as "previsão" (forecast).
    */
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
     const dateStr = toDateString(date);
+    const todayStr = toDateString(new Date());
     const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     form.setFieldValue("date", dateStr);
     form.setFieldValue("selectedMonth", yearMonth);
     form.setFieldValue("dateSelectionMode", "specific");
     form.setFieldValue("dayOfMonth", date.getDate());
+    form.setFieldValue("isForecast", dateStr > todayStr);
   };
 
   return (

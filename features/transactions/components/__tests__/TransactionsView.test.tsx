@@ -308,6 +308,58 @@ describe("TransactionsView", { timeout: 5000 }, () => {
         expect(selectors.getAdicionarRendaButton()).toBeInTheDocument();
       });
     });
+
+    it("selecting a date after today auto-checks Previsão (forecast)", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2025, 0, 10)); // Jan 10, 2025
+
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.form.getInformacoesAdicionaisSummary());
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toBeInTheDocument();
+      });
+      await user.click(selectors.form.getDatePickerButton());
+
+      const dialog = screen.getByRole("dialog");
+      const day25 = within(dialog).getByRole("button", { name: /January 25/i });
+      await user.click(day25);
+
+      const forecastCheckbox = document.getElementById(
+        "new-transaction-forecast",
+      ) as HTMLInputElement;
+      await waitFor(() => {
+        expect(forecastCheckbox).toBeChecked();
+      });
+
+      vi.useRealTimers();
+    });
+
+    it("selecting a date on or before today leaves Previsão unchecked", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2025, 0, 10)); // Jan 10, 2025
+
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.form.getInformacoesAdicionaisSummary());
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toBeInTheDocument();
+      });
+      await user.click(selectors.form.getDatePickerButton());
+
+      const dialog = screen.getByRole("dialog");
+      const day5 = within(dialog).getByRole("button", { name: /January 5/i });
+      await user.click(day5);
+
+      const forecastCheckbox = document.getElementById(
+        "new-transaction-forecast",
+      ) as HTMLInputElement;
+      await waitFor(() => {
+        expect(forecastCheckbox).not.toBeChecked();
+      });
+
+      vi.useRealTimers();
+    });
   });
 
   describe("Edit transaction modal", () => {
