@@ -132,27 +132,36 @@ BEGIN
   UPDATE public.people SET income = 10000 WHERE id = v_person_id;
 
   -- Insert expense recurring templates (these will appear as virtual transactions)
+  -- Include is_credit_card and is_next_billing for credit-card recurring (2 templates)
   INSERT INTO public.recurring_templates (
-    household_id, description, amount, category_id, paid_by, type, is_increment, day_of_month, is_active
+    household_id, description, amount, category_id, paid_by, type, is_increment, day_of_month, is_active, is_credit_card, is_next_billing
   )
   VALUES
-    (v_household_id, 'Aluguel', 4100, v_hc_custos, v_person_id, 'expense', true, 1, true),
-    (v_household_id, 'Condominio', 1025, v_hc_custos, v_person_id, 'expense', true, 5, true),
-    (v_household_id, 'Internet', 120, v_hc_custos, v_person_id, 'expense', true, 10, true),
-    (v_household_id, 'Investimento', 1500, v_hc_liberdade, v_person_id, 'expense', true, 1, true),
-    (v_household_id, 'Comissão', 1300, NULL, v_person_id, 'income', true, 5, true);
+    (v_household_id, 'Aluguel', 4100, v_hc_custos, v_person_id, 'expense', true, 1, true, false, false),
+    (v_household_id, 'Condominio', 1025, v_hc_custos, v_person_id, 'expense', true, 5, true, false, false),
+    (v_household_id, 'Internet', 120, v_hc_custos, v_person_id, 'expense', true, 10, true, false, false),
+    (v_household_id, 'Investimento', 1500, v_hc_liberdade, v_person_id, 'expense', true, 1, true, false, false),
+    (v_household_id, 'Comissão', 1300, NULL, v_person_id, 'income', true, 5, true, false, false),
+    -- Credit card recurring (2)
+    (v_household_id, 'Assinatura Spotify', 34.90, v_hc_prazeres, v_person_id, 'expense', true, 15, true, true, false),
+    (v_household_id, 'Academia', 89, v_hc_conforto, v_person_id, 'expense', true, 8, true, true, false);
 
   -- Insert only non-recurring sample transactions
   -- Recurring templates will appear as virtual transactions in the month view
+  -- Credit card: 5 current month + 3 next billing = 8 one-off; plus 2 recurring templates above = 10 total flagged as credit card
   INSERT INTO public.transactions (
     description, amount, category_id, paid_by, date, household_id, type, is_credit_card, is_next_billing
   ) VALUES
     ('Supermercado',   800, v_hc_conforto,     v_person_id, make_date(v_year, v_month, 10), v_household_id, 'expense', false, false),
     ('Curso online',   200, v_hc_conhecimento, v_person_id, make_date(v_year, v_month, 15), v_household_id, 'expense', false, false),
-    -- Credit card transactions (visible in credit card mode for current month)
+    -- Credit card current month (5)
     ('Posto Shell',    250, v_hc_conforto,     v_person_id, make_date(v_year, v_month, 3),  v_household_id, 'expense', true, false),
     ('Assinatura Netflix', 55.90, v_hc_prazeres, v_person_id, make_date(v_year, v_month, 12), v_household_id, 'expense', true, false),
     ('iFood',          78.50, v_hc_conforto,   v_person_id, make_date(v_year, v_month, 18), v_household_id, 'expense', true, false),
-    -- Credit card expense for next billing (shows in credit card view when "Ocultar próxima fatura" is off)
-    ('Farmácia',       42, v_hc_custos,       v_person_id, make_date(v_year, v_month, 25), v_household_id, 'expense', true, true);
+    ('Uber',           32, v_hc_conforto,      v_person_id, make_date(v_year, v_month, 7),  v_household_id, 'expense', true, false),
+    ('Café padaria',   28, v_hc_prazeres,      v_person_id, make_date(v_year, v_month, 20), v_household_id, 'expense', true, false),
+    -- Credit card next billing (3)
+    ('Farmácia',       42, v_hc_custos,       v_person_id, make_date(v_year, v_month, 25), v_household_id, 'expense', true, true),
+    ('Restaurante',    185, v_hc_prazeres,    v_person_id, make_date(v_year, v_month, 28), v_household_id, 'expense', true, true),
+    ('Presente',       95, v_hc_prazeres,     v_person_id, make_date(v_year, v_month, 30), v_household_id, 'expense', true, true);
 END $$;

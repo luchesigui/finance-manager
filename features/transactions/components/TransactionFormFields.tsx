@@ -453,29 +453,6 @@ export function TransactionFormFields({
                   <span className="text-xs text-muted">parcelas</span>
                 </div>
               )}
-
-              {values.isRecurring && (
-                <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
-                  <span className="text-xs text-muted">Dia do mês</span>
-                  <form.Field name="dayOfMonth">
-                    {(field: FieldState<number>) => (
-                      <Input
-                        type="number"
-                        min={1}
-                        max={31}
-                        value={field.state.value}
-                        onChange={(e) => {
-                          const day = Number.parseInt(e.target.value, 10);
-                          field.handleChange(
-                            Number.isFinite(day) ? Math.min(31, Math.max(1, day)) : 1,
-                          );
-                        }}
-                        className="w-16 text-sm py-1 text-center h-auto"
-                      />
-                    )}
-                  </form.Field>
-                </div>
-              )}
             </div>
 
             {/* Additional Information (collapsible) */}

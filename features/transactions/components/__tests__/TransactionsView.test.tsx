@@ -98,11 +98,11 @@ const selectors = {
   getAllHeadingsLevel2: () => screen.getAllByRole("heading", { level: 2 }),
   findFormTitle: () => screen.findByText(/Nova Despesa Manual|Novo Lançamento de Renda/i),
   getAdicionarLancamentoButton: () => screen.getByRole("button", { name: /Adicionar Lançamento/i }),
-  findDoisItens: () => screen.findByText(/Total de 2 lançamentos/),
+  findDoisItens: () => screen.findByText(/Total de 2 lançamento/),
   findFilterLabel: () => screen.findByLabelText(/Filtrar lançamentos/i),
   findSearchLabel: () => screen.findByLabelText(/Buscar lançamentos/i),
   getSelecionarButton: () => screen.getByRole("button", { name: /Selecionar/i }),
-  findLancamentosCount: () => screen.findByText(/Total de 2 lançamentos/),
+  findLancamentosCount: () => screen.findByText(/Total de 2 lançamento/),
   getAllButtons: () => screen.getAllByRole("button"),
   findSupermercado: () => screen.findByText("Supermercado"),
   findUber: () => screen.findByText("Uber"),
@@ -135,13 +135,11 @@ const selectors = {
     getFilterButton: () => screen.getByLabelText(/Filtrar lançamentos/i),
     getFilterBar: () => {
       const btn = screen.getByLabelText(/Filtrar lançamentos/i);
-      return (btn.closest(".noir-card") ?? document.body) as HTMLElement;
+      return (btn.closest("[data-state]") ?? document.body) as HTMLElement;
     },
-    /** Type filter combobox (only in DOM when filter panel is open). */
-    getTypeSelect: () => screen.getByLabelText(/^Tipo$/i),
-    getTypeFilterValue: () =>
-      (document.querySelector("#type-filter") as HTMLElement)?.textContent?.trim() ?? "",
-    getClearFilters: () => screen.queryByRole("button", { name: /Limpar filtros/i }),
+    getMaisFiltrosButton: () => screen.getByLabelText(/Filtrar lançamentos/i),
+    getClearFilters: () => screen.queryByRole("button", { name: /^Limpar$/i }),
+    getAplicarButton: () => screen.queryByRole("button", { name: /^Aplicar$/i }),
     getSearchButton: () => screen.getByLabelText(/Buscar lançamentos/i),
     getSearchInput: () => screen.getByPlaceholderText(/Buscar por descrição, categoria, pessoa/i),
   },
@@ -513,38 +511,85 @@ describe("TransactionsView", { timeout: 5000 }, () => {
   });
 
   describe("Filters and search", () => {
-    it("opening Filter panel shows Tipo, Atribuído à, Categoria, Cartão, Fora do padrão", async () => {
+    it("opening Mais filtros shows FILTROS AVANÇADOS with Cartão, Ocultar gastos, Recorrente, Fora do padrão and Limpar/Aplicar", async () => {
       renderView();
       await selectors.findSupermercado();
-      await user.click(selectors.toolbar.getFilterButton());
+      await user.click(selectors.toolbar.getMaisFiltrosButton());
       await waitFor(() => {
-        expect(screen.getByText(/Filtros Avançados/i)).toBeInTheDocument();
+        expect(screen.getByText(/FILTROS AVANÇADOS/i)).toBeInTheDocument();
       });
-      const filterPanel = screen.getByText(/Filtros Avançados/i).parentElement;
+      const filterPanel =
+        screen.getByText(/FILTROS AVANÇADOS/i).closest("[role='dialog']") ??
+        screen.getByText(/FILTROS AVANÇADOS/i).parentElement;
       expect(filterPanel).toBeTruthy();
       if (filterPanel) {
-        expect(within(filterPanel).getByText(/^Tipo$/i)).toBeInTheDocument();
-        expect(within(filterPanel).getByText(/Atribuído à/i)).toBeInTheDocument();
-        expect(within(filterPanel).getByText(/^Categoria$/i)).toBeInTheDocument();
-        expect(within(filterPanel).getByText(/Fora do padrão/i)).toBeInTheDocument();
+        expect(within(filterPanel as HTMLElement).getByText(/^Cartão$/i)).toBeInTheDocument();
+        expect(
+          within(filterPanel as HTMLElement).getByText(/Ocultar gastos da próxima fatura/i),
+        ).toBeInTheDocument();
+        expect(within(filterPanel as HTMLElement).getByText(/^Recorrente$/i)).toBeInTheDocument();
+        expect(within(filterPanel as HTMLElement).getByText(/Fora do padrão/i)).toBeInTheDocument();
+        expect(
+          within(filterPanel as HTMLElement).getByRole("button", { name: /^Limpar$/i }),
+        ).toBeInTheDocument();
+        expect(
+          within(filterPanel as HTMLElement).getByRole("button", { name: /^Aplicar$/i }),
+        ).toBeInTheDocument();
       }
-      expect(screen.getByLabelText(/^Cartão$/i)).toBeInTheDocument();
+      const cardSwitch = screen.getByRole("switch", { name: /^Cartão$/i });
+      expect(cardSwitch).toBeInTheDocument();
+      const recurringSwitch = screen.getByRole("switch", { name: /Recorrente/i });
+      expect(recurringSwitch).toBeInTheDocument();
+      const outlierSwitch = screen.getByRole("switch", { name: /Fora do padrão/i });
+      expect(outlierSwitch).toBeInTheDocument();
     });
 
-    it("Limpar filtros resets all filters", async () => {
+    it("main bar has Despesa and Renda type buttons when in general view", async () => {
       renderView();
       await selectors.findSupermercado();
-      await user.click(selectors.toolbar.getFilterButton());
+      const buttons = screen.getAllByRole("button", { name: /Despesa|Renda/i });
+      const despesaRendaInToolbar = buttons.filter(
+        (b) => b.textContent === "Despesa" || b.textContent === "Renda",
+      );
+      expect(despesaRendaInToolbar.some((b) => b.textContent === "Despesa")).toBe(true);
+      expect(despesaRendaInToolbar.some((b) => b.textContent === "Renda")).toBe(true);
+    });
+
+    it("Limpar in advanced filters resets the four toggles", async () => {
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.toolbar.getMaisFiltrosButton());
+      await waitFor(() => {
+        expect(screen.getByText(/FILTROS AVANÇADOS/i)).toBeInTheDocument();
+      });
       const recurringSwitch = screen.getByRole("switch", { name: /Recorrente/i });
-      await user.click(recurringSwitch);
+      if (recurringSwitch.getAttribute("data-state") !== "checked") {
+        await user.click(recurringSwitch);
+      }
       await waitFor(() => {
         expect(recurringSwitch).toHaveAttribute("data-state", "checked");
       });
-      const clearBtn = selectors.toolbar.getClearFilters();
-      expect(clearBtn).toBeInTheDocument();
-      if (clearBtn) await user.click(clearBtn);
+      const clearBtn = within(
+        (screen.getByText(/FILTROS AVANÇADOS/i).closest("[role='dialog']") ??
+          document.body) as HTMLElement,
+      ).getByRole("button", { name: /^Limpar$/i });
+      await user.click(clearBtn);
       await waitFor(() => {
         expect(recurringSwitch).toHaveAttribute("data-state", "unchecked");
+      });
+    });
+
+    it("Aplicar closes the advanced filters popover", async () => {
+      renderView();
+      await selectors.findSupermercado();
+      await user.click(selectors.toolbar.getMaisFiltrosButton());
+      await waitFor(() => {
+        expect(screen.getByText(/FILTROS AVANÇADOS/i)).toBeInTheDocument();
+      });
+      const aplicarBtn = screen.getByRole("button", { name: /^Aplicar$/i });
+      await user.click(aplicarBtn);
+      await waitFor(() => {
+        expect(screen.queryByText(/FILTROS AVANÇADOS/i)).not.toBeInTheDocument();
       });
     });
 
@@ -571,7 +616,7 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       renderView();
       await selectors.findHistorico();
 
-      await user.click(selectors.toolbar.getFilterButton());
+      await user.click(selectors.toolbar.getMaisFiltrosButton());
       const recurringSwitch = screen.getByRole("switch", { name: /Recorrente/i });
       expect(recurringSwitch).toBeInTheDocument();
       await user.click(recurringSwitch);
@@ -650,5 +695,89 @@ describe("TransactionsView", { timeout: 5000 }, () => {
     it.todo(
       "ao falhar PATCH bulk ou DELETE bulk: exibir feedback de erro e não atualizar a lista até sucesso",
     );
+  });
+
+  describe("Credit card mode", () => {
+    const march2025 = new Date(2025, 2, 1); // March 2025; previous month = February 2025
+
+    it("shows previous month credit card transactions tagged isNextBilling (current bill)", async () => {
+      const transactions: Transaction[] = [
+        {
+          id: 1,
+          description: "PrevMonthNextBilling",
+          amount: 100,
+          categoryId: "c1",
+          paidBy: "p1",
+          recurringTemplateId: 99,
+          isCreditCard: true,
+          isNextBilling: true,
+          excludeFromSplit: false,
+          isForecast: false,
+          date: "2025-02-15",
+          type: "expense",
+          isIncrement: true,
+        },
+        {
+          id: 2,
+          description: "CurrentMonthCard",
+          amount: 50,
+          categoryId: "c1",
+          paidBy: "p1",
+          recurringTemplateId: 99,
+          isCreditCard: true,
+          isNextBilling: false,
+          excludeFromSplit: false,
+          isForecast: false,
+          date: "2025-03-05",
+          type: "expense",
+          isIncrement: true,
+        },
+      ];
+      useCurrentMonthStore.setState({ selectedMonthDate: march2025 });
+      server.use(...setupHandlers(transactions));
+
+      renderView();
+      await screen.findByRole("switch", { name: /Cartão de crédito/i });
+
+      const creditCardSwitch = screen.getByRole("switch", { name: /Cartão de crédito/i });
+      await user.click(creditCardSwitch);
+
+      await waitFor(() => {
+        expect(screen.getByText("PrevMonthNextBilling")).toBeInTheDocument();
+        expect(screen.getByText("CurrentMonthCard")).toBeInTheDocument();
+      });
+    });
+
+    it("hides previous month credit card transactions not tagged isNextBilling", async () => {
+      const transactions: Transaction[] = [
+        {
+          id: 1,
+          description: "PrevMonthNotNextBilling",
+          amount: 100,
+          categoryId: "c1",
+          paidBy: "p1",
+          recurringTemplateId: 99,
+          isCreditCard: true,
+          isNextBilling: false,
+          excludeFromSplit: false,
+          isForecast: false,
+          date: "2025-02-15",
+          type: "expense",
+          isIncrement: true,
+        },
+      ];
+      useCurrentMonthStore.setState({ selectedMonthDate: march2025 });
+      server.use(...setupHandlers(transactions));
+
+      renderView();
+      await screen.findByRole("switch", { name: /Cartão de crédito/i });
+
+      const creditCardSwitch = screen.getByRole("switch", { name: /Cartão de crédito/i });
+      await user.click(creditCardSwitch);
+
+      await waitFor(() => {
+        expect(screen.queryByText("PrevMonthNotNextBilling")).not.toBeInTheDocument();
+      });
+    });
   });
 });
