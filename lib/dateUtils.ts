@@ -76,6 +76,25 @@ export function getAccountingYearMonthUtc(
   };
 }
 
+/** Minimal shape for accounting-period checks (matches DB / `getTransactionsForMonth` logic). */
+export type AccountingPeriodTransaction = {
+  date: string;
+  isNextBilling: boolean;
+};
+
+/**
+ * True when the transaction belongs in (year, month) for budgeting and totals.
+ * Excludes display-only rows: calendar date in the period but `isNextBilling` shifts accounting forward.
+ */
+export function transactionMatchesAccountingPeriod(
+  transaction: AccountingPeriodTransaction,
+  year: number,
+  month: number,
+): boolean {
+  const acc = getAccountingYearMonthUtc(transaction.date, transaction.isNextBilling);
+  return acc.year === year && acc.month === month;
+}
+
 /**
  * Exports the configured dayjs instance for direct usage when needed.
  * Prefer using the specific utility functions above when possible.

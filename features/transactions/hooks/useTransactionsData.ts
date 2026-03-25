@@ -36,6 +36,8 @@ export function useTransactionsData() {
   const { transactionsForSelectedMonth, transactionsForCalculations } = useTransactionDerivations(
     transactions,
     forecastInclusionOverrides,
+    selectedYear,
+    selectedMonthNumber,
   );
 
   const addTransactionsFromFormState = (formState: NewTransactionFormState) => {

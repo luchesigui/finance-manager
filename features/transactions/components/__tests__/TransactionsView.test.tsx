@@ -779,5 +779,43 @@ describe("TransactionsView", { timeout: 5000 }, () => {
         expect(screen.queryByText("PrevMonthNotNextBilling")).not.toBeInTheDocument();
       });
     });
+
+    it("with credit card mode on, submit sends isNextBilling and isCreditCard true", async () => {
+      let capturedBody: unknown = null;
+      server.use(
+        ...setupHandlers(),
+        http.post("/api/transactions", async ({ request }) => {
+          capturedBody = await request.json();
+          const payload = Array.isArray(capturedBody) ? capturedBody[0] : capturedBody;
+          return HttpResponse.json([
+            {
+              ...(payload as object),
+              id: 101,
+            },
+          ]);
+        }),
+      );
+
+      renderView();
+      await selectors.findSupermercado();
+
+      const creditCardSwitch = screen.getByRole("switch", { name: /Cartão de crédito/i });
+      await user.click(creditCardSwitch);
+
+      const descInput = selectors.form.getDescricaoInput();
+      const amountInput = selectors.form.getAmountInput();
+      if (descInput) await user.type(descInput, "Padaria");
+      if (amountInput) await user.type(amountInput, "25");
+
+      await user.click(selectors.getAdicionarLancamentoButton());
+
+      await waitFor(() => {
+        expect(capturedBody).toBeTruthy();
+      });
+      const payload = Array.isArray(capturedBody) ? (capturedBody as unknown[])[0] : capturedBody;
+      const payloadObj = payload as { isNextBilling?: boolean; isCreditCard?: boolean };
+      expect(payloadObj.isNextBilling).toBe(true);
+      expect(payloadObj.isCreditCard).toBe(true);
+    });
   });
 });

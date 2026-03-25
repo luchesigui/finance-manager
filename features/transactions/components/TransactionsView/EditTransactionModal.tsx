@@ -87,6 +87,7 @@ export function EditTransactionModal({
                 showInstallmentFields={false}
                 showDescription={false}
                 idPrefix="edit-transaction"
+                creditCardViewActive={viewMode === "creditCard"}
               />
             </div>
             {isRecurring && (

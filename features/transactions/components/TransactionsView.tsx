@@ -200,7 +200,6 @@ export function TransactionsView() {
       getCurrentYearMonth(),
     ),
     onSubmit: async ({ value }) => {
-      const preserveNextBilling = value.isNextBilling;
       addTransactionsFromFormState(value);
       newTransactionForm.reset();
       newTransactionForm.setFieldValue("categoryId", categories[0]?.id ?? "c1");
@@ -212,7 +211,7 @@ export function TransactionsView() {
       newTransactionForm.setFieldValue("dayOfMonth", today.getDate());
       if (viewMode === "creditCard") {
         newTransactionForm.setFieldValue("isCreditCard", true);
-        newTransactionForm.setFieldValue("isNextBilling", preserveNextBilling);
+        newTransactionForm.setFieldValue("isNextBilling", true);
       }
       setSmartInput("");
     },
@@ -671,8 +670,11 @@ Retorne APENAS o JSON, sem markdown.
                         const next = checked ? "creditCard" : "general";
                         setViewMode(next);
                         newTransactionForm.setFieldValue("isCreditCard", next === "creditCard");
-                        if (next === "general")
+                        if (next === "creditCard") {
+                          newTransactionForm.setFieldValue("isNextBilling", true);
+                        } else {
                           newTransactionForm.setFieldValue("isNextBilling", false);
+                        }
                       }}
                     />
                   </div>
@@ -694,6 +696,7 @@ Retorne APENAS o JSON, sem markdown.
               showInstallmentFields={true}
               showDescription={true}
               idPrefix="new-transaction"
+              creditCardViewActive={viewMode === "creditCard"}
             />
 
             <div className="lg:col-span-4 mt-2">

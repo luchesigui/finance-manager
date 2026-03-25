@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCategories } from "@/features/categories/server/store";
 import { getPeople } from "@/features/people/server/store";
 import { getOutlierStatistics, getTransactions } from "@/features/transactions/server/store";
+import { transactionMatchesAccountingPeriod } from "@/lib/dateUtils";
 import {
   calculateCategorySummary,
   calculateIncomeBreakdown,
@@ -85,16 +86,24 @@ export async function GET(request: Request) {
       getOutlierStatistics(year, month).catch(() => [] as CategoryStatistics[]),
     ]);
 
+    const transactionsForAggregates = transactions.filter((t) =>
+      transactionMatchesAccountingPeriod(t, year, month),
+    );
+
     const baseIncome = calculateTotalIncome(people);
-    const incomeBreakdown = calculateIncomeBreakdown(transactions);
+    const incomeBreakdown = calculateIncomeBreakdown(transactionsForAggregates);
     const effectiveIncome = baseIncome + incomeBreakdown.netIncome;
-    const expenseTransactions = getExpenseTransactions(transactions);
+    const expenseTransactions = getExpenseTransactions(transactionsForAggregates);
     const totalExpenses = expenseTransactions.reduce(
       (sum, transaction) => sum + transaction.amount,
       0,
     );
-    const categorySummary = calculateCategorySummary(categories, transactions, effectiveIncome);
-    const outlierCount = countOutliers(transactions, outlierStatistics);
+    const categorySummary = calculateCategorySummary(
+      categories,
+      transactionsForAggregates,
+      effectiveIncome,
+    );
+    const outlierCount = countOutliers(transactionsForAggregates, outlierStatistics);
 
     return NextResponse.json({
       people,

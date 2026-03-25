@@ -1,5 +1,6 @@
 "use client";
 
+import { transactionMatchesAccountingPeriod } from "@/lib/dateUtils";
 import type { Transaction } from "@/lib/types";
 
 /**
@@ -17,10 +18,15 @@ function compareByCreationDesc(a: Transaction, b: Transaction): number {
 export function useTransactionDerivations(
   transactions: Transaction[],
   forecastInclusionOverrides: Record<number, boolean>,
+  accountingYear: number,
+  accountingMonth: number,
 ) {
   const transactionsForSelectedMonth = [...transactions].sort(compareByCreationDesc);
 
   const transactionsForCalculations = transactions
+    .filter((transaction) =>
+      transactionMatchesAccountingPeriod(transaction, accountingYear, accountingMonth),
+    )
     .filter((transaction) => !transaction.isForecast || forecastInclusionOverrides[transaction.id])
     .map((transaction) => {
       if (!transaction.isForecast) return transaction;

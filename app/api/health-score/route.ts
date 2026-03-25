@@ -7,6 +7,7 @@ import {
 } from "@/features/dashboard/server/healthScoreCalculation";
 import { getPeople } from "@/features/people/server/store";
 import { getOutlierStatistics, getTransactions } from "@/features/transactions/server/store";
+import { transactionMatchesAccountingPeriod } from "@/lib/dateUtils";
 import { requireAuthWithHousehold } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
@@ -154,13 +155,17 @@ export async function GET(request: Request) {
         getOutlierStatistics(year, month, householdId).catch(() => []),
       ]);
 
-      const outlierCount = countOutliers(transactions, outlierStats);
+      const transactionsForAggregates = transactions.filter((t) =>
+        transactionMatchesAccountingPeriod(t, year, month),
+      );
+
+      const outlierCount = countOutliers(transactionsForAggregates, outlierStats);
       const dayOfMonth = getEffectiveDayOfMonth(year, month);
 
       const { score, status, reason } = calculateHealthScore(
         people,
         categories,
-        transactions,
+        transactionsForAggregates,
         outlierCount,
         dayOfMonth,
       );

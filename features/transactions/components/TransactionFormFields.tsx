@@ -66,6 +66,10 @@ type TransactionFormFieldsProps = {
   showDescription?: boolean;
   /** Prefix for input IDs to avoid conflicts when multiple forms are on the page. */
   idPrefix?: string;
+  /**
+   * When true (credit card view), `isCreditCard` stays true even if "Próxima Fatura" is unchecked.
+   */
+  creditCardViewActive?: boolean;
 };
 
 // ============================================================================
@@ -77,6 +81,7 @@ export function TransactionFormFields({
   showInstallmentFields = true,
   showDescription = true,
   idPrefix = "",
+  creditCardViewActive = false,
 }: TransactionFormFieldsProps) {
   const { categories } = useCategoriesData();
   const { people } = usePeopleData();
@@ -128,6 +133,10 @@ export function TransactionFormFields({
                   onClick={() => {
                     form.setFieldValue("type", "expense");
                     form.setFieldValue("isIncrement", true);
+                    if (creditCardViewActive) {
+                      form.setFieldValue("isCreditCard", true);
+                      form.setFieldValue("isNextBilling", true);
+                    }
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-interactive border-2 transition-all duration-200 ${
                     !isIncome
@@ -143,6 +152,8 @@ export function TransactionFormFields({
                   onClick={() => {
                     form.setFieldValue("type", "income");
                     form.setFieldValue("isIncrement", true);
+                    form.setFieldValue("isCreditCard", false);
+                    form.setFieldValue("isNextBilling", false);
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-interactive border-2 transition-all duration-200 ${
                     isIncome
@@ -382,21 +393,25 @@ export function TransactionFormFields({
                 </div>
               )}
 
-              {/* Credit Card (expenses only) */}
+              {/* Next billing / credit card (expenses only) */}
               {!isIncome && (
                 <div className="flex items-center gap-2">
-                  <form.Field name="isCreditCard">
+                  <form.Field name="isNextBilling">
                     {(field: FieldState<boolean>) => (
                       <>
                         <input
                           type="checkbox"
-                          id={inputId("credit-card")}
+                          id={inputId("next-billing")}
                           checked={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.checked)}
+                          onChange={(e) => {
+                            const v = e.target.checked;
+                            field.handleChange(v);
+                            form.setFieldValue("isCreditCard", v || creditCardViewActive);
+                          }}
                           className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
                         />
                         <label
-                          htmlFor={inputId("credit-card")}
+                          htmlFor={inputId("next-billing")}
                           className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                           title="Se marcado, o lançamento entra no mês seguinte"
                         >
