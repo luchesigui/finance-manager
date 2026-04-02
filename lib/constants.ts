@@ -36,8 +36,20 @@ export const AUTO_EXCLUDE_FROM_SPLIT_CATEGORIES = new Set(
 );
 
 /**
+ * Categories where the % of income target is a goal to reach (e.g. savings), not a spending cap.
+ * Used for charts, status labels, and "on budget" scoring.
+ */
+export const GOAL_TARGET_CATEGORY_NAMES = new Set(
+  ["Liberdade Financeira", "Meta"].map(normalizeCategoryName),
+);
+
+/**
  * Check if a category name should auto-exclude from fair split.
  */
 export function shouldCategoryAutoExcludeFromSplit(categoryName: string): boolean {
   return AUTO_EXCLUDE_FROM_SPLIT_CATEGORIES.has(normalizeCategoryName(categoryName));
+}
+
+export function isGoalTargetCategory(categoryName: string): boolean {
+  return GOAL_TARGET_CATEGORY_NAMES.has(normalizeCategoryName(categoryName));
 }

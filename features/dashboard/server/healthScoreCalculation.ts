@@ -1,6 +1,10 @@
 import "server-only";
 
-import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import {
+  isGoalTargetCategory,
+  normalizeCategoryName,
+  shouldCategoryAutoExcludeFromSplit,
+} from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
 
@@ -266,9 +270,7 @@ function calculateCategoriesOnBudgetFactor(categorySummary: CategorySummaryRow[]
   onBudget: number;
   total: number;
 } {
-  const regularCategories = categorySummary.filter(
-    (cat) => normalizeCategoryName(cat.name) !== LIBERDADE_FINANCEIRA_CATEGORY,
-  );
+  const regularCategories = categorySummary.filter((cat) => !isGoalTargetCategory(cat.name));
 
   if (regularCategories.length === 0) {
     return { score: 100, onBudget: 0, total: 0 };

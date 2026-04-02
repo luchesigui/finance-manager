@@ -3,7 +3,7 @@
 import { PieChart } from "lucide-react";
 
 import { getCategoryColorStyle } from "@/features/categories/utils/categoryColors";
-import { normalizeCategoryName } from "@/lib/constants";
+import { isGoalTargetCategory } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import {
   calculateCategorySummary,
@@ -31,10 +31,6 @@ export function CategorySummaryTable({
     transactionsForSelectedMonth,
     totalIncome,
   );
-  const goalsAndSavingsNames = new Set(
-    ["liberdade financeira"].map((n) => normalizeCategoryName(n)),
-  );
-
   return (
     <div className="noir-card overflow-hidden">
       <div className="p-4 border-b border-noir-border bg-noir-active/50">
@@ -56,8 +52,7 @@ export function CategorySummaryTable({
           </thead>
           <tbody>
             {categorySummary.map((cat) => {
-              const normalizedName = normalizeCategoryName(cat.name);
-              const isGoalOrSavings = goalsAndSavingsNames.has(normalizedName);
+              const isGoalOrSavings = isGoalTargetCategory(cat.name);
               const isOverBudget = cat.realPercentOfIncome > cat.targetPercent;
               const isBelowGoal = cat.realPercentOfIncome < cat.targetPercent;
 

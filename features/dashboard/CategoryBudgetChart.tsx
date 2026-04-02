@@ -4,7 +4,7 @@ import { AlertTriangle, BarChart3 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import type { CategorySummaryRow } from "@/features/transactions/hooks/useFinanceCalculations";
-import { normalizeCategoryName } from "@/lib/constants";
+import { isGoalTargetCategory } from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import Link from "next/link";
 
@@ -26,13 +26,6 @@ type CategoryBarProps = {
 // ============================================================================
 // Constants
 // ============================================================================
-
-// Categories where meeting/exceeding target is GOOD (savings/goals)
-const SAVINGS_CATEGORIES = new Set(["liberdade financeira"]);
-
-function isSavingsCategoryName(name: string): boolean {
-  return SAVINGS_CATEGORIES.has(normalizeCategoryName(name));
-}
 
 // ============================================================================
 // Components
@@ -145,7 +138,7 @@ export function CategoryBudgetChart({ categorySummary, totalIncome }: CategoryBu
             key={category.id}
             category={category}
             totalIncome={totalIncome}
-            isSavingsCategory={isSavingsCategoryName(category.name)}
+            isSavingsCategory={isGoalTargetCategory(category.name)}
           />
         ))}
 

@@ -11,7 +11,11 @@ import {
   calculateTotalExpenses,
   getExpenseTransactions,
 } from "@/features/transactions/hooks/useFinanceCalculations";
-import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import {
+  isGoalTargetCategory,
+  normalizeCategoryName,
+  shouldCategoryAutoExcludeFromSplit,
+} from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
 
@@ -149,10 +153,8 @@ function calculateLiberdadeFinanceiraFactor(
 function calculateCategoriesOnBudgetFactor(
   categorySummary: CategorySummaryRow[],
 ): CategoriesOnBudgetFactor {
-  // Exclude Liberdade Financeira since it's handled separately
-  const regularCategories = categorySummary.filter(
-    (cat) => normalizeCategoryName(cat.name) !== LIBERDADE_FINANCEIRA_CATEGORY,
-  );
+  // Exclude goal-style categories (handled separately or not comparable to expense caps)
+  const regularCategories = categorySummary.filter((cat) => !isGoalTargetCategory(cat.name));
 
   if (regularCategories.length === 0) {
     return { score: 100, onBudget: 0, total: 0 };

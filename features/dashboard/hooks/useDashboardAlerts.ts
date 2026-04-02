@@ -11,7 +11,11 @@ import {
   calculateTotalExpenses,
   getExpenseTransactions,
 } from "@/features/transactions/hooks/useFinanceCalculations";
-import { normalizeCategoryName, shouldCategoryAutoExcludeFromSplit } from "@/lib/constants";
+import {
+  isGoalTargetCategory,
+  normalizeCategoryName,
+  shouldCategoryAutoExcludeFromSplit,
+} from "@/lib/constants";
 import { formatCurrency } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
 
@@ -96,10 +100,8 @@ function generateSavingsAlerts(
 function generateBudgetAlerts(categorySummary: CategorySummaryRow[]): Alert[] {
   const alerts: Alert[] = [];
 
-  // Filter out Liberdade Financeira
-  const regularCategories = categorySummary.filter(
-    (cat) => normalizeCategoryName(cat.name) !== LIBERDADE_FINANCEIRA_CATEGORY,
-  );
+  // Exclude goal-style categories (target is something to reach, not a spending cap)
+  const regularCategories = categorySummary.filter((cat) => !isGoalTargetCategory(cat.name));
 
   // Find categories over budget (> 100% of target)
   const overBudgetCategories = regularCategories.filter(
