@@ -93,18 +93,33 @@ export function useTransactionMutations(
         queryClient.setQueryData(queryKey, context.previous);
       }
     },
+    onSuccess: () => {
+      // Deletes can affect other accounting months (e.g. parcelamento); drop stale month caches.
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
   });
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, patch }: { id: number; patch: TransactionPatch }) =>
+    mutationFn: ({
+      id,
+      patch,
+      installmentUpdateScope,
+    }: {
+      id: number;
+      patch: TransactionPatch;
+      installmentUpdateScope?: "all";
+    }) =>
       fetchJson<Transaction>(
         `/api/transactions/${encodeURIComponent(id)}`,
-        jsonRequestInit("PATCH", { patch }),
+        jsonRequestInit("PATCH", {
+          patch,
+          ...(installmentUpdateScope !== undefined ? { installmentUpdateScope } : {}),
+        }),
       ),
     onSuccess: () => {
-      // Updates can move transactions between months; refetch all
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-installment-group"] });
     },
   });
 
@@ -130,18 +145,23 @@ export function useTransactionMutations(
         if (!res.ok) throw new Error(`DELETE bulk failed: ${res.status}`);
       }),
     onMutate: async (ids) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<Transaction[]>(queryKey);
+      await queryClient.cancelQueries({ queryKey: ["transactions"] });
+      const allPrevious = queryClient.getQueriesData<Transaction[]>({ queryKey: ["transactions"] });
       const idsSet = new Set(ids);
-      queryClient.setQueryData<Transaction[]>(queryKey, (existing = []) =>
-        existing.filter((transaction) => !idsSet.has(transaction.id)),
+      queryClient.setQueriesData<Transaction[]>({ queryKey: ["transactions"] }, (existing = []) =>
+        existing.filter((tx) => !idsSet.has(tx.id)),
       );
-      return { previous };
+      return { allPrevious };
     },
     onError: (_error, _ids, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(queryKey, context.previous);
+      if (context?.allPrevious) {
+        for (const [key, data] of context.allPrevious) {
+          queryClient.setQueryData(key, data);
+        }
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
 
@@ -151,8 +171,18 @@ export function useTransactionMutations(
 
   const deleteTransactionById = (id: number) => deleteMutation.mutate(id);
 
-  const updateTransactionById = (id: number, patch: TransactionPatch) =>
-    updateMutation.mutate({ id, patch });
+  const updateTransactionById = (
+    id: number,
+    patch: TransactionPatch,
+    options?: { installmentUpdateScope?: "all" },
+  ) =>
+    updateMutation.mutate({
+      id,
+      patch,
+      ...(options?.installmentUpdateScope !== undefined
+        ? { installmentUpdateScope: options.installmentUpdateScope }
+        : {}),
+    });
 
   const bulkUpdateTransactions = (ids: number[], patch: BulkTransactionPatch) =>
     bulkUpdateMutation.mutate({ ids, patch });
@@ -165,5 +195,8 @@ export function useTransactionMutations(
     updateTransactionById,
     bulkUpdateTransactions,
     bulkDeleteTransactions,
+    isUpdatePending: updateMutation.isPending,
+    isDeletePending: deleteMutation.isPending,
+    isBulkDeletePending: bulkDeleteMutation.isPending,
   };
 }

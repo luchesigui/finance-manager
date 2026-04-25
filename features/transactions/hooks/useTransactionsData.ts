@@ -31,6 +31,9 @@ export function useTransactionsData() {
     updateTransactionById,
     bulkUpdateTransactions,
     bulkDeleteTransactions,
+    isUpdatePending,
+    isDeletePending,
+    isBulkDeletePending,
   } = useTransactionMutations(queryKey, selectedYear, selectedMonthNumber);
 
   const { transactionsForSelectedMonth, transactionsForCalculations } = useTransactionDerivations(
@@ -58,5 +61,8 @@ export function useTransactionsData() {
     setForecastInclusionOverride,
     bulkUpdateTransactions,
     bulkDeleteTransactions,
+    isUpdatePending,
+    isDeletePending,
+    isBulkDeletePending,
   };
 }

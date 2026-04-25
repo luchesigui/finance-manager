@@ -32,6 +32,8 @@ type TransactionRowProps = {
   onEdit: () => void;
   onMarkAsHappened?: () => void;
   onDelete?: () => void;
+  /** While resolving parcelamento / preparing delete confirmation */
+  isDeletePending?: boolean;
 };
 
 export function TransactionRow({
@@ -47,6 +49,7 @@ export function TransactionRow({
   onEdit,
   onMarkAsHappened,
   onDelete,
+  isDeletePending = false,
 }: TransactionRowProps) {
   const isIncome = transaction.type === "income";
   const isIncrement = transaction.isIncrement ?? true;
@@ -220,15 +223,16 @@ export function TransactionRow({
                 {onDelete && (
                   <button
                     type="button"
+                    disabled={isDeletePending}
                     onClick={(event) => {
                       event.stopPropagation();
                       onDelete();
                     }}
-                    className="text-muted hover:text-accent-negative p-1.5 transition-all rounded-interactive hover:bg-accent-negative/10"
+                    className="text-muted hover:text-accent-negative p-1.5 transition-all rounded-interactive hover:bg-accent-negative/10 disabled:opacity-50 disabled:pointer-events-none"
                     title="Excluir"
                     aria-label={`Excluir lançamento: ${transaction.description}`}
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={15} className={isDeletePending ? "animate-pulse" : undefined} />
                   </button>
                 )}
               </div>

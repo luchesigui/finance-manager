@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createRecurringTemplate } from "@/features/recurring-templates/server/store";
+import { updateInstallmentGroupTransactions } from "@/features/transactions/server/installmentGroup";
 import {
   deleteTransaction,
   getTransaction,
@@ -46,6 +47,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   const rawPatch = validation.data.patch as TransactionPatch;
+  const installmentUpdateScope = validation.data.installmentUpdateScope;
 
   try {
     const existing = await getTransaction(transactionId);
@@ -90,6 +92,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         ...basePatch,
         recurringTemplateId: null,
       });
+      return NextResponse.json(updated);
+    }
+
+    if (
+      installmentUpdateScope === "all" &&
+      existing.recurringTemplateId == null &&
+      rawPatch.isRecurring !== true
+    ) {
+      const updated = await updateInstallmentGroupTransactions(transactionId, basePatch);
       return NextResponse.json(updated);
     }
 

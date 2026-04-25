@@ -1,10 +1,12 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ChevronDown,
   CreditCard,
+  Layers,
   Pencil,
   Plus,
   Search,
@@ -35,11 +37,12 @@ import { TransactionRow } from "@/features/transactions/components/TransactionsV
 import { fuzzyMatch } from "@/features/transactions/components/TransactionsView/fuzzyMatch";
 import { useOutlierDetection } from "@/features/transactions/hooks/useOutlierDetection";
 import { useTransactionsData } from "@/features/transactions/hooks/useTransactionsData";
+import { fetchJson } from "@/lib/apiClient";
 import { toDateString } from "@/lib/dateUtils";
 import { formatCurrency, formatMonthYear } from "@/lib/format";
 import { generateGeminiContent } from "@/lib/geminiClient";
 import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
-import type { NewTransactionFormState, Transaction } from "@/lib/types";
+import type { NewTransactionFormState, Transaction, TransactionPatch } from "@/lib/types";
 
 // ============================================================================
 // Helper Functions
@@ -90,6 +93,9 @@ export function TransactionsView() {
     updateTransactionById,
     bulkUpdateTransactions,
     bulkDeleteTransactions,
+    isUpdatePending,
+    isDeletePending,
+    isBulkDeletePending,
   } = useTransactionsData();
   const {
     createRecurringTemplate,
@@ -191,6 +197,20 @@ export function TransactionsView() {
 
   // Edit modal state
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [installmentEditPrompt, setInstallmentEditPrompt] = useState<{
+    transactionId: number;
+    patch: TransactionPatch;
+    installmentTotal: number;
+    siblingCount: number;
+  } | null>(null);
+  const [installmentDeletePrompt, setInstallmentDeletePrompt] = useState<{
+    transactionId: number;
+    description: string;
+    installmentTotal: number;
+    siblingCount: number;
+    siblingIds: number[];
+  } | null>(null);
+  const [isResolvingDeleteGroupId, setIsResolvingDeleteGroupId] = useState<number | null>(null);
 
   // TanStack Form for new transaction
   const newTransactionForm = useForm({
@@ -215,6 +235,28 @@ export function TransactionsView() {
       }
       setSmartInput("");
     },
+  });
+
+  const { data: installmentGroupInfo, isLoading: isInstallmentGroupLoading } = useQuery({
+    queryKey: ["transaction-installment-group", editingTransaction?.id],
+    queryFn: async () => {
+      const id = editingTransaction?.id;
+      if (id == null) {
+        return {
+          isGrouped: false,
+          siblingIds: [] as number[],
+          installmentTotal: 0,
+          siblingCount: 0,
+        };
+      }
+      return fetchJson<{
+        isGrouped: boolean;
+        siblingIds: number[];
+        installmentTotal: number;
+        siblingCount: number;
+      }>(`/api/transactions/${id}/installment-group`);
+    },
+    enabled: Boolean(editingTransaction && editingTransaction.recurringTemplateId == null),
   });
 
   // TanStack Form for edit transaction
@@ -257,7 +299,7 @@ export function TransactionsView() {
       }
 
       // Patch for non-recurring transaction: include isRecurring so API can create a template when user turns recurring on. Do not send dayOfMonth (API derives from tx date).
-      const patch = {
+      const patch: TransactionPatch = {
         description: value.description,
         amount: value.amount,
         categoryId: value.categoryId,
@@ -271,8 +313,23 @@ export function TransactionsView() {
         isIncrement: value.isIncrement,
         isRecurring: value.isRecurring,
       };
-      updateTransactionById(editingTransaction.id, patch);
 
+      const isParcelamentoGroup =
+        installmentGroupInfo?.isGrouped === true &&
+        installmentGroupInfo.siblingCount > 1 &&
+        value.isRecurring !== true;
+
+      if (isParcelamentoGroup) {
+        setInstallmentEditPrompt({
+          transactionId: editingTransaction.id,
+          patch,
+          installmentTotal: installmentGroupInfo.installmentTotal,
+          siblingCount: installmentGroupInfo.siblingCount,
+        });
+        return;
+      }
+
+      updateTransactionById(editingTransaction.id, patch);
       setEditingTransaction(null);
     },
   });
@@ -465,6 +522,35 @@ export function TransactionsView() {
 
   const handleCloseEditModal = () => {
     setEditingTransaction(null);
+    setInstallmentEditPrompt(null);
+  };
+
+  const handleNonRecurringDeleteRequest = async (transaction: Transaction) => {
+    setIsResolvingDeleteGroupId(transaction.id);
+    try {
+      const info = await fetchJson<{
+        isGrouped: boolean;
+        siblingIds: number[];
+        installmentTotal: number;
+        siblingCount: number;
+      }>(`/api/transactions/${transaction.id}/installment-group`);
+      if (info.isGrouped && info.siblingCount > 1) {
+        setInstallmentDeletePrompt({
+          transactionId: transaction.id,
+          description: transaction.description,
+          installmentTotal: info.installmentTotal,
+          siblingCount: info.siblingCount,
+          siblingIds: info.siblingIds,
+        });
+        return;
+      }
+      deleteTransactionById(transaction.id);
+    } catch (error) {
+      console.error("Failed to resolve installment group for delete:", error);
+      deleteTransactionById(transaction.id);
+    } finally {
+      setIsResolvingDeleteGroupId(null);
+    }
   };
 
   const handleSmartFill = async () => {
@@ -1113,8 +1199,11 @@ Retorne APENAS o JSON, sem markdown.
                   transaction.recurringTemplateId != null
                     ? () =>
                         setDeletingRecurringTemplateId(transaction.recurringTemplateId as number)
-                    : () => deleteTransactionById(transaction.id)
+                    : () => {
+                        void handleNonRecurringDeleteRequest(transaction);
+                      }
                 }
+                isDeletePending={isResolvingDeleteGroupId === transaction.id}
               />
             ))
           )}
@@ -1156,7 +1245,171 @@ Retorne APENAS o JSON, sem markdown.
           recurringEditScope={recurringEditScope}
           onRecurringEditScopeChange={setRecurringEditScope}
           viewMode={viewMode}
+          isSubmitDisabled={
+            editingTransaction.recurringTemplateId == null && isInstallmentGroupLoading
+          }
         />
+      )}
+
+      {installmentEditPrompt && (
+        <dialog
+          open
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4 border-0 max-w-none max-h-none w-full h-full m-0"
+          aria-labelledby="installment-edit-scope-title"
+        >
+          <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+            <div className="p-6 border-b border-noir-border flex items-center justify-between">
+              <h3
+                id="installment-edit-scope-title"
+                className="font-semibold text-heading flex items-center gap-2"
+              >
+                <Layers className="text-accent-primary" size={20} />
+                Parcelamento
+              </h3>
+              <button
+                type="button"
+                onClick={() => setInstallmentEditPrompt(null)}
+                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
+                aria-label="Fechar"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-body">
+                Este lançamento faz parte de um parcelamento em{" "}
+                {installmentEditPrompt.installmentTotal}x. Existem{" "}
+                {installmentEditPrompt.siblingCount} parcelas cadastradas. Deseja aplicar as
+                alterações a todas elas ou somente a esta?
+              </p>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  disabled={isUpdatePending}
+                  onClick={() => {
+                    updateTransactionById(
+                      installmentEditPrompt.transactionId,
+                      installmentEditPrompt.patch,
+                    );
+                    setEditingTransaction(null);
+                    setInstallmentEditPrompt(null);
+                  }}
+                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <p className="font-medium text-heading text-sm">Somente esta parcela</p>
+                  <p className="text-xs text-muted mt-1">
+                    Atualiza apenas o lançamento que você está editando (outras faturas / meses
+                    permanecem iguais).
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  disabled={isUpdatePending}
+                  onClick={() => {
+                    updateTransactionById(
+                      installmentEditPrompt.transactionId,
+                      installmentEditPrompt.patch,
+                      { installmentUpdateScope: "all" },
+                    );
+                    setEditingTransaction(null);
+                    setInstallmentEditPrompt(null);
+                  }}
+                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <p className="font-medium text-heading text-sm">Todas as parcelas</p>
+                  <p className="text-xs text-muted mt-1">
+                    Aplica categoria, valor, descrição (com numeração), cartão e demais campos a
+                    todas as parcelas encontradas. A data de cada parcela é mantida.
+                  </p>
+                </button>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setInstallmentEditPrompt(null)}
+                className="w-full py-2.5 h-auto"
+              >
+                Voltar à edição
+              </Button>
+            </div>
+          </Card>
+        </dialog>
+      )}
+
+      {installmentDeletePrompt && (
+        <dialog
+          open
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4 border-0 max-w-none max-h-none w-full h-full m-0"
+          aria-labelledby="installment-delete-scope-title"
+        >
+          <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
+            <div className="p-6 border-b border-noir-border flex items-center justify-between">
+              <h3
+                id="installment-delete-scope-title"
+                className="font-semibold text-heading flex items-center gap-2"
+              >
+                <Trash2 className="text-accent-negative" size={20} />
+                Excluir parcelamento
+              </h3>
+              <button
+                type="button"
+                onClick={() => setInstallmentDeletePrompt(null)}
+                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
+                aria-label="Fechar"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-body">
+                <span className="font-medium text-heading">
+                  {installmentDeletePrompt.description}
+                </span>{" "}
+                faz parte de um parcelamento em {installmentDeletePrompt.installmentTotal}x. Existem{" "}
+                {installmentDeletePrompt.siblingCount} parcelas cadastradas. O que deseja excluir?
+              </p>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  disabled={isDeletePending || isBulkDeletePending}
+                  onClick={() => {
+                    deleteTransactionById(installmentDeletePrompt.transactionId);
+                    setInstallmentDeletePrompt(null);
+                  }}
+                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <p className="font-medium text-heading text-sm">Somente esta parcela</p>
+                  <p className="text-xs text-muted mt-1">
+                    Remove só este lançamento; as outras parcelas permanecem.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletePending || isBulkDeletePending}
+                  onClick={() => {
+                    bulkDeleteTransactions(installmentDeletePrompt.siblingIds);
+                    setInstallmentDeletePrompt(null);
+                  }}
+                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-negative hover:bg-accent-negative/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <p className="font-medium text-heading text-sm">Todas as parcelas</p>
+                  <p className="text-xs text-muted mt-1">
+                    Exclui todas as {installmentDeletePrompt.siblingCount} parcelas deste
+                    parcelamento.
+                  </p>
+                </button>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setInstallmentDeletePrompt(null)}
+                className="w-full py-2.5 h-auto"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </Card>
+        </dialog>
       )}
 
       {isBulkEditModalOpen && (

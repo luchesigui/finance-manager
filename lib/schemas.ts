@@ -67,6 +67,8 @@ export const createTransactionsBodySchema = z.union([
 
 export const updateTransactionBodySchema = z.object({
   patch: transactionPatchSchema,
+  /** When "all", applies the patch to every transaction in the same parcelamento group (if any). */
+  installmentUpdateScope: z.enum(["all"]).optional(),
 });
 
 export const bulkUpdateBodySchema = z.object({

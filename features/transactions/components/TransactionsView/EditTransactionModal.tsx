@@ -15,6 +15,8 @@ type EditTransactionModalProps = {
   recurringEditScope: "template_only" | "full_history";
   onRecurringEditScopeChange: (scope: "template_only" | "full_history") => void;
   viewMode?: "general" | "creditCard";
+  /** When true, disables save (e.g. resolving parcelamento metadata). */
+  isSubmitDisabled?: boolean;
 };
 
 export function EditTransactionModal({
@@ -24,6 +26,7 @@ export function EditTransactionModal({
   recurringEditScope,
   onRecurringEditScopeChange,
   viewMode = "general",
+  isSubmitDisabled = false,
 }: EditTransactionModalProps) {
   const isRecurring = editingTransaction.recurringTemplateId != null;
 
@@ -128,7 +131,7 @@ export function EditTransactionModal({
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="flex-1 py-3 h-auto">
+              <Button type="submit" className="flex-1 py-3 h-auto" disabled={isSubmitDisabled}>
                 <Pencil size={18} />
                 Salvar Alterações
               </Button>
