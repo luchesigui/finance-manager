@@ -85,6 +85,14 @@ function setupHandlers(transactions: Transaction[] = mockTransactions) {
     http.get("/api/default-payer", () => HttpResponse.json({ defaultPayerId: "p1" })),
     http.get("/api/user", () => HttpResponse.json({ userId: "u1" })),
     http.get("/api/outlier-statistics", () => HttpResponse.json([])),
+    http.get("/api/transactions/:id/installment-group", () =>
+      HttpResponse.json({
+        isGrouped: false,
+        siblingIds: [],
+        installmentTotal: 0,
+        siblingCount: 0,
+      }),
+    ),
   ];
 }
 
