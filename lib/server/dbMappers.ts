@@ -68,6 +68,7 @@ export function mapTransactionRow(row: TransactionRow): Transaction {
     householdId: row.household_id,
     type: row.type ?? "expense",
     isIncrement: row.is_increment ?? true,
+    transferToPersonId: row.transfer_to_person_id ?? null,
   };
 }
 
@@ -134,6 +135,8 @@ export function toTransactionDbPatch(patch: TransactionPatch): Record<string, un
   if (patch.isIncrement !== undefined) dbPatch.is_increment = patch.isIncrement;
   if (patch.recurringTemplateId !== undefined)
     dbPatch.recurring_template_id = patch.recurringTemplateId;
+  if (patch.transferToPersonId !== undefined)
+    dbPatch.transfer_to_person_id = patch.transferToPersonId;
   return dbPatch;
 }
 

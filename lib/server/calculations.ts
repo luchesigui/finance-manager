@@ -42,7 +42,10 @@ function isIncludedInTotals(transaction: Transaction): boolean {
  */
 export function getExpenseTransactions(transactions: Transaction[]): Transaction[] {
   return transactions.filter(
-    (transaction) => transaction.type !== "income" && isIncludedInTotals(transaction),
+    (transaction) =>
+      transaction.type !== "income" &&
+      transaction.type !== "transfer" &&
+      isIncludedInTotals(transaction),
   );
 }
 
@@ -160,7 +163,7 @@ export function calculateTotalExpenses(transactions: Transaction[]): number {
   let total = 0;
 
   for (const t of transactions) {
-    if (t.type !== "income" && isIncludedInTotals(t)) {
+    if (t.type !== "income" && t.type !== "transfer" && isIncludedInTotals(t)) {
       total += t.amount;
     }
   }
@@ -176,7 +179,13 @@ function buildCategorySpendingMap(transactions: Transaction[]): Map<string, numb
   const spendingMap = new Map<string, number>();
 
   for (const t of transactions) {
-    if (t.type === "income" || t.categoryId === null || !isIncludedInTotals(t)) continue;
+    if (
+      t.type === "income" ||
+      t.type === "transfer" ||
+      t.categoryId === null ||
+      !isIncludedInTotals(t)
+    )
+      continue;
 
     const current = spendingMap.get(t.categoryId) ?? 0;
     spendingMap.set(t.categoryId, current + t.amount);
@@ -220,7 +229,7 @@ function buildPersonPaymentMap(transactions: Transaction[]): Map<string, number>
   const paymentMap = new Map<string, number>();
 
   for (const t of transactions) {
-    if (t.type === "income" || !isIncludedInTotals(t)) continue;
+    if (t.type === "income" || t.type === "transfer" || !isIncludedInTotals(t)) continue;
 
     const current = paymentMap.get(t.paidBy) ?? 0;
     paymentMap.set(t.paidBy, current + t.amount);
@@ -240,10 +249,21 @@ export function calculateSettlementData(
 ): SettlementRow[] {
   const paymentMap = buildPersonPaymentMap(transactions);
 
+  // Apply transfer adjustments: sender balance goes up (owes less), receiver goes down (owed less)
+  const transferAdjustments = new Map<string, number>();
+  for (const t of transactions) {
+    if (t.type !== "transfer" || !t.transferToPersonId) continue;
+    transferAdjustments.set(t.paidBy, (transferAdjustments.get(t.paidBy) ?? 0) + t.amount);
+    transferAdjustments.set(
+      t.transferToPersonId,
+      (transferAdjustments.get(t.transferToPersonId) ?? 0) - t.amount,
+    );
+  }
+
   return peopleWithShare.map((person) => {
     const paidAmount = paymentMap.get(person.id) ?? 0;
     const fairShareAmount = totalExpenses * person.sharePercent;
-    const balance = paidAmount - fairShareAmount;
+    const balance = paidAmount - fairShareAmount + (transferAdjustments.get(person.id) ?? 0);
 
     return {
       ...person,
@@ -281,7 +301,9 @@ export function calculateFinancialSummary(transactions: Transaction[]): Financia
 
   for (const t of transactions) {
     if (!isIncludedInTotals(t)) continue;
-    if (t.type === "income") {
+    if (t.type === "transfer") {
+      // Transfers don't affect expense/income totals or category/person payment maps
+    } else if (t.type === "income") {
       // Income transaction
       const adjustment = personIncomeAdjustments.get(t.paidBy) ?? 0;
       if (t.isIncrement) {

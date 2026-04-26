@@ -40,6 +40,7 @@ function recurringTemplateToTransaction(
     householdId: template.householdId,
     type: template.type,
     isIncrement: template.isIncrement,
+    transferToPersonId: null,
   };
 }
 
@@ -236,22 +237,24 @@ export async function createTransaction(
   const recurringTemplateId = t.recurringTemplateId ?? null;
 
   const isIncome = t.type === "income";
+  const isTransfer = t.type === "transfer";
   const isForecast = t.isForecast ?? false;
 
   const dbRow = {
     description: t.description,
     amount: t.amount,
-    category_id: isIncome ? null : t.categoryId,
+    category_id: isIncome || isTransfer ? null : t.categoryId,
     paid_by: t.paidBy,
     recurring_template_id: recurringTemplateId,
-    is_credit_card: isIncome ? false : (t.isCreditCard ?? false),
-    is_next_billing: isIncome ? false : (t.isNextBilling ?? false),
-    exclude_from_split: isIncome ? false : (t.excludeFromSplit ?? false),
+    is_credit_card: isIncome || isTransfer ? false : (t.isCreditCard ?? false),
+    is_next_billing: isIncome || isTransfer ? false : (t.isNextBilling ?? false),
+    exclude_from_split: isIncome || isTransfer ? false : (t.excludeFromSplit ?? false),
     is_forecast: isForecast,
     date: t.date,
     household_id: householdId,
     type: t.type ?? "expense",
     is_increment: t.isIncrement ?? true,
+    transfer_to_person_id: isTransfer ? (t.transferToPersonId ?? null) : null,
   };
 
   const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();

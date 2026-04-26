@@ -73,6 +73,7 @@ function createDefaultFormState(
     isForecast: false,
     type: "expense",
     isIncrement: true,
+    transferToPersonId: null,
   };
 }
 
@@ -299,19 +300,21 @@ export function TransactionsView() {
       }
 
       // Patch for non-recurring transaction: include isRecurring so API can create a template when user turns recurring on. Do not send dayOfMonth (API derives from tx date).
+      const isTransferEdit = value.type === "transfer";
       const patch: TransactionPatch = {
         description: value.description,
         amount: value.amount,
-        categoryId: value.categoryId,
+        categoryId: isTransferEdit ? null : value.categoryId,
         paidBy: value.paidBy,
-        isCreditCard: value.isCreditCard,
-        isNextBilling: value.isNextBilling,
-        excludeFromSplit: value.excludeFromSplit,
+        isCreditCard: isTransferEdit ? false : value.isCreditCard,
+        isNextBilling: isTransferEdit ? false : value.isNextBilling,
+        excludeFromSplit: isTransferEdit ? false : value.excludeFromSplit,
         isForecast: value.isForecast,
         date: value.date,
         type: value.type,
         isIncrement: value.isIncrement,
-        isRecurring: value.isRecurring,
+        isRecurring: isTransferEdit ? false : value.isRecurring,
+        transferToPersonId: isTransferEdit ? (value.transferToPersonId ?? null) : null,
       };
 
       const isParcelamentoGroup =
@@ -463,7 +466,7 @@ export function TransactionsView() {
   const visibleTransactionsForSelectedMonth = transactionsForSelectedMonth.filter(matchesFilters);
   const visibleTransactionsForCalculations = transactionsForCalculations
     .filter(matchesFilters)
-    .filter((transaction) => transaction.type !== "income");
+    .filter((transaction) => transaction.type !== "income" && transaction.type !== "transfer");
   const visibleCalculationIds = new Set(
     visibleTransactionsForCalculations.map((transaction) => transaction.id),
   );
@@ -518,6 +521,7 @@ export function TransactionsView() {
     editTransactionForm.setFieldValue("isForecast", transaction.isForecast);
     editTransactionForm.setFieldValue("type", transaction.type ?? "expense");
     editTransactionForm.setFieldValue("isIncrement", transaction.isIncrement ?? true);
+    editTransactionForm.setFieldValue("transferToPersonId", transaction.transferToPersonId ?? null);
   };
 
   const handleCloseEditModal = () => {
@@ -837,6 +841,17 @@ Retorne APENAS o JSON, sem markdown.
                 }`}
               >
                 Renda
+              </button>
+              <button
+                type="button"
+                onClick={() => setTypeFilter(typeFilter === "transfer" ? "all" : "transfer")}
+                className={`px-4 py-1.5 text-sm font-medium rounded-interactive transition-all duration-200 ${
+                  typeFilter === "transfer"
+                    ? "bg-accent-primary text-white shadow-glow-accent"
+                    : "text-body hover:text-heading hover:bg-noir-surface"
+                }`}
+              >
+                Transferência
               </button>
             </div>
           )}
@@ -1181,6 +1196,7 @@ Retorne APENAS o JSON, sem markdown.
                 transaction={transaction}
                 category={categories.find((category) => category.id === transaction.categoryId)}
                 person={people.find((person) => person.id === transaction.paidBy)}
+                toPerson={people.find((person) => person.id === transaction.transferToPersonId)}
                 isOutlier={isOutlier(transaction)}
                 isSelectionMode={isSelectionMode}
                 isSelected={selectedIds.has(transaction.id)}

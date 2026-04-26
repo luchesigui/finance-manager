@@ -21,6 +21,7 @@ import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
 import type { NewTransactionFormState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
+  ArrowLeftRight,
   Calendar as CalendarIcon,
   CreditCard,
   Layers,
@@ -121,6 +122,7 @@ export function TransactionFormFields({
     <form.Subscribe selector={(state: { values: NewTransactionFormState }) => state.values}>
       {(values: NewTransactionFormState) => {
         const isIncome = values.type === "income";
+        const isTransfer = values.type === "transfer";
 
         return (
           <>
@@ -139,7 +141,7 @@ export function TransactionFormFields({
                     }
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-interactive border-2 transition-all duration-200 ${
-                    !isIncome
+                    !isIncome && !isTransfer
                       ? "border-accent-negative bg-accent-negative/10 text-accent-negative"
                       : "border-noir-border bg-noir-active text-body hover:border-noir-border-light hover:text-heading"
                   }`}
@@ -163,6 +165,25 @@ export function TransactionFormFields({
                 >
                   <PlusCircle size={18} />
                   <span className="font-medium">Renda</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    form.setFieldValue("type", "transfer");
+                    form.setFieldValue("isCreditCard", false);
+                    form.setFieldValue("isNextBilling", false);
+                    form.setFieldValue("isInstallment", false);
+                    form.setFieldValue("isRecurring", false);
+                    form.setFieldValue("excludeFromSplit", false);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-interactive border-2 transition-all duration-200 ${
+                    isTransfer
+                      ? "border-accent-primary bg-accent-primary/10 text-accent-primary"
+                      : "border-noir-border bg-noir-active text-body hover:border-noir-border-light hover:text-heading"
+                  }`}
+                >
+                  <ArrowLeftRight size={18} />
+                  <span className="font-medium">Transferência</span>
                 </button>
               </div>
             </div>
@@ -225,7 +246,9 @@ export function TransactionFormFields({
                         placeholder={
                           isIncome
                             ? "Ex: Salário, Freelance, Bônus..."
-                            : "Ex: Luz, Mercado, iFood..."
+                            : isTransfer
+                              ? "Ex: Transferência de saldo..."
+                              : "Ex: Luz, Mercado, iFood..."
                         }
                         className={cn(
                           "w-full",
@@ -276,8 +299,43 @@ export function TransactionFormFields({
               </form.Field>
             </div>
 
+            {/* Para quem (transfer only) */}
+            {isTransfer && (
+              <div className="lg:col-span-2">
+                <form.Field name="transferToPersonId">
+                  {(field: FieldState<string | null>) => (
+                    <>
+                      <label
+                        htmlFor={inputId("transfer-to")}
+                        className="block text-xs font-medium text-body mb-1"
+                      >
+                        Para quem
+                      </label>
+                      <Select
+                        value={field.state.value ?? ""}
+                        onValueChange={(v) => field.handleChange(v || null)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Selecione a pessoa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {people
+                            .filter((p) => p.id !== values.paidBy)
+                            .map((person) => (
+                              <SelectItem key={person.id} value={person.id}>
+                                {person.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </>
+                  )}
+                </form.Field>
+              </div>
+            )}
+
             {/* Category Selector (expenses only) */}
-            {!isIncome && (
+            {!isIncome && !isTransfer && (
               <div className="lg:col-span-2">
                 <form.Field name="categoryId">
                   {(field: FieldState<string>) => (
@@ -309,7 +367,7 @@ export function TransactionFormFields({
             {/* Checkbox Options */}
             <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
               {/* Recurring Checkbox */}
-              {(showInstallmentFields ? !values.isInstallment : true) && (
+              {!isTransfer && (showInstallmentFields ? !values.isInstallment : true) && (
                 <div className="flex items-center gap-2">
                   <form.Field name="isRecurring">
                     {(field: FieldState<boolean>) => (
@@ -344,7 +402,7 @@ export function TransactionFormFields({
               )}
 
               {/* Installment Checkbox (expenses only) */}
-              {!isIncome && showInstallmentFields && !values.isRecurring && (
+              {!isIncome && !isTransfer && showInstallmentFields && !values.isRecurring && (
                 <div className="flex items-center gap-2">
                   <form.Field name="isInstallment">
                     {(field: FieldState<boolean>) => (
@@ -369,7 +427,7 @@ export function TransactionFormFields({
               )}
 
               {/* Exclude from Split (expenses only) */}
-              {!isIncome && (
+              {!isIncome && !isTransfer && (
                 <div className="flex items-center gap-2">
                   <form.Field name="excludeFromSplit">
                     {(field: FieldState<boolean>) => (
@@ -394,7 +452,7 @@ export function TransactionFormFields({
               )}
 
               {/* Next billing / credit card (expenses only) */}
-              {!isIncome && (
+              {!isIncome && !isTransfer && (
                 <div className="flex items-center gap-2">
                   <form.Field name="isNextBilling">
                     {(field: FieldState<boolean>) => (
@@ -448,7 +506,7 @@ export function TransactionFormFields({
               </div>
 
               {/* Installment Count */}
-              {!isIncome && showInstallmentFields && values.isInstallment && (
+              {!isIncome && !isTransfer && showInstallmentFields && values.isInstallment && (
                 <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-300">
                   <span className="text-sm text-muted">x</span>
                   <form.Field name="installments">

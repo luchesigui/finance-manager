@@ -4,7 +4,7 @@ import { z } from "zod";
 // Base Schemas
 // ============================================================================
 
-export const transactionTypeSchema = z.enum(["expense", "income"]);
+export const transactionTypeSchema = z.enum(["expense", "income", "transfer"]);
 
 // ============================================================================
 // Transaction Schemas
@@ -24,6 +24,7 @@ export const transactionPatchSchema = z
     type: transactionTypeSchema,
     isIncrement: z.boolean(),
     isRecurring: z.boolean(),
+    transferToPersonId: z.string().nullable(),
   })
   .partial();
 
@@ -54,6 +55,7 @@ export const createTransactionSchema = z.object({
   dayOfMonth: z.number().int().min(1).max(31).optional(),
   type: transactionTypeSchema.default("expense"),
   isIncrement: z.boolean().default(true),
+  transferToPersonId: z.string().nullable().optional(),
 });
 
 export const createTransactionsBodySchema = z.union([
@@ -199,7 +201,7 @@ const transactionSchema = z.object({
   excludeFromSplit: z.boolean().optional(),
   isForecast: z.boolean().optional(),
   date: z.string(),
-  type: z.enum(["expense", "income"]).optional(),
+  type: z.enum(["expense", "income", "transfer"]).optional(),
   isIncrement: z.boolean().optional(),
 });
 

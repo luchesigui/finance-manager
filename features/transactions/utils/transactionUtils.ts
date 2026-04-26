@@ -26,12 +26,13 @@ export function buildTransactionPayload(
   }
 
   const isIncome = formState.type === "income";
-  const categoryId = isIncome ? null : formState.categoryId;
+  const isTransfer = formState.type === "transfer";
+  const categoryId = isIncome || isTransfer ? null : formState.categoryId;
 
   const payload: Array<Omit<Transaction, "id">> = [];
 
-  if (formState.isInstallment && formState.installments > 1) {
-    // Create installment transactions
+  if (!isTransfer && formState.isInstallment && formState.installments > 1) {
+    // Create installment transactions (not applicable to transfers)
     const installmentAmount = formState.amount / formState.installments;
     const baseDate = parseDateString(baseDateString);
 
@@ -51,6 +52,7 @@ export function buildTransactionPayload(
         date: toDateString(installmentDate),
         type: formState.type,
         isIncrement: formState.isIncrement,
+        transferToPersonId: null,
       });
     }
   } else {
@@ -61,14 +63,15 @@ export function buildTransactionPayload(
       categoryId,
       paidBy: formState.paidBy,
       recurringTemplateId: null,
-      dayOfMonth: formState.isRecurring ? formState.dayOfMonth : undefined,
-      isCreditCard: formState.isCreditCard,
-      isNextBilling: formState.isNextBilling,
-      excludeFromSplit: formState.excludeFromSplit,
+      dayOfMonth: !isTransfer && formState.isRecurring ? formState.dayOfMonth : undefined,
+      isCreditCard: isTransfer ? false : formState.isCreditCard,
+      isNextBilling: isTransfer ? false : formState.isNextBilling,
+      excludeFromSplit: isTransfer ? false : formState.excludeFromSplit,
       isForecast: formState.isForecast,
       date: baseDateString,
       type: formState.type,
       isIncrement: formState.isIncrement,
+      transferToPersonId: isTransfer ? (formState.transferToPersonId ?? null) : null,
     });
   }
 

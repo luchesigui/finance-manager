@@ -18,7 +18,7 @@ export type Category = {
   householdId?: string;
 };
 
-export type TransactionType = "expense" | "income";
+export type TransactionType = "expense" | "income" | "transfer";
 
 export type Transaction = {
   readonly id: number;
@@ -44,8 +44,9 @@ export type Transaction = {
   householdId?: string;
   /** Transaction type: 'expense' or 'income'. Defaults to 'expense'. */
   type: TransactionType;
-  /** For income: true = added, false = deducted. Only applicable when type is 'income'. */
   isIncrement: boolean;
+  /** Recipient person ID. Only applicable when type is 'transfer'. */
+  transferToPersonId?: string | null;
 };
 
 // ============================================================================
@@ -67,6 +68,7 @@ export type TransactionPatch = Partial<
     | "date"
     | "type"
     | "isIncrement"
+    | "transferToPersonId"
   >
 > & {
   /** Client sends to turn recurring on/off; API sets recurringTemplateId when creating/unlinking template */
@@ -125,6 +127,7 @@ export type NewTransactionFormState = {
   isForecast: boolean;
   type: TransactionType;
   isIncrement: boolean;
+  transferToPersonId: string | null;
 };
 
 // ============================================================================
@@ -167,6 +170,7 @@ export type TransactionRow = {
   household_id?: string;
   type?: TransactionType;
   is_increment?: boolean;
+  transfer_to_person_id?: string | null;
 };
 
 export type RecurringTemplate = {

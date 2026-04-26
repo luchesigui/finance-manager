@@ -6,6 +6,7 @@ import { formatCurrency, formatDateString } from "@/lib/format";
 import type { Category, Person, Transaction } from "@/lib/types";
 import {
   AlertTriangle,
+  ArrowLeftRight,
   ArrowRight,
   Check,
   CheckCircle2,
@@ -22,6 +23,7 @@ type TransactionRowProps = {
   transaction: Transaction;
   category: Category | undefined;
   person: Person | undefined;
+  toPerson: Person | undefined;
   isOutlier: boolean;
   isSelectionMode: boolean;
   isSelected: boolean;
@@ -40,6 +42,7 @@ export function TransactionRow({
   transaction,
   category,
   person,
+  toPerson,
   isOutlier,
   isSelectionMode,
   isSelected,
@@ -52,6 +55,7 @@ export function TransactionRow({
   isDeletePending = false,
 }: TransactionRowProps) {
   const isIncome = transaction.type === "income";
+  const isTransfer = transaction.type === "transfer";
   const isIncrement = transaction.isIncrement ?? true;
   const isForecast = transaction.isForecast;
   const isFromTemplate = transaction.recurringTemplateId != null;
@@ -62,7 +66,7 @@ export function TransactionRow({
       tabIndex={isSelectionMode && canSelect ? 0 : undefined}
       className={`p-4 md:p-5 hover:bg-noir-active/30 transition-colors group cursor-pointer ${
         isSelected ? "bg-accent-primary/10" : ""
-      } ${isIncome ? "border-l-2 border-l-accent-positive" : ""}`}
+      } ${isIncome ? "border-l-2 border-l-accent-positive" : ""} ${isTransfer ? "border-l-2 border-l-accent-primary" : ""}`}
       onClick={() => {
         if (isSelectionMode && canSelect) {
           onToggleSelection();
@@ -100,14 +104,18 @@ export function TransactionRow({
         )}
         <div
           className={`hidden md:flex w-10 h-10 min-w-[40px] rounded-full items-center justify-center text-white font-bold text-xs flex-shrink-0 ${
-            isIncome
-              ? isIncrement
-                ? "bg-accent-positive/80"
-                : "bg-accent-warning/80"
-              : "bg-noir-active"
+            isTransfer
+              ? "bg-accent-primary/80"
+              : isIncome
+                ? isIncrement
+                  ? "bg-accent-positive/80"
+                  : "bg-accent-warning/80"
+                : "bg-noir-active"
           }`}
         >
-          {isIncome ? (
+          {isTransfer ? (
+            <ArrowLeftRight size={18} />
+          ) : isIncome ? (
             isIncrement ? (
               <TrendingUp size={18} />
             ) : (
@@ -122,11 +130,13 @@ export function TransactionRow({
             <h4 className="font-medium text-heading truncate">{transaction.description}</h4>
             <span
               className={`font-bold tabular-nums flex-shrink-0 ${
-                isIncome
-                  ? isIncrement
-                    ? "text-accent-positive"
-                    : "text-accent-warning"
-                  : "text-heading"
+                isTransfer
+                  ? "text-accent-primary"
+                  : isIncome
+                    ? isIncrement
+                      ? "text-accent-positive"
+                      : "text-accent-warning"
+                    : "text-heading"
               }`}
             >
               {isIncome && isIncrement ? "+" : isIncome && !isIncrement ? "-" : ""}
@@ -135,7 +145,16 @@ export function TransactionRow({
           </div>
           <div className="flex items-center justify-between gap-2 mt-1">
             <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-              <p className="text-xs text-muted flex gap-1.5 flex-shrink-0">
+              <p className="text-xs text-muted flex gap-1.5 flex-shrink-0 flex-wrap">
+                {isTransfer && toPerson && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <ArrowRight size={11} />
+                      {toPerson.name}
+                    </span>
+                    <span>•</span>
+                  </>
+                )}
                 {category?.name && (
                   <>
                     <span>{category.name}</span>
@@ -144,6 +163,12 @@ export function TransactionRow({
                 )}
                 <span>{formatDateString(transaction.date)}</span>
               </p>
+              {isTransfer && (
+                <Badge variant="accent" className="flex items-center gap-1">
+                  <ArrowLeftRight size={13} />
+                  <span className="hidden md:inline">Transferência</span>
+                </Badge>
+              )}
               {isIncome && (
                 <Badge
                   variant={isIncrement ? "positive" : "warning"}
