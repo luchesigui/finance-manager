@@ -25,6 +25,7 @@ export const transactionPatchSchema = z
     isIncrement: z.boolean(),
     isRecurring: z.boolean(),
     transferToPersonId: z.string().nullable(),
+    referenceDate: z.string().nullable(),
   })
   .partial();
 
@@ -56,6 +57,11 @@ export const createTransactionSchema = z.object({
   type: transactionTypeSchema.default("expense"),
   isIncrement: z.boolean().default(true),
   transferToPersonId: z.string().nullable().optional(),
+  referenceDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
 });
 
 export const createTransactionsBodySchema = z.union([

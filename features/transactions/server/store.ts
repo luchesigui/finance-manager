@@ -255,6 +255,7 @@ export async function createTransaction(
     type: t.type ?? "expense",
     is_increment: t.isIncrement ?? true,
     transfer_to_person_id: isTransfer ? (t.transferToPersonId ?? null) : null,
+    reference_date: isTransfer ? (t.referenceDate ?? null) : null,
   };
 
   const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();

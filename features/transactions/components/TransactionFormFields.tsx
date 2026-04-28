@@ -106,6 +106,11 @@ export function TransactionFormFields({
    * and dateSelectionMode for compatibility with existing submission logic.
    * If the selected date is after today, automatically flags the transaction as "previsão" (forecast).
    */
+  const handleReferenceDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    form.setFieldValue("referenceDate", toDateString(date));
+  };
+
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return;
     const dateStr = toDateString(date);
@@ -330,6 +335,66 @@ export function TransactionFormFields({
                       </Select>
                     </>
                   )}
+                </form.Field>
+              </div>
+            )}
+
+            {/* Reference Date (transfer only) */}
+            {isTransfer && (
+              <div className="lg:col-span-2">
+                <form.Field name="referenceDate">
+                  {(field: FieldState<string>) => {
+                    const selectedDate = field.state.value
+                      ? parseDateString(field.state.value)
+                      : undefined;
+                    return (
+                      <>
+                        <label
+                          htmlFor={inputId("reference-date")}
+                          className="block text-xs font-medium text-body mb-1"
+                        >
+                          Data de Referência{" "}
+                          <span className="text-muted font-normal">(opcional)</span>
+                        </label>
+                        <div className="flex gap-2">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                id={inputId("reference-date")}
+                                variant="outline"
+                                className={cn(
+                                  "flex-1 justify-start text-left font-normal border-noir-border bg-noir-active text-body hover:bg-noir-surface hover:text-heading",
+                                  !field.state.value && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.state.value
+                                  ? formatDateString(field.state.value)
+                                  : "Selecione a data"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={selectedDate}
+                                onSelect={handleReferenceDateSelect}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          {field.state.value && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-noir-border bg-noir-active text-muted hover:text-heading px-2"
+                              onClick={() => form.setFieldValue("referenceDate", "")}
+                            >
+                              Limpar
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    );
+                  }}
                 </form.Field>
               </div>
             )}
