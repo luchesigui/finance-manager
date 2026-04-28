@@ -74,6 +74,7 @@ function createDefaultFormState(
     type: "expense",
     isIncrement: true,
     transferToPersonId: null,
+    referenceDate: "",
   };
 }
 
@@ -315,6 +316,7 @@ export function TransactionsView() {
         isIncrement: value.isIncrement,
         isRecurring: isTransferEdit ? false : value.isRecurring,
         transferToPersonId: isTransferEdit ? (value.transferToPersonId ?? null) : null,
+        referenceDate: isTransferEdit ? value.referenceDate || null : undefined,
       };
 
       const isParcelamentoGroup =
@@ -522,6 +524,7 @@ export function TransactionsView() {
     editTransactionForm.setFieldValue("type", transaction.type ?? "expense");
     editTransactionForm.setFieldValue("isIncrement", transaction.isIncrement ?? true);
     editTransactionForm.setFieldValue("transferToPersonId", transaction.transferToPersonId ?? null);
+    editTransactionForm.setFieldValue("referenceDate", transaction.referenceDate ?? "");
   };
 
   const handleCloseEditModal = () => {

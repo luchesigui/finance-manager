@@ -285,6 +285,7 @@ export function DashboardView() {
     categories,
     transactions: transactionsForCalculations,
     outlierCount,
+    selectedMonthDate,
   });
 
   // Check if savings goal is achieved

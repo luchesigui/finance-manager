@@ -49,11 +49,19 @@ export function FairDistributionSection({
       !transaction.excludeFromSplit,
   );
 
-  // Calculate settlement data
+  // Include transfers that relate to this month (by referenceDate, or by date if none set)
+  const monthPrefix = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, "0")}`;
+  const transfersForSettlement = transactionsForSelectedMonth.filter(
+    (t) =>
+      t.type === "transfer" &&
+      t.transferToPersonId &&
+      (!t.referenceDate || t.referenceDate.startsWith(monthPrefix)),
+  );
+
   const totalExpenses = calculateTotalExpenses(transactionsForFairDistribution);
   const settlementData = calculateSettlementData(
     peopleWithShare,
-    transactionsForFairDistribution,
+    [...transactionsForFairDistribution, ...transfersForSettlement],
     totalExpenses,
   );
 

@@ -72,6 +72,7 @@ export function buildTransactionPayload(
       type: formState.type,
       isIncrement: formState.isIncrement,
       transferToPersonId: isTransfer ? (formState.transferToPersonId ?? null) : null,
+      referenceDate: isTransfer ? formState.referenceDate || null : undefined,
     });
   }
 

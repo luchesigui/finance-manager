@@ -69,6 +69,7 @@ export function mapTransactionRow(row: TransactionRow): Transaction {
     type: row.type ?? "expense",
     isIncrement: row.is_increment ?? true,
     transferToPersonId: row.transfer_to_person_id ?? null,
+    referenceDate: row.reference_date ?? null,
   };
 }
 
@@ -137,6 +138,7 @@ export function toTransactionDbPatch(patch: TransactionPatch): Record<string, un
     dbPatch.recurring_template_id = patch.recurringTemplateId;
   if (patch.transferToPersonId !== undefined)
     dbPatch.transfer_to_person_id = patch.transferToPersonId;
+  if (patch.referenceDate !== undefined) dbPatch.reference_date = patch.referenceDate;
   return dbPatch;
 }
 

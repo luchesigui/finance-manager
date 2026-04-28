@@ -227,6 +227,7 @@ type UseDashboardAlertsParams = {
   categories: Category[];
   transactions: Transaction[];
   outlierCount: number;
+  selectedMonthDate?: Date;
 };
 
 export function useDashboardAlerts({
@@ -234,6 +235,7 @@ export function useDashboardAlerts({
   categories,
   transactions,
   outlierCount,
+  selectedMonthDate,
 }: UseDashboardAlertsParams): Alert[] {
   return useMemo(() => {
     // Check if there are no transactions for this month
@@ -274,12 +276,22 @@ export function useDashboardAlerts({
         !transaction.excludeFromSplit,
     );
 
-    // Calculate settlement data
+    // Include transfers that relate to this month in settlement
+    const monthPrefix = selectedMonthDate
+      ? `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, "0")}`
+      : null;
+    const transfersForSettlement = transactions.filter(
+      (t) =>
+        t.type === "transfer" &&
+        t.transferToPersonId &&
+        (!t.referenceDate || !monthPrefix || t.referenceDate.startsWith(monthPrefix)),
+    );
+
     const peopleWithShare = calculatePeopleShareWithIncomeTransactions(people, transactions);
     const totalExpensesForDistribution = calculateTotalExpenses(transactionsForFairDistribution);
     const settlementData = calculateSettlementData(
       peopleWithShare,
-      transactionsForFairDistribution,
+      [...transactionsForFairDistribution, ...transfersForSettlement],
       totalExpensesForDistribution,
     );
 
@@ -308,5 +320,5 @@ export function useDashboardAlerts({
     alerts.sort((a, b) => priorityOrder[a.type] - priorityOrder[b.type]);
 
     return alerts;
-  }, [people, categories, transactions, outlierCount]);
+  }, [people, categories, transactions, outlierCount, selectedMonthDate]);
 }

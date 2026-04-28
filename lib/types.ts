@@ -47,6 +47,8 @@ export type Transaction = {
   isIncrement: boolean;
   /** Recipient person ID. Only applicable when type is 'transfer'. */
   transferToPersonId?: string | null;
+  /** Reference date for settlement purposes. Only applicable when type is 'transfer'. YYYY-MM-DD. */
+  referenceDate?: string | null;
 };
 
 // ============================================================================
@@ -69,6 +71,7 @@ export type TransactionPatch = Partial<
     | "type"
     | "isIncrement"
     | "transferToPersonId"
+    | "referenceDate"
   >
 > & {
   /** Client sends to turn recurring on/off; API sets recurringTemplateId when creating/unlinking template */
@@ -128,6 +131,8 @@ export type NewTransactionFormState = {
   type: TransactionType;
   isIncrement: boolean;
   transferToPersonId: string | null;
+  /** Reference date for settlement (YYYY-MM-DD). Only for transfers. Empty string = not set. */
+  referenceDate: string;
 };
 
 // ============================================================================
@@ -171,6 +176,7 @@ export type TransactionRow = {
   type?: TransactionType;
   is_increment?: boolean;
   transfer_to_person_id?: string | null;
+  reference_date?: string | null;
 };
 
 export type RecurringTemplate = {
