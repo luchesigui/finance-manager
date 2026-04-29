@@ -7,6 +7,22 @@ import { formatCurrency } from "@/lib/format";
 import { Check, Pencil, User, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+function maskBRL(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const padded = digits.padStart(3, "0");
+  const cents = padded.slice(-2);
+  const reais = padded.slice(0, -2).replace(/^0+/, "") || "0";
+  const reaisFormatted = Number(reais).toLocaleString("pt-BR");
+  return `R$ ${reaisFormatted},${cents}`;
+}
+
+function parseBRL(value: string): number {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return 0;
+  return Number(digits) / 100;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -64,13 +80,13 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
   }, []);
 
   const handleEditChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setCustomInputValue(e.target.value);
+    setCustomInputValue(maskBRL(e.target.value));
   }, []);
 
   const handleEditBlur = useCallback(() => {
-    const parsed = Number(customInputValue);
-    if (customInputValue !== "" && !Number.isNaN(parsed) && participant.realIncome > 0) {
-      const multiplierPercent = (parsed / participant.realIncome) * 100;
+    const amount = parseBRL(customInputValue);
+    if (amount > 0 && participant.realIncome > 0) {
+      const multiplierPercent = (amount / participant.realIncome) * 100;
       const clamped = Math.min(150, Math.max(0, multiplierPercent));
       setLocalMultiplier(clamped);
     }
@@ -138,14 +154,14 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
           {isEditing ? (
             <input
               ref={inputRef}
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
               value={customInputValue}
               onChange={handleEditChange}
               onBlur={handleEditBlur}
               onKeyDown={handleEditKeyDown}
-              placeholder={String(Math.round(simulatedIncome))}
-              className="w-28 text-right text-sm bg-noir-active border border-accent-primary rounded px-2 py-0.5 text-heading tabular-nums focus:outline-none"
+              placeholder="R$ 0,00"
+              className="w-32 text-right text-sm bg-noir-active border border-accent-primary rounded px-2 py-0.5 text-heading tabular-nums focus:outline-none"
               aria-label="Renda simulada"
             />
           ) : (
