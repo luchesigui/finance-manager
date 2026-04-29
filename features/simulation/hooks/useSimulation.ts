@@ -22,6 +22,7 @@ import { createInitialParticipants } from "@/features/simulation/server/particip
 import { buildProjectionResult } from "@/features/simulation/server/projectionCalculator";
 import { useSimulationDraftStore } from "@/features/simulation/stores/simulationDraftStore";
 import { getAccountingYearMonth } from "@/lib/dateUtils";
+import { getExpenseTransactions } from "@/lib/server/calculations";
 
 // ============================================================================
 // Types
@@ -121,10 +122,10 @@ export function useSimulation({
   );
 
   const averageExpenses = useMemo(() => {
-    const validHistorical = filterValidExpenseTransactions(
-      historicalTransactions,
-      categories,
-    ).filter((t) => !t.isForecast);
+    const liberdadeCategoryId = categories.find((c) => c.name === "Liberdade Financeira")?.id;
+    const validHistorical = getExpenseTransactions(historicalTransactions).filter(
+      (t) => !liberdadeCategoryId || t.categoryId !== liberdadeCategoryId,
+    );
     if (validHistorical.length === 0) return 0;
 
     const monthlyTotals = new Map<string, number>();
