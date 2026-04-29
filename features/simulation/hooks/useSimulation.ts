@@ -21,6 +21,7 @@ import {
 import { createInitialParticipants } from "@/features/simulation/server/participants";
 import { buildProjectionResult } from "@/features/simulation/server/projectionCalculator";
 import { useSimulationDraftStore } from "@/features/simulation/stores/simulationDraftStore";
+import { getAccountingYearMonth } from "@/lib/dateUtils";
 
 // ============================================================================
 // Types
@@ -29,6 +30,7 @@ import { useSimulationDraftStore } from "@/features/simulation/stores/simulation
 type UseSimulationProps = {
   people: Person[];
   transactions: Transaction[];
+  historicalTransactions: Transaction[];
   categories: Category[];
   emergencyFund: number;
 };
@@ -64,6 +66,7 @@ type UseSimulationReturn = {
 export function useSimulation({
   people,
   transactions,
+  historicalTransactions,
   categories,
   emergencyFund,
 }: UseSimulationProps): UseSimulationReturn {
@@ -118,9 +121,25 @@ export function useSimulation({
   );
 
   const averageExpenses = useMemo(() => {
-    if (validExpenseTransactions.length === 0) return 0;
-    return validExpenseTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-  }, [validExpenseTransactions]);
+    const validHistorical = filterValidExpenseTransactions(
+      historicalTransactions,
+      categories,
+    ).filter((t) => !t.isForecast);
+    if (validHistorical.length === 0) return 0;
+
+    const monthlyTotals = new Map<string, number>();
+    for (const t of validHistorical) {
+      const { year, month } = getAccountingYearMonth(t.date, t.isNextBilling);
+      const key = `${year}-${String(month).padStart(2, "0")}`;
+      monthlyTotals.set(key, (monthlyTotals.get(key) ?? 0) + t.amount);
+    }
+
+    const sortedKeys = [...monthlyTotals.keys()].sort().slice(-12);
+    if (sortedKeys.length === 0) return 0;
+
+    const total = sortedKeys.reduce((sum, key) => sum + (monthlyTotals.get(key) ?? 0), 0);
+    return total / sortedKeys.length;
+  }, [historicalTransactions, categories]);
 
   const baselineIncome = useMemo(
     () => people.reduce((sum, person) => sum + person.income, 0),
