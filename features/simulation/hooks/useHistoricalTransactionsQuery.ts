@@ -3,17 +3,16 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/apiClient";
-import type { Transaction } from "@/lib/types";
 
-export function useHistoricalTransactionsQuery() {
+export function useAverageExpensesQuery() {
   const query = useQuery({
-    queryKey: ["transactions", "all"],
-    queryFn: () => fetchJson<Transaction[]>("/api/transactions"),
+    queryKey: ["simulations", "average-expenses"],
+    queryFn: () => fetchJson<{ averageExpenses: number }>("/api/simulations/average-expenses"),
     staleTime: 5 * 60 * 1000,
   });
 
   return {
-    historicalTransactions: query.data ?? [],
-    isHistoricalLoading: query.isLoading,
+    averageExpenses: query.data?.averageExpenses ?? 0,
+    isAverageExpensesLoading: query.isLoading,
   };
 }

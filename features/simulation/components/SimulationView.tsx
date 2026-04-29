@@ -13,7 +13,7 @@ import { SavedSimulationsList } from "@/features/simulation/components/SavedSimu
 import { ScenarioSelector } from "@/features/simulation/components/ScenarioSelector";
 import { SimulationAlerts } from "@/features/simulation/components/SimulationAlerts";
 import { SimulationSummaryCards } from "@/features/simulation/components/SimulationSummaryCards";
-import { useHistoricalTransactionsQuery } from "@/features/simulation/hooks/useHistoricalTransactionsQuery";
+import { useAverageExpensesQuery } from "@/features/simulation/hooks/useHistoricalTransactionsQuery";
 import { useSimulation } from "@/features/simulation/hooks/useSimulation";
 import {
   useDeleteSimulationMutation,
@@ -36,14 +36,15 @@ export function SimulationView() {
   const { transactionsForCalculations, isTransactionsLoading } = useTransactionsData();
   const { categories, isCategoriesLoading } = useCategoriesData();
   const { emergencyFund, isEmergencyFundLoading } = useEmergencyFundData();
-  const { historicalTransactions, isHistoricalLoading } = useHistoricalTransactionsQuery();
+  const { averageExpenses: serverAverageExpenses, isAverageExpensesLoading } =
+    useAverageExpensesQuery();
 
   const isLoading =
     isPeopleLoading ||
     isTransactionsLoading ||
     isCategoriesLoading ||
     isEmergencyFundLoading ||
-    isHistoricalLoading;
+    isAverageExpensesLoading;
 
   const {
     state,
@@ -69,9 +70,9 @@ export function SimulationView() {
   } = useSimulation({
     people,
     transactions: transactionsForCalculations,
-    historicalTransactions,
     categories,
     emergencyFund,
+    averageExpensesOverride: serverAverageExpenses,
   });
 
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
