@@ -31,7 +31,7 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
   const [localMultiplier, setLocalMultiplier] = useState(participant.incomeMultiplier * 100);
   const [isMoving, setIsMoving] = useState(false);
   const [inputValue, setInputValue] = useState(
-    String(Math.round(participant.incomeMultiplier * 100)),
+    String(Math.round(participant.realIncome * participant.incomeMultiplier)),
   );
 
   // Debounced update to parent
@@ -48,18 +48,21 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
   // Sync from parent when it changes externally
   useEffect(() => {
     setLocalMultiplier(participant.incomeMultiplier * 100);
-    setInputValue(String(Math.round(participant.incomeMultiplier * 100)));
-  }, [participant.incomeMultiplier]);
+    setInputValue(String(Math.round(participant.realIncome * participant.incomeMultiplier)));
+  }, [participant.incomeMultiplier, participant.realIncome]);
 
   const simulatedIncome = participant.isActive
     ? participant.realIncome * (localMultiplier / 100)
     : 0;
 
-  const handleSliderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(e.target.value);
-    setLocalMultiplier(value);
-    setInputValue(String(Math.round(value)));
-  }, []);
+  const handleSliderChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = Number(e.target.value);
+      setLocalMultiplier(value);
+      setInputValue(String(Math.round(participant.realIncome * (value / 100))));
+    },
+    [participant.realIncome],
+  );
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
@@ -67,14 +70,15 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
 
   const handleInputCommit = useCallback(() => {
     const parsed = Number(inputValue);
-    if (!Number.isNaN(parsed)) {
-      const clamped = Math.min(150, Math.max(0, Math.round(parsed)));
+    if (!Number.isNaN(parsed) && participant.realIncome > 0) {
+      const multiplierPercent = (parsed / participant.realIncome) * 100;
+      const clamped = Math.min(150, Math.max(0, Math.round(multiplierPercent)));
       setLocalMultiplier(clamped);
-      setInputValue(String(clamped));
+      setInputValue(String(Math.round(participant.realIncome * (clamped / 100))));
     } else {
-      setInputValue(String(Math.round(localMultiplier)));
+      setInputValue(String(Math.round(simulatedIncome)));
     }
-  }, [inputValue, localMultiplier]);
+  }, [inputValue, participant.realIncome, simulatedIncome]);
 
   const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -196,21 +200,20 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
           <span>50%</span>
           <span>100%</span>
           <div className="flex items-center gap-1">
+            <span>R$</span>
             <input
               type="number"
               min={0}
-              max={150}
               value={inputValue}
               onChange={handleInputChange}
               onBlur={handleInputCommit}
               onKeyDown={handleInputKeyDown}
               disabled={!participant.isActive}
-              className={`w-12 text-center text-xs bg-noir-active border border-noir-border rounded px-1 py-0.5 text-heading tabular-nums focus:outline-none focus:border-accent-primary transition-colors ${
+              className={`w-20 text-center text-xs bg-noir-active border border-noir-border rounded px-1 py-0.5 text-heading tabular-nums focus:outline-none focus:border-accent-primary transition-colors ${
                 participant.isActive ? "" : "opacity-40 cursor-not-allowed"
               }`}
-              aria-label="Percentagem de renda simulada"
+              aria-label="Renda simulada"
             />
-            <span>%</span>
           </div>
         </div>
       </div>
