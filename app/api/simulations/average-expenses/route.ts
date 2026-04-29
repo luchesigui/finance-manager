@@ -1,48 +1,52 @@
 import { NextResponse } from "next/server";
 
 import { getCategories } from "@/features/categories/server/store";
+import { filterValidExpenseTransactions } from "@/features/simulation/server/expenseFilters";
 import { getTransactions } from "@/features/transactions/server/store";
-import { getAccountingYearMonthUtc } from "@/lib/dateUtils";
-import { getExpenseTransactions } from "@/lib/server/calculations";
+import { dayjs } from "@/lib/dateUtils";
+import { getPrimaryHouseholdId } from "@/lib/server/household";
 import { requireAuth } from "@/lib/server/requestBodyValidation";
 
 export const dynamic = "force-dynamic";
 
-const LIBERDADE_FINANCEIRA = "Liberdade Financeira";
 const MAX_MONTHS = 12;
 
 /**
  * GET /api/simulations/average-expenses
  * Returns the average monthly expense over the last 12 months (or fewer if less data exists).
- * Excludes income, transfers, and "Liberdade Financeira" category.
+ * Uses getTransactions(year, month) for each month so virtual recurring template
+ * transactions are included for unclosed months — matching what the user sees per month.
  */
 export async function GET() {
   const auth = await requireAuth();
   if (!auth.success) return auth.response;
 
   try {
-    const [transactions, categories] = await Promise.all([getTransactions(), getCategories()]);
+    const [categories, householdId] = await Promise.all([getCategories(), getPrimaryHouseholdId()]);
 
-    const liberdadeCategoryId = categories.find((c) => c.name === LIBERDADE_FINANCEIRA)?.id;
+    const now = dayjs.utc();
+    const monthsToFetch = Array.from({ length: MAX_MONTHS }, (_, i) => {
+      const d = now.subtract(i, "month");
+      return { year: d.year(), month: d.month() + 1 };
+    });
 
-    const expenses = getExpenseTransactions(transactions).filter(
-      (t) => !liberdadeCategoryId || t.categoryId !== liberdadeCategoryId,
+    const monthlyTransactions = await Promise.all(
+      monthsToFetch.map(({ year, month }) => getTransactions(year, month, householdId)),
     );
 
-    const monthlyTotals = new Map<string, number>();
-    for (const t of expenses) {
-      const { year, month } = getAccountingYearMonthUtc(t.date, t.isNextBilling);
-      const key = `${year}-${String(month).padStart(2, "0")}`;
-      monthlyTotals.set(key, (monthlyTotals.get(key) ?? 0) + t.amount);
-    }
+    const monthlyTotals = monthlyTransactions.map((transactions) =>
+      filterValidExpenseTransactions(transactions, categories)
+        .filter((t) => !t.isForecast)
+        .reduce((sum, t) => sum + t.amount, 0),
+    );
 
-    const sortedKeys = [...monthlyTotals.keys()].sort().slice(-MAX_MONTHS);
-    if (sortedKeys.length === 0) {
+    const nonZeroTotals = monthlyTotals.filter((total) => total > 0);
+    if (nonZeroTotals.length === 0) {
       return NextResponse.json({ averageExpenses: 0 });
     }
 
-    const total = sortedKeys.reduce((sum, key) => sum + (monthlyTotals.get(key) ?? 0), 0);
-    return NextResponse.json({ averageExpenses: total / sortedKeys.length });
+    const average = nonZeroTotals.reduce((sum, t) => sum + t, 0) / nonZeroTotals.length;
+    return NextResponse.json({ averageExpenses: average });
   } catch (error) {
     console.error("Failed to compute average expenses:", error);
     return NextResponse.json({ error: "Failed to compute average expenses" }, { status: 500 });
