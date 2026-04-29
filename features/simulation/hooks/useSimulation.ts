@@ -31,6 +31,7 @@ type UseSimulationProps = {
   transactions: Transaction[];
   categories: Category[];
   emergencyFund: number;
+  averageExpensesOverride: number;
 };
 
 type UseSimulationReturn = {
@@ -66,6 +67,7 @@ export function useSimulation({
   transactions,
   categories,
   emergencyFund,
+  averageExpensesOverride,
 }: UseSimulationProps): UseSimulationReturn {
   const state = useSimulationDraftStore((store) => store.state);
   const customExpensesValue = useSimulationDraftStore((store) => store.customExpensesValue);
@@ -117,11 +119,6 @@ export function useSimulation({
     [validExpenseTransactions],
   );
 
-  const averageExpenses = useMemo(() => {
-    if (validExpenseTransactions.length === 0) return 0;
-    return validExpenseTransactions.reduce((sum, transaction) => sum + transaction.amount, 0);
-  }, [validExpenseTransactions]);
-
   const baselineIncome = useMemo(
     () => people.reduce((sum, person) => sum + person.income, 0),
     [people],
@@ -148,7 +145,7 @@ export function useSimulation({
         state.expenseOverrides,
         recurringExpenses,
         currentMonthExpenses,
-        averageExpenses,
+        averageExpensesOverride,
         customExpensesValue,
       ),
     [
@@ -156,7 +153,7 @@ export function useSimulation({
       state.expenseOverrides,
       recurringExpenses,
       currentMonthExpenses,
-      averageExpenses,
+      averageExpensesOverride,
       customExpensesValue,
     ],
   );
@@ -168,7 +165,7 @@ export function useSimulation({
         state.expenseOverrides,
         recurringExpenses,
         currentMonthExpenses,
-        averageExpenses,
+        averageExpensesOverride,
         customExpensesValue,
       ),
     [
@@ -176,7 +173,7 @@ export function useSimulation({
       state.expenseOverrides,
       recurringExpenses,
       currentMonthExpenses,
-      averageExpenses,
+      averageExpensesOverride,
       customExpensesValue,
     ],
   );
@@ -234,7 +231,7 @@ export function useSimulation({
     hasChanges,
     recurringExpenses,
     currentMonthExpenses,
-    averageExpenses,
+    averageExpenses: averageExpensesOverride,
     customExpenses: customExpensesValue,
     emergencyFund,
   };

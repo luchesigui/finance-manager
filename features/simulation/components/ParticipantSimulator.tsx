@@ -3,9 +3,25 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { SimulationParticipant } from "@/features/simulation/types";
-import { formatCurrency, formatPercent } from "@/lib/format";
-import { Check, User, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { formatCurrency } from "@/lib/format";
+import { Check, Pencil, User, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+function maskBRL(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const padded = digits.padStart(3, "0");
+  const cents = padded.slice(-2);
+  const reais = padded.slice(0, -2).replace(/^0+/, "") || "0";
+  const reaisFormatted = Number(reais).toLocaleString("pt-BR");
+  return `R$ ${reaisFormatted},${cents}`;
+}
+
+function parseBRL(value: string): number {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return 0;
+  return Number(digits) / 100;
+}
 
 // ============================================================================
 // Types
@@ -30,6 +46,9 @@ type ParticipantRowProps = {
 function ParticipantRow({ participant, onToggle, onMultiplierChange }: ParticipantRowProps) {
   const [localMultiplier, setLocalMultiplier] = useState(participant.incomeMultiplier * 100);
   const [isMoving, setIsMoving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [customInputValue, setCustomInputValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Debounced update to parent
   useEffect(() => {
@@ -53,6 +72,32 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
 
   const handleSliderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalMultiplier(Number(e.target.value));
+  }, []);
+
+  const handlePencilClick = useCallback(() => {
+    setIsEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }, []);
+
+  const handleEditChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomInputValue(maskBRL(e.target.value));
+  }, []);
+
+  const handleEditBlur = useCallback(() => {
+    const amount = parseBRL(customInputValue);
+    if (amount > 0 && participant.realIncome > 0) {
+      const multiplierPercent = (amount / participant.realIncome) * 100;
+      const clamped = Math.min(150, Math.max(0, multiplierPercent));
+      setLocalMultiplier(clamped);
+    }
+    setIsEditing(false);
+  }, [customInputValue, participant.realIncome]);
+
+  const handleEditKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") e.currentTarget.blur();
+    if (e.key === "Escape") {
+      setIsEditing(false);
+    }
   }, []);
 
   return (
@@ -103,16 +148,45 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
       </div>
 
       {/* Simulated income display */}
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between gap-2">
         <span className="text-sm text-muted">Renda Simulada:</span>
-        <span
-          className={`font-bold tabular-nums ${
-            participant.isActive ? "text-heading" : "text-muted"
-          }`}
-        >
-          {formatCurrency(simulatedIncome)}{" "}
-          <span className="text-sm font-normal text-muted">({Math.round(localMultiplier)}%)</span>
-        </span>
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              inputMode="numeric"
+              value={customInputValue}
+              onChange={handleEditChange}
+              onBlur={handleEditBlur}
+              onKeyDown={handleEditKeyDown}
+              placeholder="R$ 0,00"
+              className="w-32 text-right text-sm bg-noir-active border border-accent-primary rounded px-2 py-0.5 text-heading tabular-nums focus:outline-none"
+              aria-label="Renda simulada"
+            />
+          ) : (
+            <span
+              className={`font-bold tabular-nums ${
+                participant.isActive ? "text-heading" : "text-muted"
+              }`}
+            >
+              {formatCurrency(simulatedIncome)}{" "}
+              <span className="text-sm font-normal text-muted">
+                ({Math.round(localMultiplier)}%)
+              </span>
+            </span>
+          )}
+          {participant.isActive && !isEditing && (
+            <button
+              type="button"
+              onClick={handlePencilClick}
+              className="text-muted hover:text-accent-primary transition-colors"
+              aria-label="Editar renda simulada"
+            >
+              <Pencil size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Inactive badge */}
