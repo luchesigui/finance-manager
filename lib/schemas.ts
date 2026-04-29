@@ -14,7 +14,7 @@ export const transactionPatchSchema = z
   .object({
     description: z.string(),
     amount: z.number(),
-    categoryId: z.string(),
+    categoryId: z.string().nullable(),
     paidBy: z.string(),
     isCreditCard: z.boolean(),
     isNextBilling: z.boolean(),

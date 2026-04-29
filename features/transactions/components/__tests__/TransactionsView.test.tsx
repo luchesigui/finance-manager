@@ -285,7 +285,7 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       const descriptionNode = await screen.findByText("Transferencia teste");
       const row = descriptionNode.closest(".group");
       expect(row).toBeTruthy();
-      expect(row).toHaveTextContent(/Alice\s*->\s*Bob/i);
+      expect(row).toHaveTextContent(/Alice\s*→\s*Bob/i);
     });
   });
 

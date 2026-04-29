@@ -150,7 +150,7 @@ export function TransactionRow({
                   <>
                     <span className="flex items-center gap-1">
                       {person?.name ?? "Origem"}
-                      <span aria-hidden="true">-&gt;</span>
+                      <span aria-hidden="true">&rarr;</span>
                       {toPerson.name}
                     </span>
                     <span>•</span>
