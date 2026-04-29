@@ -30,6 +30,9 @@ type ParticipantRowProps = {
 function ParticipantRow({ participant, onToggle, onMultiplierChange }: ParticipantRowProps) {
   const [localMultiplier, setLocalMultiplier] = useState(participant.incomeMultiplier * 100);
   const [isMoving, setIsMoving] = useState(false);
+  const [inputValue, setInputValue] = useState(
+    String(Math.round(participant.incomeMultiplier * 100)),
+  );
 
   // Debounced update to parent
   useEffect(() => {
@@ -45,6 +48,7 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
   // Sync from parent when it changes externally
   useEffect(() => {
     setLocalMultiplier(participant.incomeMultiplier * 100);
+    setInputValue(String(Math.round(participant.incomeMultiplier * 100)));
   }, [participant.incomeMultiplier]);
 
   const simulatedIncome = participant.isActive
@@ -52,7 +56,30 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
     : 0;
 
   const handleSliderChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalMultiplier(Number(e.target.value));
+    const value = Number(e.target.value);
+    setLocalMultiplier(value);
+    setInputValue(String(Math.round(value)));
+  }, []);
+
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  }, []);
+
+  const handleInputCommit = useCallback(() => {
+    const parsed = Number(inputValue);
+    if (!Number.isNaN(parsed)) {
+      const clamped = Math.min(150, Math.max(0, Math.round(parsed)));
+      setLocalMultiplier(clamped);
+      setInputValue(String(clamped));
+    } else {
+      setInputValue(String(Math.round(localMultiplier)));
+    }
+  }, [inputValue, localMultiplier]);
+
+  const handleInputKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    }
   }, []);
 
   return (
@@ -163,12 +190,28 @@ function ParticipantRow({ participant, onToggle, onMultiplierChange }: Participa
           aria-valuetext={`${Math.round(localMultiplier)}% da renda, equivalente a ${formatCurrency(simulatedIncome)}`}
         />
 
-        {/* Markers */}
-        <div className="flex justify-between text-xs text-muted mt-1">
+        {/* Markers + manual input */}
+        <div className="flex justify-between items-center text-xs text-muted mt-1">
           <span>0%</span>
           <span>50%</span>
           <span>100%</span>
-          <span>150%</span>
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min={0}
+              max={150}
+              value={inputValue}
+              onChange={handleInputChange}
+              onBlur={handleInputCommit}
+              onKeyDown={handleInputKeyDown}
+              disabled={!participant.isActive}
+              className={`w-12 text-center text-xs bg-noir-active border border-noir-border rounded px-1 py-0.5 text-heading tabular-nums focus:outline-none focus:border-accent-primary transition-colors ${
+                participant.isActive ? "" : "opacity-40 cursor-not-allowed"
+              }`}
+              aria-label="Percentagem de renda simulada"
+            />
+            <span>%</span>
+          </div>
         </div>
       </div>
     </div>
