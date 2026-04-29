@@ -233,7 +233,7 @@ export function TransactionsView() {
       newTransactionForm.setFieldValue("dayOfMonth", today.getDate());
       if (viewMode === "creditCard") {
         newTransactionForm.setFieldValue("isCreditCard", true);
-        newTransactionForm.setFieldValue("isNextBilling", true);
+        newTransactionForm.setFieldValue("isNextBilling", false);
       }
       setSmartInput("");
     },
@@ -764,7 +764,7 @@ Retorne APENAS o JSON, sem markdown.
                         setViewMode(next);
                         newTransactionForm.setFieldValue("isCreditCard", next === "creditCard");
                         if (next === "creditCard") {
-                          newTransactionForm.setFieldValue("isNextBilling", true);
+                          newTransactionForm.setFieldValue("isNextBilling", false);
                         } else {
                           newTransactionForm.setFieldValue("isNextBilling", false);
                         }

@@ -142,7 +142,7 @@ export function TransactionFormFields({
                     form.setFieldValue("isIncrement", true);
                     if (creditCardViewActive) {
                       form.setFieldValue("isCreditCard", true);
-                      form.setFieldValue("isNextBilling", true);
+                      form.setFieldValue("isNextBilling", false);
                     }
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-interactive border-2 transition-all duration-200 ${

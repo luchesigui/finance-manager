@@ -788,7 +788,7 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       });
     });
 
-    it("with credit card mode on, submit sends isNextBilling and isCreditCard true", async () => {
+    it("with credit card mode on, submit sends isNextBilling false and isCreditCard true", async () => {
       let capturedBody: unknown = null;
       server.use(
         ...setupHandlers(),
@@ -822,7 +822,7 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       });
       const payload = Array.isArray(capturedBody) ? (capturedBody as unknown[])[0] : capturedBody;
       const payloadObj = payload as { isNextBilling?: boolean; isCreditCard?: boolean };
-      expect(payloadObj.isNextBilling).toBe(true);
+      expect(payloadObj.isNextBilling).toBe(false);
       expect(payloadObj.isCreditCard).toBe(true);
     });
   });
