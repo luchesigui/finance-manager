@@ -287,6 +287,71 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       expect(row).toBeTruthy();
       expect(row).toHaveTextContent(/Alice\s*→\s*Bob/i);
     });
+
+    it("shows transfer total when filtering by transfer type", async () => {
+      server.use(
+        ...setupHandlers([
+          {
+            id: 1,
+            description: "Supermercado",
+            amount: 500,
+            categoryId: "c1",
+            paidBy: "p1",
+            recurringTemplateId: null,
+            isCreditCard: false,
+            isNextBilling: false,
+            excludeFromSplit: false,
+            isForecast: false,
+            date: "2025-01-15",
+            type: "expense",
+            isIncrement: true,
+          },
+          {
+            id: 2,
+            description: "Transferencia 1",
+            amount: 120,
+            categoryId: null,
+            paidBy: "p1",
+            recurringTemplateId: null,
+            isCreditCard: false,
+            isNextBilling: false,
+            excludeFromSplit: false,
+            isForecast: false,
+            date: "2025-01-20",
+            type: "transfer",
+            isIncrement: true,
+            transferToPersonId: "p2",
+            referenceDate: null,
+          },
+          {
+            id: 3,
+            description: "Transferencia 2",
+            amount: 80,
+            categoryId: null,
+            paidBy: "p2",
+            recurringTemplateId: null,
+            isCreditCard: false,
+            isNextBilling: false,
+            excludeFromSplit: false,
+            isForecast: false,
+            date: "2025-01-22",
+            type: "transfer",
+            isIncrement: true,
+            transferToPersonId: "p1",
+            referenceDate: null,
+          },
+        ]),
+      );
+
+      renderView();
+      const transferFilterButton = screen.getAllByRole("button", { name: "Transferência" }).at(-1);
+      expect(transferFilterButton).toBeDefined();
+      await user.click(transferFilterButton as HTMLElement);
+
+      await screen.findByText("Total de 2 transferência(s)");
+      expect(screen.getByText(/R\$\s*200[,.]00/)).toBeInTheDocument();
+      expect(screen.queryByText(/R\$\s*500[,.]00/)).not.toBeInTheDocument();
+    });
   });
 
   describe("Add transaction", () => {
@@ -788,13 +853,35 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       });
     });
 
-    it("Selecionar Todos selects non-recurring items", async () => {
+    it("Selecionar Todos selects all visible items", async () => {
       renderView();
       await selectors.findSupermercado();
       await user.click(selectors.selection.getSelecionarButton());
       await user.click(selectors.selection.getSelecionarTodos());
       await waitFor(() => {
         expect(selectors.selection.getSelecionadoCount()).toBeInTheDocument();
+      });
+    });
+
+    it("disables bulk actions when selection contains recurring item", async () => {
+      server.use(
+        ...setupHandlers([
+          { ...mockTransactions[0], description: "Nao recorrente", recurringTemplateId: null },
+          { ...mockTransactions[1], description: "Recorrente", recurringTemplateId: 123 },
+        ]),
+      );
+
+      renderView();
+      await screen.findByText("Nao recorrente");
+      await screen.findByRole("heading", { name: "Recorrente" });
+
+      await user.click(selectors.selection.getSelecionarButton());
+      await user.click(selectors.selection.getSelecionarTodos());
+
+      await waitFor(() => {
+        expect(screen.getByText(/2 selecionado/i)).toBeInTheDocument();
+        expect(selectors.selection.getEditarMassa()).toBeDisabled();
+        expect(selectors.selection.getExcluir()).toBeDisabled();
       });
     });
 

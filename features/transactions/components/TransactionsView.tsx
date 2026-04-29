@@ -486,8 +486,14 @@ export function TransactionsView() {
   const visibleIncomeCount = visibleTransactionsForSelectedMonth.filter(
     (t) => t.type === "income",
   ).length;
+  const visibleTransferCount = visibleTransactionsForSelectedMonth.filter(
+    (t) => t.type === "transfer",
+  ).length;
   const visibleIncomeTotal = visibleTransactionsForSelectedMonth
     .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+  const visibleTransferTotal = visibleTransactionsForSelectedMonth
+    .filter((t) => t.type === "transfer")
     .reduce((sum, t) => sum + t.amount, 0);
   const visibleExpenseTotal = visibleTransactionsForCalculations.reduce(
     (sum, t) => sum + t.amount,
@@ -662,10 +668,8 @@ Retorne APENAS o JSON, sem markdown.
   };
 
   const selectAllVisibleTransactions = () => {
-    const nonRecurringIds = visibleTransactionsForSelectedMonth
-      .filter((transaction) => transaction.recurringTemplateId == null)
-      .map((transaction) => transaction.id);
-    setSelectedIds(new Set(nonRecurringIds));
+    const visibleIds = visibleTransactionsForSelectedMonth.map((transaction) => transaction.id);
+    setSelectedIds(new Set(visibleIds));
   };
 
   const clearSelection = () => {
@@ -674,6 +678,10 @@ Retorne APENAS o JSON, sem markdown.
 
   const handleOpenBulkEditModal = () => {
     if (selectedIds.size === 0) return;
+    const hasRecurringSelection = visibleTransactionsForSelectedMonth.some(
+      (transaction) => selectedIds.has(transaction.id) && transaction.recurringTemplateId != null,
+    );
+    if (hasRecurringSelection) return;
     setBulkEditFormState({
       categoryId: null,
       paidBy: null,
@@ -717,12 +725,20 @@ Retorne APENAS o JSON, sem markdown.
 
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return;
+    const hasRecurringSelection = visibleTransactionsForSelectedMonth.some(
+      (transaction) => selectedIds.has(transaction.id) && transaction.recurringTemplateId != null,
+    );
+    if (hasRecurringSelection) return;
     if (!confirm(`Excluir ${selectedIds.size} lançamento(s) selecionado(s)?`)) return;
 
     bulkDeleteTransactions(Array.from(selectedIds));
     setSelectedIds(new Set());
     setIsSelectionMode(false);
   };
+
+  const hasRecurringSelection = visibleTransactionsForSelectedMonth.some(
+    (transaction) => selectedIds.has(transaction.id) && transaction.recurringTemplateId != null,
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -1148,7 +1164,7 @@ Retorne APENAS o JSON, sem markdown.
               <Button
                 type="button"
                 onClick={handleOpenBulkEditModal}
-                disabled={selectedIds.size === 0}
+                disabled={selectedIds.size === 0 || hasRecurringSelection}
                 className="text-xs px-3 py-1.5 h-auto"
               >
                 <Pencil size={12} />
@@ -1158,7 +1174,7 @@ Retorne APENAS o JSON, sem markdown.
                 type="button"
                 variant="destructive"
                 onClick={handleBulkDelete}
-                disabled={selectedIds.size === 0}
+                disabled={selectedIds.size === 0 || hasRecurringSelection}
                 className="text-xs px-3 py-1.5 h-auto"
               >
                 <Trash2 size={12} />
@@ -1205,7 +1221,7 @@ Retorne APENAS o JSON, sem markdown.
                 isOutlier={isOutlier(transaction)}
                 isSelectionMode={isSelectionMode}
                 isSelected={selectedIds.has(transaction.id)}
-                canSelect={transaction.recurringTemplateId == null}
+                canSelect={true}
                 displayNextBillingTag={
                   transaction.isNextBilling && isTransactionDateInSelectedMonth(transaction.date)
                 }
@@ -1238,6 +1254,8 @@ Retorne APENAS o JSON, sem markdown.
                 <>Total de {visibleIncomeCount} recebimento(s)</>
               ) : typeFilter === "expense" ? (
                 <>Total de {visibleExpenseCount} lançamento(s)</>
+              ) : typeFilter === "transfer" ? (
+                <>Total de {visibleTransferCount} transferência(s)</>
               ) : (
                 <>
                   Total de {visibleTransactionsForSelectedMonth.length} lançamentos
@@ -1252,7 +1270,9 @@ Retorne APENAS o JSON, sem markdown.
             <span className="font-bold text-lg text-heading tabular-nums">
               {typeFilter === "income"
                 ? formatCurrency(visibleIncomeTotal)
-                : formatCurrency(visibleExpenseTotal)}
+                : typeFilter === "transfer"
+                  ? formatCurrency(visibleTransferTotal)
+                  : formatCurrency(visibleExpenseTotal)}
             </span>
           </div>
         )}
