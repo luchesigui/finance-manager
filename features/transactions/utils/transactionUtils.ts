@@ -63,7 +63,7 @@ export function buildTransactionPayload(
       categoryId,
       paidBy: formState.paidBy,
       recurringTemplateId: null,
-      dayOfMonth: !isTransfer && formState.isRecurring ? formState.dayOfMonth : undefined,
+      dayOfMonth: formState.isRecurring ? formState.dayOfMonth : undefined,
       isCreditCard: isTransfer ? false : formState.isCreditCard,
       isNextBilling: isTransfer ? false : formState.isNextBilling,
       excludeFromSplit: isTransfer ? false : formState.excludeFromSplit,

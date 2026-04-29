@@ -254,6 +254,39 @@ describe("TransactionsView", { timeout: 5000 }, () => {
       renderView();
       await selectors.findNenhumLancamento();
     });
+
+    it("shows transfer route as payer -> receiver", async () => {
+      server.use(
+        ...setupHandlers([
+          {
+            id: 3,
+            description: "Transferencia teste",
+            amount: 120,
+            categoryId: null,
+            paidBy: "p1",
+            recurringTemplateId: null,
+            isCreditCard: false,
+            isNextBilling: false,
+            excludeFromSplit: false,
+            isForecast: false,
+            date: "2025-01-22",
+            type: "transfer",
+            isIncrement: true,
+            transferToPersonId: "p2",
+            referenceDate: null,
+          },
+        ]),
+      );
+
+      renderView();
+      const transferFilterButton = screen.getAllByRole("button", { name: "Transferência" }).at(-1);
+      expect(transferFilterButton).toBeDefined();
+      await user.click(transferFilterButton as HTMLElement);
+      const descriptionNode = await screen.findByText("Transferencia teste");
+      const row = descriptionNode.closest(".group");
+      expect(row).toBeTruthy();
+      expect(row).toHaveTextContent(/Alice\s*->\s*Bob/i);
+    });
   });
 
   describe("Add transaction", () => {
@@ -459,6 +492,108 @@ describe("TransactionsView", { timeout: 5000 }, () => {
         expect(patchBody).toBeTruthy();
         const body = patchBody as { patch?: { isRecurring?: boolean } };
         expect(body?.patch?.isRecurring).toBe(true);
+      });
+    });
+
+    it("submitting transfer edit with Recorrente? checked sends patch.isRecurring true", async () => {
+      let patchBody: unknown = null;
+      server.use(
+        ...setupHandlers([
+          {
+            id: 7,
+            description: "Transferencia mensal",
+            amount: 350,
+            categoryId: null,
+            paidBy: "p1",
+            recurringTemplateId: null,
+            isCreditCard: false,
+            isNextBilling: false,
+            excludeFromSplit: false,
+            isForecast: false,
+            date: "2025-01-12",
+            type: "transfer",
+            isIncrement: true,
+            transferToPersonId: "p2",
+            referenceDate: null,
+          },
+        ]),
+        http.patch("/api/transactions/:id", async ({ request }) => {
+          patchBody = await request.json();
+          return HttpResponse.json({
+            id: 7,
+            description: "Transferencia mensal",
+            amount: 350,
+            categoryId: null,
+            paidBy: "p1",
+            recurringTemplateId: 33,
+            isCreditCard: false,
+            isNextBilling: false,
+            excludeFromSplit: false,
+            isForecast: false,
+            date: "2025-01-12",
+            type: "transfer",
+            isIncrement: true,
+            transferToPersonId: "p2",
+            referenceDate: null,
+          });
+        }),
+      );
+
+      renderView();
+      const transferFilterButton = screen.getAllByRole("button", { name: "Transferência" }).at(-1);
+      expect(transferFilterButton).toBeDefined();
+      await user.click(transferFilterButton as HTMLElement);
+      await screen.findByText("Transferencia mensal");
+      await user.click(selectors.getEditButton("Transferencia mensal"));
+
+      await waitFor(() => {
+        expect(selectors.getEditDescriptionInput()).toBeInTheDocument();
+      });
+
+      const editRecurringCheckbox = document.querySelector(
+        "#edit-transaction-recurring",
+      ) as HTMLInputElement;
+      expect(editRecurringCheckbox).toBeInTheDocument();
+      if (!editRecurringCheckbox.checked) {
+        await user.click(editRecurringCheckbox);
+      }
+      await user.click(selectors.getSaveConfirmButton());
+
+      await waitFor(() => {
+        expect(patchBody).toBeTruthy();
+        const body = patchBody as { patch?: { isRecurring?: boolean } };
+        expect(body?.patch?.isRecurring).toBe(true);
+      });
+    });
+
+    it("editing as income sends patch.categoryId as null", async () => {
+      let patchBody: unknown = null;
+      server.use(
+        ...setupHandlers(),
+        http.patch("/api/transactions/:id", async ({ request }) => {
+          patchBody = await request.json();
+          return HttpResponse.json(mockTransactions[0]);
+        }),
+      );
+
+      renderView();
+      await selectors.findSupermercado();
+
+      const editButton = selectors.getEditButton("Supermercado");
+      await user.click(editButton);
+      await waitFor(() => {
+        expect(selectors.getEditDescriptionInput()).toBeInTheDocument();
+      });
+
+      const editDialog = screen.getByRole("dialog");
+      const rendaEditButton = within(editDialog).getByRole("button", { name: "Renda" });
+      await user.click(rendaEditButton);
+      await user.click(selectors.getSaveConfirmButton());
+
+      await waitFor(() => {
+        expect(patchBody).toBeTruthy();
+        const body = patchBody as { patch?: { categoryId?: string | null } };
+        expect(body.patch?.categoryId).toBeNull();
       });
     });
   });

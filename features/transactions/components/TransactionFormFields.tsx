@@ -178,7 +178,6 @@ export function TransactionFormFields({
                     form.setFieldValue("isCreditCard", false);
                     form.setFieldValue("isNextBilling", false);
                     form.setFieldValue("isInstallment", false);
-                    form.setFieldValue("isRecurring", false);
                     form.setFieldValue("excludeFromSplit", false);
                   }}
                   className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-interactive border-2 transition-all duration-200 ${
@@ -432,7 +431,7 @@ export function TransactionFormFields({
             {/* Checkbox Options */}
             <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
               {/* Recurring Checkbox */}
-              {!isTransfer && (showInstallmentFields ? !values.isInstallment : true) && (
+              {(showInstallmentFields ? !values.isInstallment : true) && (
                 <div className="flex items-center gap-2">
                   <form.Field name="isRecurring">
                     {(field: FieldState<boolean>) => (

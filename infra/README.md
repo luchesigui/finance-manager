@@ -111,6 +111,44 @@ Instead of access tokens, you can run `npx supabase login` once; then `npm run d
 
 ---
 
+## One-off remote data cleanup (keep one account)
+
+Use this only when you want to wipe remote user data and keep a single auth account.
+
+- Script: `infra/supabase/snippets/remote_cleanup_keep_gui_account.sql`
+- Preserves:
+  - `auth.users` row for `gui.olhenrique@gmail.com`
+  - global reference table rows (for example `public.categories`)
+- Recreates a minimal default household, owner member, owner person, and household category targets for that account
+
+### How to run (remote)
+
+1. Open Supabase Dashboard -> SQL Editor for the target project.
+2. Paste and run the SQL from `infra/supabase/snippets/remote_cleanup_keep_gui_account.sql`.
+3. Confirm execution notices (deleted row counts and completion notice).
+
+### Verification queries (run in SQL Editor)
+
+```sql
+-- Exactly one auth user remains
+select id, email from auth.users order by created_at;
+
+-- Target profile exists
+select id, email from public.profiles;
+
+-- Exactly one owner membership for the kept user
+select hm.household_id, hm.user_id, hm.role
+from public.household_members hm;
+
+-- Domain tables should be clean after reset bootstrap
+select
+  (select count(*) from public.transactions) as transactions_count,
+  (select count(*) from public.simulations) as simulations_count,
+  (select count(*) from public.recurring_templates) as recurring_templates_count;
+```
+
+---
+
 ## Creating a new migration
 
 1. **Create** the migration file:

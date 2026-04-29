@@ -149,7 +149,8 @@ export function TransactionRow({
                 {isTransfer && toPerson && (
                   <>
                     <span className="flex items-center gap-1">
-                      <ArrowRight size={11} />
+                      {person?.name ?? "Origem"}
+                      <span aria-hidden="true">-&gt;</span>
                       {toPerson.name}
                     </span>
                     <span>•</span>

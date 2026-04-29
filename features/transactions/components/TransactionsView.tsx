@@ -278,19 +278,20 @@ export function TransactionsView() {
           const day = Number.parseInt(value.date.split("-")[2] ?? "1", 10);
           return Number.isFinite(day) ? day : 1;
         })();
+        const isNonExpense = value.type !== "expense";
 
         updateRecurringTemplate(
           editingTransaction.recurringTemplateId,
           {
             description: value.description,
             amount: value.amount,
-            categoryId: value.type === "income" ? null : value.categoryId,
+            categoryId: isNonExpense ? null : value.categoryId,
             paidBy: value.paidBy,
             type: value.type,
             isIncrement: value.isIncrement,
-            isCreditCard: value.type === "income" ? false : value.isCreditCard,
-            isNextBilling: value.type === "income" ? false : value.isNextBilling,
-            excludeFromSplit: value.type === "income" ? false : value.excludeFromSplit,
+            isCreditCard: isNonExpense ? false : value.isCreditCard,
+            isNextBilling: isNonExpense ? false : value.isNextBilling,
+            excludeFromSplit: isNonExpense ? false : value.excludeFromSplit,
             dayOfMonth: selectedDay,
             isActive: value.isRecurring,
           },
@@ -302,10 +303,11 @@ export function TransactionsView() {
 
       // Patch for non-recurring transaction: include isRecurring so API can create a template when user turns recurring on. Do not send dayOfMonth (API derives from tx date).
       const isTransferEdit = value.type === "transfer";
+      const shouldClearCategoryOnEdit = value.type === "income" || isTransferEdit;
       const patch: TransactionPatch = {
         description: value.description,
         amount: value.amount,
-        categoryId: isTransferEdit ? null : value.categoryId,
+        categoryId: shouldClearCategoryOnEdit ? null : value.categoryId,
         paidBy: value.paidBy,
         isCreditCard: isTransferEdit ? false : value.isCreditCard,
         isNextBilling: isTransferEdit ? false : value.isNextBilling,
@@ -314,7 +316,7 @@ export function TransactionsView() {
         date: value.date,
         type: value.type,
         isIncrement: value.isIncrement,
-        isRecurring: isTransferEdit ? false : value.isRecurring,
+        isRecurring: value.isRecurring,
         transferToPersonId: isTransferEdit ? (value.transferToPersonId ?? null) : null,
         referenceDate: isTransferEdit ? value.referenceDate || null : undefined,
       };
