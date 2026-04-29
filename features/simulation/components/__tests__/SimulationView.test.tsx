@@ -80,6 +80,9 @@ function setupHandlers() {
     http.get("/api/categories", () => HttpResponse.json(mockCategories)),
     http.get("/api/emergency-fund", () => HttpResponse.json({ emergencyFund: 50000 })),
     http.get("/api/simulations", () => HttpResponse.json(mockSavedSimulations)),
+    http.get("/api/simulations/average-expenses", () =>
+      HttpResponse.json({ averageExpenses: 3000 }),
+    ),
   ];
 }
 
