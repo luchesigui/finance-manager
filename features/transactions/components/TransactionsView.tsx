@@ -2,85 +2,43 @@
 
 import { useForm } from "@tanstack/react-form";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  ChevronDown,
-  CreditCard,
-  Layers,
-  Pencil,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  Trash2,
-  X,
-} from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
 import { useCategoriesData } from "@/features/categories/hooks/useCategoriesData";
 import { useDefaultPayerData } from "@/features/people/hooks/useDefaultPayerData";
 import { usePeopleData } from "@/features/people/hooks/usePeopleData";
 import { useRecurringTemplateMutations } from "@/features/recurring-templates/hooks/useRecurringTemplateMutations";
 import { MonthNavigator } from "@/features/transactions/components/MonthNavigator";
-import { TransactionFormFields } from "@/features/transactions/components/TransactionFormFields";
 import { BulkEditModal } from "@/features/transactions/components/TransactionsView/BulkEditModal";
 import { EditTransactionModal } from "@/features/transactions/components/TransactionsView/EditTransactionModal";
-import { SmartFillSection } from "@/features/transactions/components/TransactionsView/SmartFillSection";
-import { TransactionRow } from "@/features/transactions/components/TransactionsView/TransactionRow";
-import { fuzzyMatch } from "@/features/transactions/components/TransactionsView/fuzzyMatch";
 import { useOutlierDetection } from "@/features/transactions/hooks/useOutlierDetection";
 import { useTransactionsData } from "@/features/transactions/hooks/useTransactionsData";
 import { fetchJson } from "@/lib/apiClient";
 import { toDateString } from "@/lib/dateUtils";
-import { formatCurrency, formatMonthYear } from "@/lib/format";
-import { generateGeminiContent } from "@/lib/geminiClient";
 import { useCurrentMonth } from "@/lib/stores/currentMonthStore";
-import type { NewTransactionFormState, Transaction, TransactionPatch } from "@/lib/types";
+import type { Transaction, TransactionPatch } from "@/lib/types";
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-function createDefaultFormState(
-  categoryId: string,
-  paidBy: string,
-  yearMonth: string,
-): NewTransactionFormState {
-  const today = new Date();
-  const dateStr = toDateString(today);
-  return {
-    description: "",
-    amount: null,
-    categoryId,
-    paidBy,
-    isRecurring: false,
-    dayOfMonth: today.getDate(),
-    isCreditCard: false,
-    isNextBilling: false,
-    dateSelectionMode: "specific",
-    selectedMonth: yearMonth,
-    date: dateStr,
-    isInstallment: false,
-    installments: 2,
-    excludeFromSplit: false,
-    isForecast: false,
-    type: "expense",
-    isIncrement: true,
-    transferToPersonId: null,
-    referenceDate: "",
-  };
-}
-
-// ============================================================================
-// Component
-// ============================================================================
+// Extracted Parts
+import { BulkActionBar } from "./TransactionsView/BulkActionBar";
+import { FiltersBar } from "./TransactionsView/FiltersBar";
+import { InstallmentDeletePrompt } from "./TransactionsView/InstallmentDeletePrompt";
+import { InstallmentEditPrompt } from "./TransactionsView/InstallmentEditPrompt";
+import { NewTransactionSection } from "./TransactionsView/NewTransactionSection";
+import { RecurringDeleteModal } from "./TransactionsView/RecurringDeleteModal";
+import { SearchBar } from "./TransactionsView/SearchBar";
+import { TotalSummaryRow } from "./TransactionsView/TotalSummaryRow";
+import { TransactionsList } from "./TransactionsView/TransactionsList";
+import { useSmartFill } from "./TransactionsView/hooks/useSmartFill";
+import { useTransactionFilters } from "./TransactionsView/hooks/useTransactionFilters";
+import { useTransactionModals } from "./TransactionsView/hooks/useTransactionModals";
+import { useTransactionSelection } from "./TransactionsView/hooks/useTransactionSelection";
+import { getVisibleTransactionsSummary } from "./TransactionsView/lib/calculationUtils";
+import {
+  createDefaultFormState,
+  getCurrentYearMonth,
+  isTransactionDateInSelectedMonth,
+} from "./TransactionsView/lib/transactionUtils";
 
 export function TransactionsView() {
   const { selectedMonthDate } = useCurrentMonth();
@@ -99,150 +57,80 @@ export function TransactionsView() {
     isDeletePending,
     isBulkDeletePending,
   } = useTransactionsData();
-  const {
-    createRecurringTemplate,
-    updateRecurringTemplate,
-    deleteRecurringTemplate,
-    deleteRecurringTemplateAsync,
-    isDeletingRecurringTemplate,
-  } = useRecurringTemplateMutations();
+  const { updateRecurringTemplate, deleteRecurringTemplateAsync, isDeletingRecurringTemplate } =
+    useRecurringTemplateMutations();
 
   const { isOutlier } = useOutlierDetection(
     selectedMonthDate.getFullYear(),
     selectedMonthDate.getMonth() + 1,
   );
 
-  const searchParams = useSearchParams();
-  const initialCategoryId = searchParams.get("categoryId");
+  const currentYearMonth = getCurrentYearMonth(selectedMonthDate);
 
-  const [viewMode, setViewMode] = useState<"general" | "creditCard">("general");
-  const [hideNextBilling, setHideNextBilling] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [smartInput, setSmartInput] = useState("");
-  const [paidByFilter, setPaidByFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(() => {
-    if (initialCategoryId) {
-      return new Set([initialCategoryId]);
-    }
-    return new Set();
-  });
-  const [typeFilter, setTypeFilter] = useState<string>("expense");
-  const [creditCardFilter, setCreditCardFilter] = useState<string>("all");
-  const [isNextBillingFilter, setIsNextBillingFilter] = useState<"all" | "yes" | "no">("all");
-  const [recurringFilter, setRecurringFilter] = useState<"all" | "yes" | "no">("all");
-  const [outlierFilter, setOutlierFilter] = useState<"all" | "yes" | "no">("all");
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
-
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (paidByFilter !== "all") count++;
-    if (categoryFilter.size > 0) count++;
-    if (viewMode === "general" && creditCardFilter !== "all") count++;
-    if (isNextBillingFilter !== "all") count++;
-    if (recurringFilter !== "all") count++;
-    if (outlierFilter !== "all") count++;
-    return count;
-  };
-
-  const getAdvancedFilterCount = () => {
-    let count = 0;
-    if (creditCardFilter !== "all") count++;
-    if (isNextBillingFilter !== "all") count++;
-    if (recurringFilter !== "all") count++;
-    if (outlierFilter !== "all") count++;
-    return count;
-  };
-
-  // Recurring delete modal state
-  const [deletingRecurringTemplateId, setDeletingRecurringTemplateId] = useState<number | null>(
-    null,
+  // Hooks
+  const filters = useTransactionFilters(
+    selectedMonthDate,
+    (d) => isTransactionDateInSelectedMonth(d, currentYearMonth),
+    isOutlier,
+    categories,
+    people,
   );
 
-  // Recurring edit scope: when editing a recurring transaction, which scope to apply
-  const [recurringEditScope, setRecurringEditScope] = useState<"template_only" | "full_history">(
-    "template_only",
+  const visibleTransactionsForSelectedMonth = transactionsForSelectedMonth.filter(filters.matches);
+
+  const selection = useTransactionSelection(visibleTransactionsForSelectedMonth);
+  const modals = useTransactionModals();
+
+  // Derived visible transactions for summary
+  const visibleTransactionsForCalculations = transactionsForCalculations
+    .filter(filters.matches)
+    .filter((transaction) => transaction.type !== "income" && transaction.type !== "transfer");
+  const visibleCalculationIds = new Set(
+    visibleTransactionsForCalculations.map((transaction) => transaction.id),
   );
 
-  // Selection state for bulk operations
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const summary = getVisibleTransactionsSummary(
+    visibleTransactionsForSelectedMonth,
+    visibleCalculationIds,
+  );
 
-  // Bulk edit modal state
-  const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
-  const [bulkEditFormState, setBulkEditFormState] = useState<{
-    categoryId: string | null;
-    paidBy: string | null;
-    isCreditCard: boolean | null;
-    isNextBilling: boolean | null;
-    excludeFromSplit: boolean | null;
-  }>({
-    categoryId: null,
-    paidBy: null,
-    isCreditCard: null,
-    isNextBilling: null,
-    excludeFromSplit: null,
-  });
-
-  // Helper to get current month string (YYYY-MM)
-  const getCurrentYearMonth = () => {
-    const year = selectedMonthDate.getFullYear();
-    const month = String(selectedMonthDate.getMonth() + 1).padStart(2, "0");
-    return `${year}-${month}`;
-  };
-
-  const isTransactionDateInSelectedMonth = (dateStr: string) => {
-    const prefix = getCurrentYearMonth();
-    return dateStr.startsWith(prefix);
-  };
-
-  // Edit modal state
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [installmentEditPrompt, setInstallmentEditPrompt] = useState<{
-    transactionId: number;
-    patch: TransactionPatch;
-    installmentTotal: number;
-    siblingCount: number;
-  } | null>(null);
-  const [installmentDeletePrompt, setInstallmentDeletePrompt] = useState<{
-    transactionId: number;
-    description: string;
-    installmentTotal: number;
-    siblingCount: number;
-    siblingIds: number[];
-  } | null>(null);
-  const [isResolvingDeleteGroupId, setIsResolvingDeleteGroupId] = useState<number | null>(null);
-
-  // TanStack Form for new transaction
+  // Forms
   const newTransactionForm = useForm({
     defaultValues: createDefaultFormState(
       categories[0]?.id ?? "c1",
       defaultPayerId,
-      getCurrentYearMonth(),
+      currentYearMonth,
     ),
     onSubmit: async ({ value }) => {
       addTransactionsFromFormState(value);
       newTransactionForm.reset();
       newTransactionForm.setFieldValue("categoryId", categories[0]?.id ?? "c1");
       newTransactionForm.setFieldValue("paidBy", defaultPayerId);
-      newTransactionForm.setFieldValue("selectedMonth", getCurrentYearMonth());
+      newTransactionForm.setFieldValue("selectedMonth", currentYearMonth);
       const today = new Date();
       newTransactionForm.setFieldValue("date", toDateString(today));
       newTransactionForm.setFieldValue("dateSelectionMode", "specific");
       newTransactionForm.setFieldValue("dayOfMonth", today.getDate());
-      if (viewMode === "creditCard") {
+      if (filters.viewMode === "creditCard") {
         newTransactionForm.setFieldValue("isCreditCard", true);
         newTransactionForm.setFieldValue("isNextBilling", false);
       }
-      setSmartInput("");
+      smartFill.setSmartInput("");
     },
   });
 
+  const smartFill = useSmartFill(
+    categories,
+    people,
+    defaultPayerId,
+    selectedMonthDate,
+    newTransactionForm.setFieldValue,
+  );
+
   const { data: installmentGroupInfo, isLoading: isInstallmentGroupLoading } = useQuery({
-    queryKey: ["transaction-installment-group", editingTransaction?.id],
+    queryKey: ["transaction-installment-group", modals.editingTransaction?.id],
     queryFn: async () => {
-      const id = editingTransaction?.id;
+      const id = modals.editingTransaction?.id;
       if (id == null) {
         return {
           isGrouped: false,
@@ -258,21 +146,22 @@ export function TransactionsView() {
         siblingCount: number;
       }>(`/api/transactions/${id}/installment-group`);
     },
-    enabled: Boolean(editingTransaction && editingTransaction.recurringTemplateId == null),
+    enabled: Boolean(
+      modals.editingTransaction && modals.editingTransaction.recurringTemplateId == null,
+    ),
   });
 
-  // TanStack Form for edit transaction
   const editTransactionForm = useForm({
     defaultValues: createDefaultFormState(
       categories[0]?.id ?? "",
       defaultPayerId,
-      getCurrentYearMonth(),
+      currentYearMonth,
     ),
     onSubmit: async ({ value }) => {
-      if (!editingTransaction) return;
+      if (!modals.editingTransaction) return;
       if (!value.description || value.amount == null) return;
 
-      if (editingTransaction.recurringTemplateId != null) {
+      if (modals.editingTransaction.recurringTemplateId != null) {
         const selectedDay = (() => {
           if (value.dayOfMonth) return value.dayOfMonth;
           const day = Number.parseInt(value.date.split("-")[2] ?? "1", 10);
@@ -281,7 +170,7 @@ export function TransactionsView() {
         const isNonExpense = value.type !== "expense";
 
         updateRecurringTemplate(
-          editingTransaction.recurringTemplateId,
+          modals.editingTransaction.recurringTemplateId,
           {
             description: value.description,
             amount: value.amount,
@@ -295,13 +184,12 @@ export function TransactionsView() {
             dayOfMonth: selectedDay,
             isActive: value.isRecurring,
           },
-          { scope: recurringEditScope },
+          { scope: modals.recurringEditScope },
         );
-        setEditingTransaction(null);
+        modals.setEditingTransaction(null);
         return;
       }
 
-      // Patch for non-recurring transaction: include isRecurring so API can create a template when user turns recurring on. Do not send dayOfMonth (API derives from tx date).
       const isTransferEdit = value.type === "transfer";
       const shouldClearCategoryOnEdit = value.type === "income" || isTransferEdit;
       const patch: TransactionPatch = {
@@ -327,8 +215,8 @@ export function TransactionsView() {
         value.isRecurring !== true;
 
       if (isParcelamentoGroup) {
-        setInstallmentEditPrompt({
-          transactionId: editingTransaction.id,
+        modals.setInstallmentEditPrompt({
+          transactionId: modals.editingTransaction.id,
           patch,
           installmentTotal: installmentGroupInfo.installmentTotal,
           siblingCount: installmentGroupInfo.siblingCount,
@@ -336,182 +224,33 @@ export function TransactionsView() {
         return;
       }
 
-      updateTransactionById(editingTransaction.id, patch);
-      setEditingTransaction(null);
+      updateTransactionById(modals.editingTransaction.id, patch);
+      modals.setEditingTransaction(null);
     },
   });
 
-  // Update default payer when it changes
+  // Effects
   useEffect(() => {
     newTransactionForm.setFieldValue("paidBy", defaultPayerId);
   }, [defaultPayerId, newTransactionForm]);
 
-  // Update category when categories change
   useEffect(() => {
     if (categories[0]) {
       newTransactionForm.setFieldValue("categoryId", categories[0].id);
     }
   }, [categories, newTransactionForm]);
 
-  useEffect(() => {
-    if (paidByFilter === "all") return;
-    const stillExists = people.some((person) => person.id === paidByFilter);
-    if (!stillExists) setPaidByFilter("all");
-  }, [paidByFilter, people]);
-
-  useEffect(() => {
-    if (categoryFilter.size === 0) return;
-    const categoryIds = new Set(categories.map((cat) => cat.id));
-    const validIds = new Set(Array.from(categoryFilter).filter((id) => categoryIds.has(id)));
-    if (validIds.size !== categoryFilter.size) {
-      setCategoryFilter(validIds);
-    }
-  }, [categoryFilter, categories]);
-
-  // Sync category filter with URL parameter
-  useEffect(() => {
-    const categoryIdFromUrl = searchParams.get("categoryId");
-    if (categoryIdFromUrl) {
-      // Only set if category exists in categories list
-      const categoryExists = categories.some((cat) => cat.id === categoryIdFromUrl);
-      if (categoryExists) {
-        setCategoryFilter((prev) => {
-          if (prev.size === 1 && prev.has(categoryIdFromUrl)) return prev;
-          return new Set([categoryIdFromUrl]);
-        });
-      }
-    } else {
-      // Clear filter if URL parameter is removed
-      setCategoryFilter((prev) => (prev.size === 0 ? prev : new Set()));
-    }
-  }, [searchParams, categories]);
-
-  const matchesFilters = (transaction: Transaction) => {
-    // Credit card view: filter by actual date and isCreditCard
-    if (viewMode === "creditCard") {
-      if (!transaction.isCreditCard) return false;
-
-      // Current = selected month (all) OR previous month with isNextBilling (current bill)
-      const txDate = new Date(`${transaction.date}T00:00:00`);
-      const txYear = txDate.getFullYear();
-      const txMonth = txDate.getMonth() + 1;
-      const selYear = selectedMonthDate.getFullYear();
-      const selMonth = selectedMonthDate.getMonth() + 1;
-      const inSelectedMonth = txYear === selYear && txMonth === selMonth;
-      const prevMonthDate = new Date(selYear, selMonth - 2, 1);
-      const prevYear = prevMonthDate.getFullYear();
-      const prevMonth = prevMonthDate.getMonth() + 1;
-      const inPrevMonthAndNextBilling =
-        txYear === prevYear && txMonth === prevMonth && transaction.isNextBilling;
-      if (!inSelectedMonth && !inPrevMonthAndNextBilling) return false;
-
-      // Hide next billing toggle
-      if (hideNextBilling && transaction.isNextBilling) return false;
-    }
-
-    // General view: hide current-month + next-billing credit card transactions (they only show in credit card mode)
-    if (
-      viewMode === "general" &&
-      transaction.isCreditCard &&
-      transaction.isNextBilling &&
-      isTransactionDateInSelectedMonth(transaction.date)
-    ) {
-      return false;
-    }
-
-    if (paidByFilter !== "all" && transaction.paidBy !== paidByFilter) return false;
-    if (typeFilter !== "all" && transaction.type !== typeFilter) return false;
-
-    // Multi-category filter
-    if (categoryFilter.size > 0) {
-      if (transaction.categoryId === null) return false;
-      if (!categoryFilter.has(transaction.categoryId)) return false;
-    }
-
-    // Credit card filter (only in general view)
-    if (viewMode === "general" && creditCardFilter !== "all") {
-      const isCreditCard = creditCardFilter === "yes";
-      if (transaction.isCreditCard !== isCreditCard) return false;
-    }
-
-    // Next billing filter: "yes" = ocultar gastos da próxima fatura (hide is_next_billing transactions)
-    if (isNextBillingFilter === "yes" && transaction.isNextBilling) return false;
-
-    // Fuzzy search filter
-    if (searchQuery.trim()) {
-      const category = categories.find((cat) => cat.id === transaction.categoryId);
-      const person = people.find((pers) => pers.id === transaction.paidBy);
-      const searchableText = [
-        transaction.description,
-        category?.name ?? "",
-        person?.name ?? "",
-        transaction.date,
-      ].join(" ");
-      if (!fuzzyMatch(searchableText, searchQuery)) return false;
-    }
-
-    // Outlier filter
-    if (outlierFilter !== "all") {
-      const isOutlierTransaction = isOutlier(transaction);
-      if (outlierFilter === "yes" && !isOutlierTransaction) return false;
-      if (outlierFilter === "no" && isOutlierTransaction) return false;
-    }
-
-    // Recurring filter
-    if (recurringFilter !== "all") {
-      const isRecurring = transaction.recurringTemplateId != null;
-      if (recurringFilter === "yes" && !isRecurring) return false;
-      if (recurringFilter === "no" && isRecurring) return false;
-    }
-
-    return true;
-  };
-
-  const visibleTransactionsForSelectedMonth = transactionsForSelectedMonth.filter(matchesFilters);
-  const visibleTransactionsForCalculations = transactionsForCalculations
-    .filter(matchesFilters)
-    .filter((transaction) => transaction.type !== "income" && transaction.type !== "transfer");
-  const visibleCalculationIds = new Set(
-    visibleTransactionsForCalculations.map((transaction) => transaction.id),
-  );
-  const visibleExcludedForecastAndIncomeCount = visibleTransactionsForSelectedMonth.filter(
-    (transaction) =>
-      (transaction.isForecast || transaction.type === "income") &&
-      !visibleCalculationIds.has(transaction.id),
-  ).length;
-
-  const visibleExpenseCount = visibleTransactionsForSelectedMonth.filter(
-    (t) => t.type !== "income",
-  ).length;
-  const visibleIncomeCount = visibleTransactionsForSelectedMonth.filter(
-    (t) => t.type === "income",
-  ).length;
-  const visibleTransferCount = visibleTransactionsForSelectedMonth.filter(
-    (t) => t.type === "transfer",
-  ).length;
-  const visibleIncomeTotal = visibleTransactionsForSelectedMonth
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const visibleTransferTotal = visibleTransactionsForSelectedMonth
-    .filter((t) => t.type === "transfer")
-    .reduce((sum, t) => sum + t.amount, 0);
-  const visibleExpenseTotal = visibleTransactionsForCalculations.reduce(
-    (sum, t) => sum + t.amount,
-    0,
-  );
-
+  // Handlers
   const handleOpenEditModal = (transaction: Transaction) => {
-    setEditingTransaction(transaction);
-    setRecurringEditScope("template_only");
+    modals.setEditingTransaction(transaction);
+    modals.setRecurringEditScope("template_only");
 
-    // Determine if the transaction date is the 1st of a month (month mode) or a specific date
     const dateParts = transaction.date.split("-");
     const day = dateParts[2] ? Number.parseInt(dateParts[2], 10) : 1;
     const isFirstOfMonth = day === 1;
     const selectedMonth =
-      dateParts[0] && dateParts[1] ? `${dateParts[0]}-${dateParts[1]}` : getCurrentYearMonth();
+      dateParts[0] && dateParts[1] ? `${dateParts[0]}-${dateParts[1]}` : currentYearMonth;
 
-    // Reset and populate the edit form
     editTransactionForm.reset();
     editTransactionForm.setFieldValue("description", transaction.description);
     editTransactionForm.setFieldValue("amount", transaction.amount);
@@ -535,13 +274,8 @@ export function TransactionsView() {
     editTransactionForm.setFieldValue("referenceDate", transaction.referenceDate ?? "");
   };
 
-  const handleCloseEditModal = () => {
-    setEditingTransaction(null);
-    setInstallmentEditPrompt(null);
-  };
-
   const handleNonRecurringDeleteRequest = async (transaction: Transaction) => {
-    setIsResolvingDeleteGroupId(transaction.id);
+    modals.setIsResolvingDeleteGroupId(transaction.id);
     try {
       const info = await fetchJson<{
         isGrouped: boolean;
@@ -550,7 +284,7 @@ export function TransactionsView() {
         siblingCount: number;
       }>(`/api/transactions/${transaction.id}/installment-group`);
       if (info.isGrouped && info.siblingCount > 1) {
-        setInstallmentDeletePrompt({
+        modals.setInstallmentDeletePrompt({
           transactionId: transaction.id,
           description: transaction.description,
           installmentTotal: info.installmentTotal,
@@ -564,142 +298,15 @@ export function TransactionsView() {
       console.error("Failed to resolve installment group for delete:", error);
       deleteTransactionById(transaction.id);
     } finally {
-      setIsResolvingDeleteGroupId(null);
+      modals.setIsResolvingDeleteGroupId(null);
     }
-  };
-
-  const handleSmartFill = async () => {
-    if (!smartInput.trim()) return;
-    setAiLoading(true);
-
-    const categoriesPrompt = categories
-      .map((category) => `${category.id}:${category.name}`)
-      .join(", ");
-    const peoplePrompt = people.map((person) => `${person.id}:${person.name}`).join(", ");
-    const todayStr = new Date().toISOString().split("T")[0];
-
-    const prompt = `
-Analise o seguinte texto de despesa: "${smartInput}".
-Data de hoje: ${todayStr}.
-
-Extraia os dados para JSON com as chaves:
-- description (string)
-- amount (number)
-- categoryId (string, escolha o ID mais adequado de: ${categoriesPrompt})
-- paidBy (string, escolha o ID mais adequado de: ${peoplePrompt}. Se não mencionado, use null)
-- date (string, formato YYYY-MM-DD. Se "hoje", use ${todayStr}. Se "ontem", calcule.)
-
-Retorne APENAS o JSON, sem markdown.
-`;
-
-    try {
-      const result = await generateGeminiContent(prompt);
-      if (result) {
-        const cleanJson = result
-          .replace(/```json/g, "")
-          .replace(/```/g, "")
-          .trim();
-
-        const data = JSON.parse(cleanJson) as {
-          description?: string;
-          amount?: number;
-          categoryId?: string;
-          paidBy?: string | null;
-          date?: string;
-        };
-
-        // Update form with AI-parsed values
-        if (data.description) {
-          newTransactionForm.setFieldValue("description", data.description);
-        }
-        if (data.amount) {
-          newTransactionForm.setFieldValue("amount", data.amount);
-        }
-        if (data.categoryId) {
-          newTransactionForm.setFieldValue("categoryId", data.categoryId);
-        }
-        if (data.paidBy) {
-          newTransactionForm.setFieldValue("paidBy", data.paidBy);
-        } else {
-          newTransactionForm.setFieldValue("paidBy", defaultPayerId);
-        }
-        if (data.date) {
-          const dateParts = data.date.split("-");
-          const day = dateParts[2] ? Number.parseInt(dateParts[2], 10) : 1;
-          if (day === 1) {
-            newTransactionForm.setFieldValue("dateSelectionMode", "month");
-            newTransactionForm.setFieldValue(
-              "selectedMonth",
-              dateParts[0] && dateParts[1]
-                ? `${dateParts[0]}-${dateParts[1]}`
-                : getCurrentYearMonth(),
-            );
-          } else {
-            newTransactionForm.setFieldValue("dateSelectionMode", "specific");
-          }
-          newTransactionForm.setFieldValue("date", data.date);
-        }
-      }
-    } catch (error) {
-      console.error("Erro parsing AI JSON", error);
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  // Selection mode handlers
-  const toggleSelectionMode = () => {
-    if (isSelectionMode) {
-      setSelectedIds(new Set());
-    }
-    setIsSelectionMode(!isSelectionMode);
-  };
-
-  const toggleTransactionSelection = (transactionId: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(transactionId)) {
-        next.delete(transactionId);
-      } else {
-        next.add(transactionId);
-      }
-      return next;
-    });
-  };
-
-  const selectAllVisibleTransactions = () => {
-    const visibleIds = visibleTransactionsForSelectedMonth.map((transaction) => transaction.id);
-    setSelectedIds(new Set(visibleIds));
-  };
-
-  const clearSelection = () => {
-    setSelectedIds(new Set());
-  };
-
-  const handleOpenBulkEditModal = () => {
-    if (selectedIds.size === 0) return;
-    const hasRecurringSelection = visibleTransactionsForSelectedMonth.some(
-      (transaction) => selectedIds.has(transaction.id) && transaction.recurringTemplateId != null,
-    );
-    if (hasRecurringSelection) return;
-    setBulkEditFormState({
-      categoryId: null,
-      paidBy: null,
-      isCreditCard: null,
-      isNextBilling: null,
-      excludeFromSplit: null,
-    });
-    setIsBulkEditModalOpen(true);
-  };
-
-  const handleCloseBulkEditModal = () => {
-    setIsBulkEditModalOpen(false);
   };
 
   const handleSaveBulkEdit = () => {
-    if (selectedIds.size === 0) return;
+    if (selection.selectedIds.size === 0) return;
 
     const patch: Record<string, unknown> = {};
+    const { bulkEditFormState } = modals;
     if (bulkEditFormState.categoryId !== null) patch.categoryId = bulkEditFormState.categoryId;
     if (bulkEditFormState.paidBy !== null) patch.paidBy = bulkEditFormState.paidBy;
     if (bulkEditFormState.isCreditCard !== null)
@@ -710,853 +317,243 @@ Retorne APENAS o JSON, sem markdown.
       patch.excludeFromSplit = bulkEditFormState.excludeFromSplit;
 
     if (Object.keys(patch).length === 0) {
-      setIsBulkEditModalOpen(false);
+      modals.setIsBulkEditModalOpen(false);
       return;
     }
 
     bulkUpdateTransactions(
-      Array.from(selectedIds),
+      Array.from(selection.selectedIds),
       patch as Parameters<typeof bulkUpdateTransactions>[1],
     );
-    setIsBulkEditModalOpen(false);
-    setSelectedIds(new Set());
-    setIsSelectionMode(false);
+    modals.setIsBulkEditModalOpen(false);
+    selection.setSelectedIds(new Set());
+    selection.setIsSelectionMode(false);
   };
 
   const handleBulkDelete = () => {
-    if (selectedIds.size === 0) return;
-    const hasRecurringSelection = visibleTransactionsForSelectedMonth.some(
-      (transaction) => selectedIds.has(transaction.id) && transaction.recurringTemplateId != null,
-    );
-    if (hasRecurringSelection) return;
-    if (!confirm(`Excluir ${selectedIds.size} lançamento(s) selecionado(s)?`)) return;
+    if (selection.selectedIds.size === 0) return;
+    if (selection.hasRecurringSelection) return;
+    if (!confirm(`Excluir ${selection.selectedIds.size} lançamento(s) selecionado(s)?`)) return;
 
-    bulkDeleteTransactions(Array.from(selectedIds));
-    setSelectedIds(new Set());
-    setIsSelectionMode(false);
+    bulkDeleteTransactions(Array.from(selection.selectedIds));
+    selection.setSelectedIds(new Set());
+    selection.setIsSelectionMode(false);
   };
-
-  const hasRecurringSelection = visibleTransactionsForSelectedMonth.some(
-    (transaction) => selectedIds.has(transaction.id) && transaction.recurringTemplateId != null,
-  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <MonthNavigator />
 
-      <Card className="p-card-padding relative overflow-hidden border-accent-primary/30">
-        <div className="absolute inset-0 bg-accent-primary/5" />
-        <div className="relative">
-          <SmartFillSection
-            smartInput={smartInput}
-            onSmartInputChange={setSmartInput}
-            onSmartFill={handleSmartFill}
-            isLoading={aiLoading}
-          />
-
-          <newTransactionForm.Subscribe selector={(state) => state.values}>
-            {(values) => (
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-heading flex items-center gap-2">
-                  <Plus
-                    className={`${
-                      values.type === "income" ? "bg-accent-positive" : "bg-accent-primary"
-                    } text-white rounded-interactive p-1`}
-                    size={24}
-                  />
-                  {values.type === "income" ? "Novo Lançamento de Renda" : "Nova Despesa Manual"}
-                </h3>
-                {values.type !== "income" && (
-                  <div className="flex items-center gap-2 select-none">
-                    <Label
-                      htmlFor="view-mode-switch"
-                      className="text-xs font-medium text-body mr-2 cursor-pointer"
-                    >
-                      Cartão de crédito
-                    </Label>
-                    <Switch
-                      id="view-mode-switch"
-                      checked={viewMode === "creditCard"}
-                      onCheckedChange={(checked: boolean) => {
-                        const next = checked ? "creditCard" : "general";
-                        setViewMode(next);
-                        newTransactionForm.setFieldValue("isCreditCard", next === "creditCard");
-                        if (next === "creditCard") {
-                          newTransactionForm.setFieldValue("isNextBilling", false);
-                        } else {
-                          newTransactionForm.setFieldValue("isNextBilling", false);
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </newTransactionForm.Subscribe>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              newTransactionForm.handleSubmit();
-            }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end"
-          >
-            <TransactionFormFields
-              form={newTransactionForm}
-              showInstallmentFields={true}
-              showDescription={true}
-              idPrefix="new-transaction"
-              creditCardViewActive={viewMode === "creditCard"}
-            />
-
-            <div className="lg:col-span-4 mt-2">
-              <newTransactionForm.Subscribe selector={(state) => state.values}>
-                {(values) => (
-                  <button
-                    type="submit"
-                    className={`w-full font-semibold py-3 px-4 rounded-interactive transition-all duration-200 flex items-center justify-center gap-2 ${
-                      values.type === "income"
-                        ? "bg-accent-positive text-white hover:shadow-glow-positive"
-                        : "bg-accent-primary text-white hover:shadow-glow-accent"
-                    }`}
-                  >
-                    <Plus size={18} />
-                    {values.type === "income"
-                      ? values.isIncrement
-                        ? "Adicionar Renda"
-                        : "Adicionar Dedução de Renda"
-                      : values.isInstallment
-                        ? `Lançar ${values.installments}x Parcelas`
-                        : "Adicionar Lançamento"}
-                  </button>
-                )}
-              </newTransactionForm.Subscribe>
-            </div>
-          </form>
-        </div>
-      </Card>
+      <NewTransactionSection
+        form={newTransactionForm}
+        smartInput={smartFill.smartInput}
+        onSmartInputChange={smartFill.setSmartInput}
+        onSmartFill={smartFill.handleSmartFill}
+        aiLoading={smartFill.aiLoading}
+        viewMode={filters.viewMode}
+        onViewModeChange={(mode) => {
+          filters.setViewMode(mode);
+          newTransactionForm.setFieldValue("isCreditCard", mode === "creditCard");
+          newTransactionForm.setFieldValue("isNextBilling", false);
+        }}
+      />
 
       <Card>
-        <div className="p-4 border-b border-noir-border bg-noir-active/30 flex flex-wrap items-center gap-3">
-          {viewMode === "general" && (
-            <div className="bg-noir-active p-1 rounded-interactive flex gap-1 border border-noir-border">
-              <button
-                type="button"
-                onClick={() => setTypeFilter(typeFilter === "expense" ? "all" : "expense")}
-                className={`px-4 py-1.5 text-sm font-medium rounded-interactive transition-all duration-200 ${
-                  typeFilter === "expense"
-                    ? "bg-accent-primary text-white shadow-glow-accent"
-                    : "text-body hover:text-heading hover:bg-noir-surface"
-                }`}
-              >
-                Despesa
-              </button>
-              <button
-                type="button"
-                onClick={() => setTypeFilter(typeFilter === "income" ? "all" : "income")}
-                className={`px-4 py-1.5 text-sm font-medium rounded-interactive transition-all duration-200 ${
-                  typeFilter === "income"
-                    ? "bg-accent-primary text-white shadow-glow-accent"
-                    : "text-body hover:text-heading hover:bg-noir-surface"
-                }`}
-              >
-                Renda
-              </button>
-              <button
-                type="button"
-                onClick={() => setTypeFilter(typeFilter === "transfer" ? "all" : "transfer")}
-                className={`px-4 py-1.5 text-sm font-medium rounded-interactive transition-all duration-200 ${
-                  typeFilter === "transfer"
-                    ? "bg-accent-primary text-white shadow-glow-accent"
-                    : "text-body hover:text-heading hover:bg-noir-surface"
-                }`}
-              >
-                Transferência
-              </button>
-            </div>
-          )}
-
-          {people.length > 1 && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-[42px] rounded-interactive bg-noir-active border-noir-border text-body hover:text-heading hover:bg-noir-surface flex items-center gap-2"
-                >
-                  <Plus size={16} className="text-muted" />
-                  {paidByFilter === "all"
-                    ? "Atribuído à"
-                    : people.find((p) => p.id === paidByFilter)?.name}
-                  <ChevronDown size={14} className="text-muted" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-1 bg-noir-surface border-noir-border">
-                <button
-                  type="button"
-                  className="w-full text-left p-2 text-sm text-heading hover:bg-noir-active cursor-pointer rounded-interactive border-0 bg-transparent"
-                  onClick={() => setPaidByFilter("all")}
-                >
-                  Todos
-                </button>
-                {people.map((person) => (
-                  <button
-                    key={person.id}
-                    type="button"
-                    className="w-full text-left p-2 text-sm text-heading hover:bg-noir-active cursor-pointer rounded-interactive border-0 bg-transparent"
-                    onClick={() => setPaidByFilter(person.id)}
-                  >
-                    {person.name}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
-          )}
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-[42px] rounded-interactive bg-noir-active border-noir-border text-body hover:text-heading hover:bg-noir-surface flex items-center gap-2"
-                disabled={typeFilter === "income"}
-              >
-                <Plus size={16} className="text-muted" />
-                Categoria
-                {categoryFilter.size > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-accent-primary text-white">
-                    {categoryFilter.size}
-                  </Badge>
-                )}
-                <ChevronDown size={14} className="text-muted" />
-              </Button>
-            </PopoverTrigger>
-
-            <PopoverContent className="w-64 p-0 bg-noir-surface border-noir-border">
-              <div className="max-h-[300px] overflow-y-auto p-1">
-                {categories.map((category) => (
-                  <label
-                    key={category.id}
-                    className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-noir-active/50 transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={categoryFilter.has(category.id)}
-                      onChange={(e) => {
-                        const newSet = new Set(categoryFilter);
-                        if (e.target.checked) {
-                          newSet.add(category.id);
-                        } else {
-                          newSet.delete(category.id);
-                        }
-                        setCategoryFilter(newSet);
-                      }}
-                      className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary"
-                    />
-                    <span className="text-sm text-heading">{category.name}</span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="p-2 border-t border-noir-border flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter(new Set(categories.map((c) => c.id)))}
-                  className="text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 bg-accent-primary text-white shadow-glow-accent"
-                >
-                  Selecionar Todas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCategoryFilter(new Set())}
-                  className="text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
-                >
-                  Limpar
-                </button>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          <Popover open={isAdvancedFiltersOpen} onOpenChange={setIsAdvancedFiltersOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-[42px] rounded-interactive bg-noir-active border-noir-border text-body hover:text-heading hover:bg-noir-surface flex items-center gap-2"
-                aria-label="Filtrar lançamentos"
-              >
-                <SlidersHorizontal size={16} className="text-muted" />
-                Mais filtros
-                {getAdvancedFilterCount() > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-accent-primary text-white">
-                    {getAdvancedFilterCount()}
-                  </Badge>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent
-              className="w-80 p-4 bg-noir-surface border-noir-border space-y-6"
-              align="end"
-            >
-              <h4 className="text-xs font-bold text-muted uppercase tracking-wider">
-                FILTROS AVANÇADOS
-              </h4>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="card-filter" className="text-sm font-medium text-heading">
-                    Cartão
-                  </Label>
-                  <Switch
-                    id="card-filter"
-                    checked={creditCardFilter === "yes"}
-                    onCheckedChange={(checked) => setCreditCardFilter(checked ? "yes" : "all")}
-                    className="data-[state=unchecked]:bg-noir-active"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="next-billing-filter" className="text-sm font-medium text-heading">
-                    Ocultar gastos da próxima fatura
-                  </Label>
-                  <Switch
-                    id="next-billing-filter"
-                    checked={isNextBillingFilter === "yes"}
-                    onCheckedChange={(checked) => setIsNextBillingFilter(checked ? "yes" : "all")}
-                    className="data-[state=unchecked]:bg-noir-active"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="recurring-adv-filter"
-                    className="text-sm font-medium text-heading"
-                  >
-                    Recorrente
-                  </Label>
-                  <Switch
-                    id="recurring-adv-filter"
-                    checked={recurringFilter === "yes"}
-                    onCheckedChange={(checked) => setRecurringFilter(checked ? "yes" : "all")}
-                    className="data-[state=unchecked]:bg-noir-active"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="outlier-adv-filter" className="text-sm font-medium text-heading">
-                    Fora do padrão
-                  </Label>
-                  <Switch
-                    id="outlier-adv-filter"
-                    checked={outlierFilter === "yes"}
-                    onCheckedChange={(checked) => setOutlierFilter(checked ? "yes" : "all")}
-                    className="data-[state=unchecked]:bg-noir-active"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-noir-border flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    setCreditCardFilter("all");
-                    setIsNextBillingFilter("all");
-                    setRecurringFilter("all");
-                    setOutlierFilter("all");
-                  }}
-                  className="text-xs px-3 py-1.5 h-auto font-medium bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
-                >
-                  Limpar
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setIsAdvancedFiltersOpen(false)}
-                  className="text-xs px-3 py-1.5 h-auto font-medium bg-accent-primary text-white shadow-glow-accent"
-                >
-                  Aplicar
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          <div className="flex-1" />
-
-          <Badge variant="secondary" className="w-fit">
-            {visibleTransactionsForSelectedMonth.length} itens
-          </Badge>
-
-          <button
-            type="button"
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
-            className={`p-1.5 rounded-interactive transition-all duration-200 ${
-              isSearchOpen
-                ? "bg-accent-primary text-white shadow-glow-accent"
-                : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
-            }`}
-            title="Buscar lançamentos"
-            aria-label="Buscar lançamentos"
-          >
-            <Search size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={toggleSelectionMode}
-            className={`text-xs px-3 py-1.5 rounded-interactive font-medium transition-all duration-200 ${
-              isSelectionMode
-                ? "bg-accent-primary text-white shadow-glow-accent"
-                : "bg-noir-active text-body hover:text-heading hover:bg-noir-surface"
-            }`}
-          >
-            {isSelectionMode ? "Cancelar Seleção" : "Selecionar"}
-          </button>
-        </div>
-
-        {/* Search input */}
-        {isSearchOpen && (
-          <div className="p-3 border-b border-noir-border bg-noir-active/30 animate-in slide-in-from-top-2 duration-200">
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <Input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar por descrição, categoria, pessoa..."
-                className="w-full pl-9 pr-8 py-2 text-sm"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-body"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Bulk action bar */}
-        {isSelectionMode && (
-          <div className="p-3 border-b border-noir-border bg-accent-primary/10 flex flex-wrap items-center gap-3 animate-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={selectAllVisibleTransactions}
-                className="text-xs px-2 py-1 h-auto"
-              >
-                Selecionar Todos
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={clearSelection}
-                className="text-xs px-2 py-1 h-auto"
-              >
-                Limpar
-              </Button>
-            </div>
-            <span className="text-xs text-accent-primary font-medium">
-              {selectedIds.size} selecionado(s)
-            </span>
-            <div className="flex-1" />
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                onClick={handleOpenBulkEditModal}
-                disabled={selectedIds.size === 0 || hasRecurringSelection}
-                className="text-xs px-3 py-1.5 h-auto"
-              >
-                <Pencil size={12} />
-                Editar em Massa
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleBulkDelete}
-                disabled={selectedIds.size === 0 || hasRecurringSelection}
-                className="text-xs px-3 py-1.5 h-auto"
-              >
-                <Trash2 size={12} />
-                Excluir
-              </Button>
-            </div>
-          </div>
-        )}
-        <div className="divide-y divide-noir-border">
-          {visibleTransactionsForSelectedMonth.length === 0 ? (
-            <div className="p-8 text-center text-muted">
-              {searchQuery.trim() ? (
-                <>
-                  Nenhum lançamento encontrado para &quot;{searchQuery}&quot;
-                  {typeFilter !== "all" ||
-                  paidByFilter !== "all" ||
-                  categoryFilter.size > 0 ||
-                  creditCardFilter !== "all"
-                    ? " com os filtros selecionados"
-                    : ""}
-                  .
-                </>
-              ) : (
-                <>
-                  Nenhum lançamento neste mês
-                  {typeFilter !== "all" &&
-                    ` do tipo ${typeFilter === "income" ? "renda" : "despesa"}`}
-                  {paidByFilter !== "all" && " para este pagador"}
-                  {categoryFilter.size > 0 && " nas categorias selecionadas"}
-                  {creditCardFilter !== "all" &&
-                    ` ${creditCardFilter === "yes" ? "no cartão" : "fora do cartão"}`}
-                  .
-                </>
-              )}
-            </div>
-          ) : (
-            visibleTransactionsForSelectedMonth.map((transaction) => (
-              <TransactionRow
-                key={transaction.id}
-                transaction={transaction}
-                category={categories.find((category) => category.id === transaction.categoryId)}
-                person={people.find((person) => person.id === transaction.paidBy)}
-                toPerson={people.find((person) => person.id === transaction.transferToPersonId)}
-                isOutlier={isOutlier(transaction)}
-                isSelectionMode={isSelectionMode}
-                isSelected={selectedIds.has(transaction.id)}
-                canSelect={true}
-                displayNextBillingTag={
-                  transaction.isNextBilling && isTransactionDateInSelectedMonth(transaction.date)
-                }
-                onToggleSelection={() => toggleTransactionSelection(transaction.id)}
-                onEdit={() => handleOpenEditModal(transaction)}
-                onMarkAsHappened={
-                  transaction.isForecast
-                    ? () => updateTransactionById(transaction.id, { isForecast: false })
-                    : undefined
-                }
-                onDelete={
-                  transaction.recurringTemplateId != null
-                    ? () =>
-                        setDeletingRecurringTemplateId(transaction.recurringTemplateId as number)
-                    : () => {
-                        void handleNonRecurringDeleteRequest(transaction);
-                      }
-                }
-                isDeletePending={isResolvingDeleteGroupId === transaction.id}
-              />
-            ))
-          )}
-        </div>
-
-        {/* Total row */}
-        {visibleTransactionsForSelectedMonth.length > 0 && (
-          <div className="p-4 border-t border-noir-border bg-noir-active/50 flex items-center justify-between">
-            <span className="font-semibold text-heading">
-              {typeFilter === "income" ? (
-                <>Total de {visibleIncomeCount} recebimento(s)</>
-              ) : typeFilter === "expense" ? (
-                <>Total de {visibleExpenseCount} lançamento(s)</>
-              ) : typeFilter === "transfer" ? (
-                <>Total de {visibleTransferCount} transferência(s)</>
-              ) : (
-                <>
-                  Total de {visibleTransactionsForSelectedMonth.length} lançamentos
-                  {visibleIncomeCount > 0 && (
-                    <span className="text-xs text-body ml-1">
-                      (+ {visibleIncomeCount} recebimentos não considerados na conta total)
-                    </span>
-                  )}
-                </>
-              )}
-            </span>
-            <span className="font-bold text-lg text-heading tabular-nums">
-              {typeFilter === "income"
-                ? formatCurrency(visibleIncomeTotal)
-                : typeFilter === "transfer"
-                  ? formatCurrency(visibleTransferTotal)
-                  : formatCurrency(visibleExpenseTotal)}
-            </span>
-          </div>
-        )}
-      </Card>
-
-      {editingTransaction && (
-        <EditTransactionModal
-          form={editTransactionForm}
-          onClose={handleCloseEditModal}
-          editingTransaction={editingTransaction}
-          recurringEditScope={recurringEditScope}
-          onRecurringEditScopeChange={setRecurringEditScope}
-          viewMode={viewMode}
-          isSubmitDisabled={
-            editingTransaction.recurringTemplateId == null && isInstallmentGroupLoading
-          }
+        <FiltersBar
+          filters={filters}
+          people={people}
+          categories={categories}
+          visibleCount={visibleTransactionsForSelectedMonth.length}
+          isSelectionMode={selection.isSelectionMode}
+          onToggleSelectionMode={selection.toggleSelectionMode}
         />
-      )}
 
-      {installmentEditPrompt && (
-        <dialog
-          open
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4 border-0 max-w-none max-h-none w-full h-full m-0"
-          aria-labelledby="installment-edit-scope-title"
-        >
-          <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
-            <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3
-                id="installment-edit-scope-title"
-                className="font-semibold text-heading flex items-center gap-2"
-              >
-                <Layers className="text-accent-primary" size={20} />
-                Parcelamento
-              </h3>
-              <button
-                type="button"
-                onClick={() => setInstallmentEditPrompt(null)}
-                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
-                aria-label="Fechar"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-body">
-                Este lançamento faz parte de um parcelamento em{" "}
-                {installmentEditPrompt.installmentTotal}x. Existem{" "}
-                {installmentEditPrompt.siblingCount} parcelas cadastradas. Deseja aplicar as
-                alterações a todas elas ou somente a esta?
-              </p>
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  disabled={isUpdatePending}
-                  onClick={() => {
-                    updateTransactionById(
-                      installmentEditPrompt.transactionId,
-                      installmentEditPrompt.patch,
-                    );
-                    setEditingTransaction(null);
-                    setInstallmentEditPrompt(null);
-                  }}
-                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <p className="font-medium text-heading text-sm">Somente esta parcela</p>
-                  <p className="text-xs text-muted mt-1">
-                    Atualiza apenas o lançamento que você está editando (outras faturas / meses
-                    permanecem iguais).
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  disabled={isUpdatePending}
-                  onClick={() => {
-                    updateTransactionById(
-                      installmentEditPrompt.transactionId,
-                      installmentEditPrompt.patch,
-                      { installmentUpdateScope: "all" },
-                    );
-                    setEditingTransaction(null);
-                    setInstallmentEditPrompt(null);
-                  }}
-                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <p className="font-medium text-heading text-sm">Todas as parcelas</p>
-                  <p className="text-xs text-muted mt-1">
-                    Aplica categoria, valor, descrição (com numeração), cartão e demais campos a
-                    todas as parcelas encontradas. A data de cada parcela é mantida.
-                  </p>
-                </button>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setInstallmentEditPrompt(null)}
-                className="w-full py-2.5 h-auto"
-              >
-                Voltar à edição
-              </Button>
-            </div>
-          </Card>
-        </dialog>
-      )}
+        {filters.isSearchOpen && (
+          <SearchBar
+            searchQuery={filters.searchQuery}
+            onSearchQueryChange={filters.setSearchQuery}
+            onClose={() => filters.setIsSearchOpen(false)}
+          />
+        )}
 
-      {installmentDeletePrompt && (
-        <dialog
-          open
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4 border-0 max-w-none max-h-none w-full h-full m-0"
-          aria-labelledby="installment-delete-scope-title"
-        >
-          <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
-            <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3
-                id="installment-delete-scope-title"
-                className="font-semibold text-heading flex items-center gap-2"
-              >
-                <Trash2 className="text-accent-negative" size={20} />
-                Excluir parcelamento
-              </h3>
-              <button
-                type="button"
-                onClick={() => setInstallmentDeletePrompt(null)}
-                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
-                aria-label="Fechar"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-body">
-                <span className="font-medium text-heading">
-                  {installmentDeletePrompt.description}
-                </span>{" "}
-                faz parte de um parcelamento em {installmentDeletePrompt.installmentTotal}x. Existem{" "}
-                {installmentDeletePrompt.siblingCount} parcelas cadastradas. O que deseja excluir?
-              </p>
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  disabled={isDeletePending || isBulkDeletePending}
-                  onClick={() => {
-                    deleteTransactionById(installmentDeletePrompt.transactionId);
-                    setInstallmentDeletePrompt(null);
-                  }}
-                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <p className="font-medium text-heading text-sm">Somente esta parcela</p>
-                  <p className="text-xs text-muted mt-1">
-                    Remove só este lançamento; as outras parcelas permanecem.
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  disabled={isDeletePending || isBulkDeletePending}
-                  onClick={() => {
-                    bulkDeleteTransactions(installmentDeletePrompt.siblingIds);
-                    setInstallmentDeletePrompt(null);
-                  }}
-                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-negative hover:bg-accent-negative/5 transition-all disabled:opacity-50 disabled:pointer-events-none"
-                >
-                  <p className="font-medium text-heading text-sm">Todas as parcelas</p>
-                  <p className="text-xs text-muted mt-1">
-                    Exclui todas as {installmentDeletePrompt.siblingCount} parcelas deste
-                    parcelamento.
-                  </p>
-                </button>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setInstallmentDeletePrompt(null)}
-                className="w-full py-2.5 h-auto"
-              >
-                Cancelar
-              </Button>
-            </div>
-          </Card>
-        </dialog>
-      )}
+        {selection.isSelectionMode && (
+          <BulkActionBar
+            selectedCount={selection.selectedIds.size}
+            hasRecurringSelection={selection.hasRecurringSelection}
+            onSelectAll={selection.selectAllVisibleTransactions}
+            onClearSelection={selection.clearSelection}
+            onOpenBulkEdit={() => {
+              if (selection.selectedIds.size === 0 || selection.hasRecurringSelection) return;
+              modals.setBulkEditFormState({
+                categoryId: null,
+                paidBy: null,
+                isCreditCard: null,
+                isNextBilling: null,
+                excludeFromSplit: null,
+              });
+              modals.setIsBulkEditModalOpen(true);
+            }}
+            onBulkDelete={handleBulkDelete}
+          />
+        )}
 
-      {isBulkEditModalOpen && (
-        <BulkEditModal
-          formState={bulkEditFormState}
-          onFormStateChange={setBulkEditFormState}
+        <TransactionsList
+          transactions={visibleTransactionsForSelectedMonth}
           categories={categories}
           people={people}
-          selectedCount={selectedIds.size}
-          onClose={handleCloseBulkEditModal}
-          onSave={handleSaveBulkEdit}
-          isSaveDisabled={
-            bulkEditFormState.categoryId === null &&
-            bulkEditFormState.paidBy === null &&
-            bulkEditFormState.isCreditCard === null &&
-            bulkEditFormState.isNextBilling === null &&
-            bulkEditFormState.excludeFromSplit === null
+          isOutlier={isOutlier}
+          isSelectionMode={selection.isSelectionMode}
+          selectedIds={selection.selectedIds}
+          onToggleSelection={selection.toggleTransactionSelection}
+          onEdit={handleOpenEditModal}
+          onMarkAsHappened={(id) => updateTransactionById(id, { isForecast: false })}
+          onDeleteRequest={(transaction) => {
+            if (transaction.recurringTemplateId != null) {
+              modals.setDeletingRecurringTemplateId(transaction.recurringTemplateId as number);
+            } else {
+              void handleNonRecurringDeleteRequest(transaction);
+            }
+          }}
+          isResolvingDeleteGroupId={modals.isResolvingDeleteGroupId}
+          searchQuery={filters.searchQuery}
+          typeFilter={filters.typeFilter}
+          paidByFilter={filters.paidByFilter}
+          categoryFilterSize={filters.categoryFilter.size}
+          creditCardFilter={filters.creditCardFilter}
+          isTransactionDateInSelectedMonth={(d) =>
+            isTransactionDateInSelectedMonth(d, currentYearMonth)
+          }
+        />
+
+        <TotalSummaryRow
+          typeFilter={filters.typeFilter}
+          visibleCount={visibleTransactionsForSelectedMonth.length}
+          incomeCount={summary.incomeCount}
+          expenseCount={summary.expenseCount}
+          transferCount={summary.transferCount}
+          incomeTotal={summary.incomeTotal}
+          expenseTotal={summary.expenseTotal}
+          transferTotal={summary.transferTotal}
+          totalVisible={visibleTransactionsForSelectedMonth.length}
+        />
+      </Card>
+
+      {modals.editingTransaction && (
+        <EditTransactionModal
+          form={editTransactionForm}
+          onClose={() => {
+            modals.setEditingTransaction(null);
+            modals.setInstallmentEditPrompt(null);
+          }}
+          editingTransaction={modals.editingTransaction}
+          recurringEditScope={modals.recurringEditScope}
+          onRecurringEditScopeChange={modals.setRecurringEditScope}
+          viewMode={filters.viewMode}
+          isSubmitDisabled={
+            modals.editingTransaction.recurringTemplateId == null && isInstallmentGroupLoading
           }
         />
       )}
 
-      {deletingRecurringTemplateId !== null && (
-        <dialog
-          open
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          aria-labelledby="recurring-delete-modal-title"
-        >
-          <Card className="max-w-md w-full animate-in fade-in zoom-in-95 duration-200 rounded-outer">
-            <div className="p-6 border-b border-noir-border flex items-center justify-between">
-              <h3
-                id="recurring-delete-modal-title"
-                className="font-semibold text-heading flex items-center gap-2"
-              >
-                <Trash2 className="text-accent-negative" size={20} />
-                Excluir Recorrente
-              </h3>
-              <button
-                type="button"
-                onClick={() => setDeletingRecurringTemplateId(null)}
-                className="text-muted hover:text-heading p-1 rounded-interactive hover:bg-noir-active transition-all"
-                aria-label="Fechar"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-body">
-                O que deseja fazer com este lançamento recorrente?
-              </p>
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  disabled={isDeletingRecurringTemplate}
-                  onClick={async () => {
-                    try {
-                      await deleteRecurringTemplateAsync(deletingRecurringTemplateId, {
-                        scope: "template_only",
-                      });
-                      setDeletingRecurringTemplateId(null);
-                    } catch (err) {
-                      console.error("Failed to delete recurring template:", err);
-                      alert("Não foi possível excluir. Tente novamente.");
-                    }
-                  }}
-                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-primary hover:bg-accent-primary/5 transition-all disabled:opacity-50"
-                >
-                  <p className="font-medium text-heading text-sm">Só daqui pra frente</p>
-                  <p className="text-xs text-muted mt-1">
-                    Desativa o modelo e remove ocorrências em meses abertos. Meses já fechados
-                    permanecem como estão.
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  disabled={isDeletingRecurringTemplate}
-                  onClick={async () => {
-                    try {
-                      await deleteRecurringTemplateAsync(deletingRecurringTemplateId, {
-                        scope: "full_history",
-                      });
-                      setDeletingRecurringTemplateId(null);
-                    } catch (err) {
-                      console.error("Failed to delete recurring template:", err);
-                      alert("Não foi possível excluir. Tente novamente.");
-                    }
-                  }}
-                  className="w-full text-left p-4 rounded-interactive border border-noir-border hover:border-accent-negative hover:bg-accent-negative/5 transition-all disabled:opacity-50"
-                >
-                  <p className="font-medium text-heading text-sm">Todo o histórico</p>
-                  <p className="text-xs text-muted mt-1">
-                    Desativa o template. Em meses já fechados os lançamentos são apenas
-                    desvinculados (valores mantidos). Em meses abertos os lançamentos são excluídos.
-                  </p>
-                </button>
-              </div>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setDeletingRecurringTemplateId(null)}
-                className="w-full py-2.5 mt-2 h-auto"
-              >
-                Cancelar
-              </Button>
-            </div>
-          </Card>
-        </dialog>
+      {modals.installmentEditPrompt && (
+        <InstallmentEditPrompt
+          {...modals.installmentEditPrompt}
+          isUpdatePending={isUpdatePending}
+          onApplyToThisOnly={() => {
+            if (modals.installmentEditPrompt) {
+              updateTransactionById(
+                modals.installmentEditPrompt.transactionId,
+                modals.installmentEditPrompt.patch,
+              );
+              modals.setEditingTransaction(null);
+              modals.setInstallmentEditPrompt(null);
+            }
+          }}
+          onApplyToAll={() => {
+            if (modals.installmentEditPrompt) {
+              updateTransactionById(
+                modals.installmentEditPrompt.transactionId,
+                modals.installmentEditPrompt.patch,
+                { installmentUpdateScope: "all" },
+              );
+              modals.setEditingTransaction(null);
+              modals.setInstallmentEditPrompt(null);
+            }
+          }}
+          onClose={() => modals.setInstallmentEditPrompt(null)}
+        />
+      )}
+
+      {modals.installmentDeletePrompt && (
+        <InstallmentDeletePrompt
+          {...modals.installmentDeletePrompt}
+          isDeletePending={isDeletePending || isBulkDeletePending}
+          onDeleteThisOnly={() => {
+            if (modals.installmentDeletePrompt) {
+              deleteTransactionById(modals.installmentDeletePrompt.transactionId);
+              modals.setInstallmentDeletePrompt(null);
+            }
+          }}
+          onDeleteAll={() => {
+            if (modals.installmentDeletePrompt) {
+              bulkDeleteTransactions(modals.installmentDeletePrompt.siblingIds);
+              modals.setInstallmentDeletePrompt(null);
+            }
+          }}
+          onClose={() => modals.setInstallmentDeletePrompt(null)}
+        />
+      )}
+
+      {modals.isBulkEditModalOpen && (
+        <BulkEditModal
+          formState={modals.bulkEditFormState}
+          onFormStateChange={modals.setBulkEditFormState}
+          categories={categories}
+          people={people}
+          selectedCount={selection.selectedIds.size}
+          onClose={() => modals.setIsBulkEditModalOpen(false)}
+          onSave={handleSaveBulkEdit}
+          isSaveDisabled={
+            modals.bulkEditFormState.categoryId === null &&
+            modals.bulkEditFormState.paidBy === null &&
+            modals.bulkEditFormState.isCreditCard === null &&
+            modals.bulkEditFormState.isNextBilling === null &&
+            modals.bulkEditFormState.excludeFromSplit === null
+          }
+        />
+      )}
+
+      {modals.deletingRecurringTemplateId !== null && (
+        <RecurringDeleteModal
+          isDeleting={isDeletingRecurringTemplate}
+          onDeleteTemplateOnly={async () => {
+            if (modals.deletingRecurringTemplateId !== null) {
+              try {
+                await deleteRecurringTemplateAsync(modals.deletingRecurringTemplateId, {
+                  scope: "template_only",
+                });
+                modals.setDeletingRecurringTemplateId(null);
+              } catch (err) {
+                console.error("Failed to delete recurring template:", err);
+                alert("Não foi possível excluir. Tente novamente.");
+              }
+            }
+          }}
+          onDeleteFullHistory={async () => {
+            if (modals.deletingRecurringTemplateId !== null) {
+              try {
+                await deleteRecurringTemplateAsync(modals.deletingRecurringTemplateId, {
+                  scope: "full_history",
+                });
+                modals.setDeletingRecurringTemplateId(null);
+              } catch (err) {
+                console.error("Failed to delete recurring template:", err);
+                alert("Não foi possível excluir. Tente novamente.");
+              }
+            }
+          }}
+          onClose={() => modals.setDeletingRecurringTemplateId(null)}
+        />
       )}
     </div>
   );
