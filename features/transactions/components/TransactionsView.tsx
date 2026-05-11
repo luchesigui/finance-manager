@@ -106,11 +106,14 @@ export function TransactionsView() {
       newTransactionForm.reset();
       newTransactionForm.setFieldValue("categoryId", categories[0]?.id ?? "c1");
       newTransactionForm.setFieldValue("paidBy", defaultPayerId);
-      newTransactionForm.setFieldValue("selectedMonth", currentYearMonth);
-      const today = new Date();
-      newTransactionForm.setFieldValue("date", toDateString(today));
-      newTransactionForm.setFieldValue("dateSelectionMode", "specific");
-      newTransactionForm.setFieldValue("dayOfMonth", today.getDate());
+
+      // Preserve date from the submitted value instead of resetting to today
+      newTransactionForm.setFieldValue("date", value.date);
+      newTransactionForm.setFieldValue("dateSelectionMode", value.dateSelectionMode);
+      newTransactionForm.setFieldValue("dayOfMonth", value.dayOfMonth);
+      newTransactionForm.setFieldValue("selectedMonth", value.selectedMonth);
+      newTransactionForm.setFieldValue("isForecast", value.isForecast);
+
       if (filters.viewMode === "creditCard") {
         newTransactionForm.setFieldValue("isCreditCard", true);
         newTransactionForm.setFieldValue("isNextBilling", false);

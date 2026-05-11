@@ -464,6 +464,51 @@ describe("TransactionsView", { timeout: 5000 }, () => {
 
       vi.useRealTimers();
     });
+
+    it("preserves the selected date after form submission", async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date(2025, 0, 10)); // Jan 10, 2025
+
+      server.use(
+        ...setupHandlers(),
+        http.post("/api/transactions", async ({ request }) => {
+          const body = await request.json();
+          const payload = Array.isArray(body) ? body[0] : body;
+          return HttpResponse.json([{ ...payload, id: 999 }]);
+        }),
+      );
+
+      renderView();
+      await selectors.findSupermercado();
+
+      // Change date to Jan 5, 2025
+      await user.click(selectors.form.getInformacoesAdicionaisSummary());
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toBeInTheDocument();
+      });
+      await user.click(selectors.form.getDatePickerButton());
+
+      const dialog = screen.getByRole("dialog");
+      const day5 = within(dialog).getByRole("button", { name: /January 5/i });
+      await user.click(day5);
+
+      // Verify date button shows the selected date
+      expect(selectors.form.getDatePickerButton()).toHaveTextContent(/05\/01\/2025/);
+
+      // Fill and submit
+      const descInput = selectors.form.getDescricaoInput();
+      const amountInput = selectors.form.getAmountInput();
+      if (descInput) await user.type(descInput, "Gasolina");
+      if (amountInput) await user.type(amountInput, "200");
+      await user.click(selectors.getAdicionarLancamentoButton());
+
+      // After submission, date should still be Jan 5
+      await waitFor(() => {
+        expect(selectors.form.getDatePickerButton()).toHaveTextContent(/05\/01\/2025/);
+      });
+
+      vi.useRealTimers();
+    });
   });
 
   describe("Edit transaction modal", () => {
