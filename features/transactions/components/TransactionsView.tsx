@@ -165,6 +165,27 @@ export function TransactionsView() {
       if (!value.description || value.amount == null) return;
 
       if (modals.editingTransaction.recurringTemplateId != null) {
+        if (modals.recurringEditScope === "current_only") {
+          const isTransferEdit = value.type === "transfer";
+          const shouldClearCategory = value.type === "income" || isTransferEdit;
+          const patch: TransactionPatch = {
+            description: value.description,
+            amount: value.amount,
+            categoryId: shouldClearCategory ? null : value.categoryId,
+            paidBy: value.paidBy,
+            isCreditCard: isTransferEdit ? false : value.isCreditCard,
+            isNextBilling: isTransferEdit ? false : value.isNextBilling,
+            excludeFromSplit: isTransferEdit ? false : value.excludeFromSplit,
+            isForecast: value.isForecast,
+            date: value.date,
+            type: value.type,
+            isIncrement: value.isIncrement,
+          };
+          updateTransactionById(modals.editingTransaction.id, patch);
+          modals.setEditingTransaction(null);
+          return;
+        }
+
         const selectedDay = (() => {
           if (value.dayOfMonth) return value.dayOfMonth;
           const day = Number.parseInt(value.date.split("-")[2] ?? "1", 10);

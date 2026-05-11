@@ -12,8 +12,8 @@ type EditTransactionModalProps = {
   // biome-ignore lint/suspicious/noExplicitAny: TanStack Form has complex generic types
   form: any;
   editingTransaction: Transaction;
-  recurringEditScope: "template_only" | "full_history";
-  onRecurringEditScopeChange: (scope: "template_only" | "full_history") => void;
+  recurringEditScope: "template_only" | "full_history" | "current_only";
+  onRecurringEditScopeChange: (scope: "template_only" | "full_history" | "current_only") => void;
   viewMode?: "general" | "creditCard";
   /** When true, disables save (e.g. resolving parcelamento metadata). */
   isSubmitDisabled?: boolean;
@@ -98,7 +98,17 @@ export function EditTransactionModal({
                 <p className="text-xs font-medium text-body mb-2">
                   Aplicar alterações ao modelo recorrente
                 </p>
-                <div className="flex gap-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="recurring-edit-scope"
+                      checked={recurringEditScope === "current_only"}
+                      onChange={() => onRecurringEditScopeChange("current_only")}
+                      className="text-accent-primary"
+                    />
+                    <span className="text-sm text-body">Somente este lançamento</span>
+                  </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"

@@ -20,9 +20,9 @@ export function useTransactionModals() {
   const [deletingRecurringTemplateId, setDeletingRecurringTemplateId] = useState<number | null>(
     null,
   );
-  const [recurringEditScope, setRecurringEditScope] = useState<"template_only" | "full_history">(
-    "template_only",
-  );
+  const [recurringEditScope, setRecurringEditScope] = useState<
+    "template_only" | "full_history" | "current_only"
+  >("template_only");
 
   const [isBulkEditModalOpen, setIsBulkEditModalOpen] = useState(false);
   const [bulkEditFormState, setBulkEditFormState] = useState<{
