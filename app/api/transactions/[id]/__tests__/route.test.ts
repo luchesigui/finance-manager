@@ -5,22 +5,25 @@ vi.mock("@/lib/server/requestBodyValidation", () => ({
   readJsonBody: vi.fn(),
   validateBody: vi.fn(),
   parseNumericId: vi.fn(),
+  parseSignedId: vi.fn(),
 }));
 
 vi.mock("@/features/transactions/server/store", () => ({
+  createTransaction: vi.fn(),
   getTransaction: vi.fn(),
   updateTransaction: vi.fn(),
 }));
 
 vi.mock("@/features/recurring-templates/server/store", () => ({
   createRecurringTemplate: vi.fn(),
+  getRecurringTemplate: vi.fn(),
 }));
 
 import { PATCH } from "@/app/api/transactions/[id]/route";
 import { createRecurringTemplate } from "@/features/recurring-templates/server/store";
 import { getTransaction, updateTransaction } from "@/features/transactions/server/store";
 import {
-  parseNumericId,
+  parseSignedId,
   readJsonBody,
   requireAuth,
   validateBody,
@@ -46,7 +49,7 @@ describe("PATCH /api/transactions/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(requireAuth).mockResolvedValue({ success: true, userId: "u1" });
-    vi.mocked(parseNumericId).mockReturnValue(42);
+    vi.mocked(parseSignedId).mockReturnValue(42);
     vi.mocked(getTransaction).mockResolvedValue(existingTransaction as never);
     vi.mocked(updateTransaction).mockResolvedValue({
       ...existingTransaction,
