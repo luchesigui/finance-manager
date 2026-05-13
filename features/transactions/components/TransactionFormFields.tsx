@@ -22,6 +22,7 @@ import type { NewTransactionFormState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeftRight,
+  ArrowRight,
   Calendar as CalendarIcon,
   CreditCard,
   Layers,
@@ -515,8 +516,39 @@ export function TransactionFormFields({
                 </div>
               )}
 
-              {/* Next billing / credit card (expenses only) */}
-              {!isIncome && !isTransfer && (
+              {/* Credit Card (expenses only) - hidden if already in credit card view */}
+              {!isIncome && !isTransfer && !creditCardViewActive && (
+                <div className="flex items-center gap-2">
+                  <form.Field name="isCreditCard">
+                    {(field: FieldState<boolean>) => (
+                      <>
+                        <input
+                          type="checkbox"
+                          id={inputId("credit-card")}
+                          checked={field.state.value}
+                          onChange={(e) => {
+                            const v = e.target.checked;
+                            field.handleChange(v);
+                            if (!v) {
+                              form.setFieldValue("isNextBilling", false);
+                            }
+                          }}
+                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
+                        />
+                        <label
+                          htmlFor={inputId("credit-card")}
+                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
+                        >
+                          <CreditCard size={14} /> Cartão de Crédito
+                        </label>
+                      </>
+                    )}
+                  </form.Field>
+                </div>
+              )}
+
+              {/* Next billing (expenses only) - only if credit card is selected or view is active */}
+              {!isIncome && !isTransfer && (values.isCreditCard || creditCardViewActive) && (
                 <div className="flex items-center gap-2">
                   <form.Field name="isNextBilling">
                     {(field: FieldState<boolean>) => (
@@ -525,11 +557,7 @@ export function TransactionFormFields({
                           type="checkbox"
                           id={inputId("next-billing")}
                           checked={field.state.value}
-                          onChange={(e) => {
-                            const v = e.target.checked;
-                            field.handleChange(v);
-                            form.setFieldValue("isCreditCard", v || creditCardViewActive);
-                          }}
+                          onChange={(e) => field.handleChange(e.target.checked)}
                           className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
                         />
                         <label
@@ -537,7 +565,7 @@ export function TransactionFormFields({
                           className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                           title="Se marcado, o lançamento entra no mês seguinte"
                         >
-                          <CreditCard size={14} /> Próxima Fatura
+                          <ArrowRight size={14} /> Próxima Fatura
                         </label>
                       </>
                     )}
