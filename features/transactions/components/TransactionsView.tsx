@@ -181,7 +181,16 @@ export function TransactionsView() {
             type: value.type,
             isIncrement: value.isIncrement,
           };
-          updateTransactionById(modals.editingTransaction.id, patch);
+          const isVirtual = modals.editingTransaction.id < 0;
+          if (isVirtual) {
+            // Virtual (unmaterialized) recurring transaction: PATCH with the template ID so
+            // the server creates a real DB row that replaces the virtual entry.
+            updateTransactionById(modals.editingTransaction.id, patch, {
+              recurringTemplateId: modals.editingTransaction.recurringTemplateId as number,
+            });
+          } else {
+            updateTransactionById(modals.editingTransaction.id, patch);
+          }
           modals.setEditingTransaction(null);
           return;
         }

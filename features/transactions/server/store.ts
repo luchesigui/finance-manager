@@ -227,6 +227,7 @@ export async function getTransaction(id: number): Promise<Transaction | null> {
 export async function createTransaction(
   t: Omit<Transaction, "id" | "recurringTemplateId"> & {
     recurringTemplateId?: number | null;
+    createdAt?: string | null;
   },
 ): Promise<Transaction> {
   const supabase = await createClient();
@@ -254,8 +255,13 @@ export async function createTransaction(
     household_id: householdId,
     type: t.type ?? "expense",
     is_increment: t.isIncrement ?? true,
-    transfer_to_person_id: isTransfer ? (t.transferToPersonId ?? null) : null,
-    reference_date: isTransfer ? (t.referenceDate ?? null) : null,
+    ...(t.createdAt != null ? { created_at: t.createdAt } : {}),
+    ...(isTransfer
+      ? {
+          transfer_to_person_id: t.transferToPersonId ?? null,
+          reference_date: t.referenceDate ?? null,
+        }
+      : {}),
   };
 
   const { data, error } = await supabase.from("transactions").insert(dbRow).select().single();

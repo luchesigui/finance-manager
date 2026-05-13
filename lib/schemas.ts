@@ -77,6 +77,8 @@ export const updateTransactionBodySchema = z.object({
   patch: transactionPatchSchema,
   /** When "all", applies the patch to every transaction in the same parcelamento group (if any). */
   installmentUpdateScope: z.enum(["all"]).optional(),
+  /** Required when patching a virtual (unmaterialized) recurring transaction (negative ID). */
+  recurringTemplateId: z.number().int().positive().optional(),
 });
 
 export const bulkUpdateBodySchema = z.object({

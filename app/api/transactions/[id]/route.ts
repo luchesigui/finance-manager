@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { createRecurringTemplate } from "@/features/recurring-templates/server/store";
+import {
+  createRecurringTemplate,
+  getRecurringTemplate,
+} from "@/features/recurring-templates/server/store";
 import { updateInstallmentGroupTransactions } from "@/features/transactions/server/installmentGroup";
 import {
+  createTransaction,
   deleteTransaction,
   getTransaction,
   updateTransaction,
@@ -10,6 +14,7 @@ import {
 import { updateTransactionBodySchema } from "@/lib/schemas";
 import {
   parseNumericId,
+  parseSignedId,
   readJsonBody,
   requireAuth,
   validateBody,
@@ -26,14 +31,20 @@ function stripIsRecurring(patch: TransactionPatch): Omit<TransactionPatch, "isRe
 /**
  * PATCH /api/transactions/:id
  * Updates a transaction by ID.
- * When patch.isRecurring is true and the transaction has no template, creates a recurring template and links this transaction only (from current month onward). Previous transactions are unchanged.
+ *
+ * If the ID is negative, the transaction is virtual (unmaterialized recurring entry).
+ * In that case, `recurringTemplateId` must be present in the body and a real DB row
+ * is created instead of updated.
+ *
+ * For positive IDs, the existing row is updated. When patch.isRecurring is true and
+ * the transaction has no template, a recurring template is created and linked.
  */
 export async function PATCH(request: Request, { params }: RouteParams) {
   const auth = await requireAuth();
   if (!auth.success) return auth.response;
 
   const { id } = await params;
-  const transactionId = parseNumericId(id);
+  const transactionId = parseSignedId(id);
 
   if (transactionId === null) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -48,6 +59,55 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const rawPatch = validation.data.patch as TransactionPatch;
   const installmentUpdateScope = validation.data.installmentUpdateScope;
+  const recurringTemplateId = validation.data.recurringTemplateId;
+
+  // Virtual transaction: negative ID means the recurring entry hasn't been materialized yet.
+  // Create a real DB row linked to the template so it replaces the virtual entry.
+  if (transactionId < 0) {
+    if (!recurringTemplateId) {
+      return NextResponse.json(
+        { error: "recurringTemplateId is required for virtual transactions" },
+        { status: 400 },
+      );
+    }
+
+    const { description, amount, paidBy, date } = rawPatch;
+    if (!description || amount == null || !paidBy || !date) {
+      return NextResponse.json(
+        { error: "description, amount, paidBy and date are required" },
+        { status: 400 },
+      );
+    }
+
+    const isTransfer = rawPatch.type === "transfer";
+    const isIncome = rawPatch.type === "income";
+    const shouldClearCategory = isIncome || isTransfer;
+
+    try {
+      const template = await getRecurringTemplate(recurringTemplateId);
+      const created = await createTransaction({
+        description,
+        amount,
+        categoryId: shouldClearCategory ? null : (rawPatch.categoryId ?? null),
+        paidBy,
+        recurringTemplateId,
+        isCreditCard: isTransfer || isIncome ? false : (rawPatch.isCreditCard ?? false),
+        isNextBilling: isTransfer || isIncome ? false : (rawPatch.isNextBilling ?? false),
+        excludeFromSplit: isTransfer || isIncome ? false : (rawPatch.excludeFromSplit ?? false),
+        isForecast: rawPatch.isForecast ?? false,
+        date,
+        type: rawPatch.type ?? "expense",
+        isIncrement: rawPatch.isIncrement ?? true,
+        transferToPersonId: isTransfer ? (rawPatch.transferToPersonId ?? null) : null,
+        referenceDate: isTransfer ? (rawPatch.referenceDate ?? null) : null,
+        createdAt: template?.createdAt ?? null,
+      });
+      return NextResponse.json(created);
+    } catch (error) {
+      console.error("Failed to materialize virtual transaction:", error);
+      return NextResponse.json({ error: "Failed to update" }, { status: 500 });
+    }
+  }
 
   try {
     const existing = await getTransaction(transactionId);

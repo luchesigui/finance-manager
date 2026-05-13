@@ -431,66 +431,6 @@ export function TransactionFormFields({
 
             {/* Checkbox Options */}
             <div className="lg:col-span-4 flex flex-wrap items-center gap-6 pb-2">
-              {/* Recurring Checkbox */}
-              {(showInstallmentFields ? !values.isInstallment : true) && (
-                <div className="flex items-center gap-2">
-                  <form.Field name="isRecurring">
-                    {(field: FieldState<boolean>) => (
-                      <>
-                        <input
-                          type="checkbox"
-                          id={inputId("recurring")}
-                          checked={field.state.value}
-                          onChange={(e) => {
-                            const checked = e.target.checked;
-                            field.handleChange(checked);
-                            if (checked) {
-                              const day = Number.parseInt(values.date.split("-")[2] ?? "1", 10);
-                              form.setFieldValue(
-                                "dayOfMonth",
-                                Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1,
-                              );
-                            }
-                          }}
-                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
-                        />
-                        <label
-                          htmlFor={inputId("recurring")}
-                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
-                        >
-                          <RefreshCw size={14} /> Recorrente?
-                        </label>
-                      </>
-                    )}
-                  </form.Field>
-                </div>
-              )}
-
-              {/* Installment Checkbox (expenses only) */}
-              {!isIncome && !isTransfer && showInstallmentFields && !values.isRecurring && (
-                <div className="flex items-center gap-2">
-                  <form.Field name="isInstallment">
-                    {(field: FieldState<boolean>) => (
-                      <>
-                        <input
-                          type="checkbox"
-                          id={inputId("installment")}
-                          checked={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.checked)}
-                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
-                        />
-                        <label
-                          htmlFor={inputId("installment")}
-                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
-                        >
-                          <Layers size={14} /> Parcelado?
-                        </label>
-                      </>
-                    )}
-                  </form.Field>
-                </div>
-              )}
-
               {/* Exclude from Split (expenses only) */}
               {!isIncome && !isTransfer && (
                 <div className="flex items-center gap-2">
@@ -508,7 +448,7 @@ export function TransactionFormFields({
                           htmlFor={inputId("exclude-from-split")}
                           className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                         >
-                          <UserX size={14} /> Não entra na divisão?
+                          <UserX size={14} /> Não entra na divisão
                         </label>
                       </>
                     )}
@@ -590,12 +530,72 @@ export function TransactionFormFields({
                         className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
                         title="Pode ser considerada na conta no resumo"
                       >
-                        <CrystalBallLine size={14} /> Previsão?
+                        <CrystalBallLine size={14} /> Previsão
                       </label>
                     </>
                   )}
                 </form.Field>
               </div>
+
+              {/* Recurring Checkbox */}
+              {!isTransfer && (
+                <div className="flex items-center gap-2">
+                  <form.Field name="isRecurring">
+                    {(field: FieldState<boolean>) => (
+                      <>
+                        <input
+                          type="checkbox"
+                          id={inputId("recurring")}
+                          checked={field.state.value}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            field.handleChange(checked);
+                            if (checked) {
+                              const day = Number.parseInt(values.date.split("-")[2] ?? "1", 10);
+                              form.setFieldValue(
+                                "dayOfMonth",
+                                Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1,
+                              );
+                            }
+                          }}
+                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
+                        />
+                        <label
+                          htmlFor={inputId("recurring")}
+                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
+                        >
+                          <RefreshCw size={14} /> Recorrente
+                        </label>
+                      </>
+                    )}
+                  </form.Field>
+                </div>
+              )}
+
+              {/* Installment Checkbox (expenses only) */}
+              {!isIncome && !isTransfer && showInstallmentFields && !values.isRecurring && (
+                <div className="flex items-center gap-2">
+                  <form.Field name="isInstallment">
+                    {(field: FieldState<boolean>) => (
+                      <>
+                        <input
+                          type="checkbox"
+                          id={inputId("installment")}
+                          checked={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.checked)}
+                          className="w-4 h-4 text-accent-primary rounded border-noir-border bg-noir-active focus:ring-accent-primary focus:ring-offset-noir-primary"
+                        />
+                        <label
+                          htmlFor={inputId("installment")}
+                          className="text-sm text-body flex items-center gap-1 cursor-pointer hover:text-heading transition-colors"
+                        >
+                          <Layers size={14} /> Parcelado
+                        </label>
+                      </>
+                    )}
+                  </form.Field>
+                </div>
+              )}
 
               {/* Installment Count */}
               {!isIncome && !isTransfer && showInstallmentFields && values.isInstallment && (
@@ -619,6 +619,20 @@ export function TransactionFormFields({
                 </div>
               )}
             </div>
+
+            {/* Installment Info Helper */}
+            {!isIncome && !isTransfer && showInstallmentFields && values.isInstallment && (
+              <div className="lg:col-span-4 animate-in fade-in slide-in-from-top-1 duration-300">
+                <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-interactive p-3 flex items-start gap-3">
+                  <Layers className="text-accent-primary mt-0.5 shrink-0" size={16} />
+                  <p className="text-xs text-body leading-relaxed">
+                    Insira o <span className="font-semibold text-heading">valor total</span> da
+                    compra. O sistema dividirá o valor automaticamente entre as{" "}
+                    {values.installments} parcelas.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Additional Information (collapsible) */}
             <details className="lg:col-span-4 rounded-card border border-noir-border bg-noir-active/50 group">

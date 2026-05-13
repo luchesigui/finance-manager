@@ -99,9 +99,18 @@ export function validateBody<T>(
 }
 
 /**
- * Parses a numeric ID from a string parameter.
+ * Parses a numeric ID from a string parameter. Only accepts positive integers.
  */
 export function parseNumericId(value: string): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
+}
+
+/**
+ * Parses a signed integer ID (positive or negative, non-zero).
+ * Used for transaction edits where virtual transactions carry negative IDs.
+ */
+export function parseSignedId(value: string): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed !== 0 ? Math.trunc(parsed) : null;
 }

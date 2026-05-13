@@ -105,16 +105,19 @@ export function useTransactionMutations(
       id,
       patch,
       installmentUpdateScope,
+      recurringTemplateId,
     }: {
       id: number;
       patch: TransactionPatch;
       installmentUpdateScope?: "all";
+      recurringTemplateId?: number;
     }) =>
       fetchJson<Transaction>(
         `/api/transactions/${encodeURIComponent(id)}`,
         jsonRequestInit("PATCH", {
           patch,
           ...(installmentUpdateScope !== undefined ? { installmentUpdateScope } : {}),
+          ...(recurringTemplateId !== undefined ? { recurringTemplateId } : {}),
         }),
       ),
     onSuccess: () => {
@@ -174,13 +177,16 @@ export function useTransactionMutations(
   const updateTransactionById = (
     id: number,
     patch: TransactionPatch,
-    options?: { installmentUpdateScope?: "all" },
+    options?: { installmentUpdateScope?: "all"; recurringTemplateId?: number },
   ) =>
     updateMutation.mutate({
       id,
       patch,
       ...(options?.installmentUpdateScope !== undefined
         ? { installmentUpdateScope: options.installmentUpdateScope }
+        : {}),
+      ...(options?.recurringTemplateId !== undefined
+        ? { recurringTemplateId: options.recurringTemplateId }
         : {}),
     });
 
