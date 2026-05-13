@@ -100,7 +100,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         isIncrement: rawPatch.isIncrement ?? true,
         transferToPersonId: isTransfer ? (rawPatch.transferToPersonId ?? null) : null,
         referenceDate: isTransfer ? (rawPatch.referenceDate ?? null) : null,
-        createdAt: template?.createdAt ?? null,
+        createdAt: template?.createdAt,
       });
       return NextResponse.json(created);
     } catch (error) {
