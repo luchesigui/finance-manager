@@ -23,24 +23,27 @@ function recurringTemplateToTransaction(
   template: RecurringTemplate,
   date: string,
   id = -template.id,
+  referenceDate?: string,
 ): Transaction {
+  const isNonExpense = template.type === "income" || template.type === "transfer";
   return {
     id,
     description: template.description,
     amount: template.amount,
-    categoryId: template.type === "income" ? null : template.categoryId,
+    categoryId: isNonExpense ? null : template.categoryId,
     paidBy: template.paidBy,
     recurringTemplateId: template.id,
-    isCreditCard: template.type === "income" ? false : template.isCreditCard,
-    isNextBilling: template.type === "income" ? false : template.isNextBilling,
-    excludeFromSplit: template.type === "income" ? false : template.excludeFromSplit,
+    isCreditCard: isNonExpense ? false : template.isCreditCard,
+    isNextBilling: isNonExpense ? false : template.isNextBilling,
+    excludeFromSplit: isNonExpense ? false : template.excludeFromSplit,
     isForecast: false,
     date,
     createdAt: template.createdAt,
     householdId: template.householdId,
     type: template.type,
     isIncrement: template.isIncrement,
-    transferToPersonId: null,
+    transferToPersonId: template.transferToPersonId ?? null,
+    referenceDate: referenceDate ?? null,
   };
 }
 
@@ -121,13 +124,23 @@ async function materializeRecurringTemplates(year: number, month: number): Promi
 
   const results: Transaction[] = [];
 
+  const monthPrefix = `${year}-${String(month).padStart(2, "0")}`;
+
   for (const tpl of applicable) {
     // Current month: regular templates
     const day = clampDay(year, month, tpl.dayOfMonth);
-    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dateStr = `${monthPrefix}-${String(day).padStart(2, "0")}`;
+    const transferReferenceDate = tpl.type === "transfer" ? `${monthPrefix}-01` : undefined;
 
     if (!tpl.isNextBilling) {
-      results.push(recurringTemplateToTransaction(tpl, dateStr, toVirtualId(tpl.id, year, month)));
+      results.push(
+        recurringTemplateToTransaction(
+          tpl,
+          dateStr,
+          toVirtualId(tpl.id, year, month),
+          transferReferenceDate,
+        ),
+      );
     }
 
     // Next billing: transaction from previous month appears in current accounting month
@@ -137,7 +150,12 @@ async function materializeRecurringTemplates(year: number, month: number): Promi
       const prevDay = clampDay(prevYear, prevMonth, tpl.dayOfMonth);
       const prevDateStr = `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(prevDay).padStart(2, "0")}`;
       results.push(
-        recurringTemplateToTransaction(tpl, prevDateStr, toVirtualId(tpl.id, year, month)),
+        recurringTemplateToTransaction(
+          tpl,
+          prevDateStr,
+          toVirtualId(tpl.id, year, month),
+          transferReferenceDate,
+        ),
       );
     }
   }

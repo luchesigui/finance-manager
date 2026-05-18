@@ -65,19 +65,21 @@ export async function createRecurringTemplate(
   const supabase = await createClient();
   const householdId = await getPrimaryHouseholdId();
 
+  const isNonExpense = input.type === "income" || input.type === "transfer";
   const dbRow = {
     household_id: householdId,
     description: input.description,
     amount: input.amount,
-    category_id: input.type === "income" ? null : input.categoryId,
+    category_id: isNonExpense ? null : input.categoryId,
     paid_by: input.paidBy,
     type: input.type,
     is_increment: input.isIncrement,
-    is_credit_card: input.type === "income" ? false : input.isCreditCard,
-    is_next_billing: input.type === "income" ? false : input.isNextBilling,
-    exclude_from_split: input.type === "income" ? false : input.excludeFromSplit,
+    is_credit_card: isNonExpense ? false : input.isCreditCard,
+    is_next_billing: isNonExpense ? false : input.isNextBilling,
+    exclude_from_split: isNonExpense ? false : input.excludeFromSplit,
     day_of_month: input.dayOfMonth,
     is_active: input.isActive,
+    transfer_to_person_id: input.type === "transfer" ? (input.transferToPersonId ?? null) : null,
   };
 
   const { data, error } = await supabase
@@ -102,6 +104,8 @@ function templatePatchToTransactionPatch(patch: RecurringTemplatePatch): Record<
   if (patch.isCreditCard !== undefined) txPatch.is_credit_card = patch.isCreditCard;
   if (patch.isNextBilling !== undefined) txPatch.is_next_billing = patch.isNextBilling;
   if (patch.excludeFromSplit !== undefined) txPatch.exclude_from_split = patch.excludeFromSplit;
+  if (patch.transferToPersonId !== undefined)
+    txPatch.transfer_to_person_id = patch.transferToPersonId;
   return txPatch;
 }
 

@@ -192,6 +192,8 @@ export type RecurringTemplate = {
   excludeFromSplit: boolean;
   dayOfMonth: number;
   isActive: boolean;
+  /** Recipient person ID. Only applicable when type is 'transfer'. */
+  transferToPersonId: string | null;
   householdId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -211,6 +213,7 @@ export type RecurringTemplatePatch = Partial<
     | "excludeFromSplit"
     | "dayOfMonth"
     | "isActive"
+    | "transferToPersonId"
   >
 >;
 
@@ -228,6 +231,7 @@ export type RecurringTemplateRow = {
   exclude_from_split?: boolean;
   day_of_month: number | string;
   is_active?: boolean;
+  transfer_to_person_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };

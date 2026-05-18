@@ -122,23 +122,29 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       const day = Number.parseInt(effectiveDate.split("-")[2] ?? "1", 10);
       const dayOfMonth = Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1;
       const type = rawPatch.type ?? existing.type ?? "expense";
-      const isIncome = type === "income";
+      const isNonExpense = type === "income" || type === "transfer";
+      const isTransfer = type === "transfer";
       const template = await createRecurringTemplate({
         description: rawPatch.description ?? existing.description,
         amount: rawPatch.amount ?? existing.amount,
-        categoryId: isIncome ? null : (rawPatch.categoryId ?? existing.categoryId ?? null),
+        categoryId: isNonExpense ? null : (rawPatch.categoryId ?? existing.categoryId ?? null),
         paidBy: rawPatch.paidBy ?? existing.paidBy,
         type,
         isIncrement: rawPatch.isIncrement ?? existing.isIncrement ?? true,
-        isCreditCard: isIncome ? false : (rawPatch.isCreditCard ?? existing.isCreditCard ?? false),
-        isNextBilling: isIncome
+        isCreditCard: isNonExpense
+          ? false
+          : (rawPatch.isCreditCard ?? existing.isCreditCard ?? false),
+        isNextBilling: isNonExpense
           ? false
           : (rawPatch.isNextBilling ?? existing.isNextBilling ?? false),
-        excludeFromSplit: isIncome
+        excludeFromSplit: isNonExpense
           ? false
           : (rawPatch.excludeFromSplit ?? existing.excludeFromSplit ?? false),
         dayOfMonth,
         isActive: true,
+        transferToPersonId: isTransfer
+          ? (rawPatch.transferToPersonId ?? existing.transferToPersonId ?? null)
+          : null,
       });
       const updated = await updateTransaction(transactionId, {
         ...basePatch,

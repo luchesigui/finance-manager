@@ -87,6 +87,7 @@ export function mapRecurringTemplateRow(row: RecurringTemplateRow): RecurringTem
     excludeFromSplit: row.exclude_from_split ?? false,
     dayOfMonth: Number(row.day_of_month),
     isActive: row.is_active ?? true,
+    transferToPersonId: row.transfer_to_person_id ?? null,
     householdId: row.household_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -168,6 +169,8 @@ export function toRecurringTemplateDbPatch(patch: RecurringTemplatePatch): Recor
   if (patch.excludeFromSplit !== undefined) dbPatch.exclude_from_split = patch.excludeFromSplit;
   if (patch.dayOfMonth !== undefined) dbPatch.day_of_month = patch.dayOfMonth;
   if (patch.isActive !== undefined) dbPatch.is_active = patch.isActive;
+  if (patch.transferToPersonId !== undefined)
+    dbPatch.transfer_to_person_id = patch.transferToPersonId;
   if (Object.keys(dbPatch).length > 0) {
     dbPatch.updated_at = new Date().toISOString();
   }

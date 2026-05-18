@@ -238,6 +238,7 @@ export const createRecurringTemplateSchema = z.object({
   excludeFromSplit: z.boolean().default(false),
   dayOfMonth: z.number().int().min(1).max(31),
   isActive: z.boolean().default(true),
+  transferToPersonId: z.string().nullable().optional(),
 });
 
 export const recurringTemplatePatchSchema = createRecurringTemplateSchema.partial();

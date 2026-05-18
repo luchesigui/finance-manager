@@ -538,7 +538,7 @@ export function TransactionFormFields({
               </div>
 
               {/* Recurring Checkbox */}
-              {!isTransfer && (
+              {
                 <div className="flex items-center gap-2">
                   <form.Field name="isRecurring">
                     {(field: FieldState<boolean>) => (
@@ -570,7 +570,7 @@ export function TransactionFormFields({
                     )}
                   </form.Field>
                 </div>
-              )}
+              }
 
               {/* Installment Checkbox (expenses only) */}
               {!isIncome && !isTransfer && showInstallmentFields && !values.isRecurring && (
