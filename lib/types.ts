@@ -193,7 +193,7 @@ export type RecurringTemplate = {
   dayOfMonth: number;
   isActive: boolean;
   /** Recipient person ID. Only applicable when type is 'transfer'. */
-  transferToPersonId: string | null;
+  transferToPersonId?: string | null;
   householdId?: string;
   createdAt?: string;
   updatedAt?: string;
