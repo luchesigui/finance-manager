@@ -1,8 +1,20 @@
 "use client";
 
 import { useForm } from "@tanstack/react-form";
-import { useQuery } from "@tanstack/react-query";
-import { Monitor, Moon, PieChart, Plus, Save, Shield, Sun, Users } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Brain,
+  Eye,
+  EyeOff,
+  Monitor,
+  Moon,
+  PieChart,
+  Plus,
+  Save,
+  Shield,
+  Sun,
+  Users,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { CurrencyInput } from "@/components/ui/CurrencyInput";
@@ -75,6 +87,15 @@ export function SettingsView() {
     isUpdating: isUpdatingEmergencyFund,
   } = useEmergencyFundData();
 
+  const queryClient = useQueryClient();
+
+  // AI settings state
+  const [openrouterApiKey, setOpenrouterApiKey] = useState("");
+  const [aiAnalysisMonths, setAiAnalysisMonths] = useState(3);
+  const [aiCustomContext, setAiCustomContext] = useState("");
+  const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+
   // Form state
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);
   // Loading states
@@ -114,6 +135,39 @@ export function SettingsView() {
   });
 
   const currentUserId = userData?.userId;
+
+  // Initialize AI Settings from fetched userData
+  useEffect(() => {
+    if (userData) {
+      setOpenrouterApiKey(userData.openrouterApiKeyConfigured ? "••••••••" : "");
+      setAiAnalysisMonths(userData.aiAnalysisMonths ?? 3);
+      setAiCustomContext(userData.aiCustomContext ?? "");
+    }
+  }, [userData]);
+
+  const handleSaveAiSettings = async () => {
+    setIsSavingAiSettings(true);
+    try {
+      const response = await fetchJson<{ success: boolean }>("/api/user", {
+        method: "PATCH",
+        body: JSON.stringify({
+          openrouterApiKey: openrouterApiKey === "••••••••" ? "••••••••" : openrouterApiKey,
+          aiAnalysisMonths,
+          aiCustomContext: aiCustomContext.trim() || null,
+        }),
+      });
+
+      if (response.success) {
+        queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+        alert("Configurações de IA salvas com sucesso!");
+      }
+    } catch (error) {
+      console.error("Failed to save AI settings:", error);
+      alert("Falha ao salvar configurações de IA. Por favor, tente novamente.");
+    } finally {
+      setIsSavingAiSettings(false);
+    }
+  };
 
   // TanStack Form for creating new person
   const createPersonForm = useForm({
@@ -609,6 +663,114 @@ export function SettingsView() {
             >
               {totalCategoryPercent}%
             </span>
+          </div>
+        </div>
+      </Card>
+
+      {/* AI Settings Section */}
+      <Card className="p-card-padding">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+              <Brain size={20} className="text-accent-primary" />
+              Configurações de IA
+            </h2>
+            <p className="text-xs text-muted mt-1">
+              Configure as credenciais e parâmetros para a Análise Financeira por IA
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={handleSaveAiSettings}
+            disabled={isSavingAiSettings}
+            className="flex items-center gap-2 text-sm"
+          >
+            <Save size={16} />
+            {isSavingAiSettings ? "Salvando..." : "Salvar IA"}
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          {/* API Key */}
+          <div className="space-y-2">
+            <label htmlFor="openrouter-api-key" className="text-sm font-medium text-heading block">
+              Chave de API do OpenRouter
+            </label>
+            <div className="relative">
+              <Input
+                id="openrouter-api-key"
+                type={showApiKey ? "text" : "password"}
+                value={openrouterApiKey}
+                onChange={(e) => setOpenrouterApiKey(e.target.value)}
+                placeholder="Insira sua chave sk-or-..."
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey(!showApiKey)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted hover:text-heading"
+                aria-label={showApiKey ? "Esconder chave de API" : "Mostrar chave de API"}
+              >
+                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <p className="text-xs text-muted">
+              Sua chave é armazenada de forma segura e enviada diretamente para o OpenRouter apenas
+              no servidor.
+            </p>
+          </div>
+
+          {/* Analysis Period (Months) */}
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-heading block">
+              Período de Análise (últimos meses)
+            </span>
+            <div className="grid grid-cols-3 gap-3">
+              {[3, 6, 12].map((months) => {
+                const isSelected = aiAnalysisMonths === months;
+                return (
+                  <label
+                    key={months}
+                    className={`
+                      relative flex flex-col items-center gap-2 p-3 rounded-card
+                      border-2 cursor-pointer transition-all duration-200 text-center
+                      ${
+                        isSelected
+                          ? "border-accent-primary bg-accent-primary/10 text-accent-primary"
+                          : "border-noir-border hover:border-noir-border-light hover:bg-noir-active/30 text-heading"
+                      }
+                    `}
+                  >
+                    <input
+                      type="radio"
+                      name="aiAnalysisMonths"
+                      value={months}
+                      checked={isSelected}
+                      onChange={() => setAiAnalysisMonths(months)}
+                      className="sr-only"
+                    />
+                    <span className="font-medium text-sm">{months} Meses</span>
+                    {months === 6 && (
+                      <span className="text-[10px] text-muted block mt-0.5">Recomendado</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Custom Context */}
+          <div className="space-y-2">
+            <label htmlFor="ai-custom-context" className="text-sm font-medium text-heading block">
+              Contexto Pessoal / Objetivos
+            </label>
+            <textarea
+              id="ai-custom-context"
+              value={aiCustomContext}
+              onChange={(e) => setAiCustomContext(e.target.value)}
+              placeholder="Descreva seus objetivos financeiros, perfil de gastos ou regras familiares para guiar as análises da IA (ex: 'Quero reduzir delivery, somos um casal com 1 filho, objetivo de fazer reserva de emergência de R$ 30k...')"
+              className="w-full min-h-[100px] text-sm p-3 rounded-interactive border border-noir-border bg-noir-active text-heading placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
+            />
           </div>
         </div>
       </Card>

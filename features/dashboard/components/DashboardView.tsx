@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { AiAnalysisPanel } from "@/features/dashboard/AiAnalysisPanel";
 import { AlertsPanel } from "@/features/dashboard/AlertsPanel";
 import { CategoryBudgetChart } from "@/features/dashboard/CategoryBudgetChart";
 import { ForecastSpotlight } from "@/features/dashboard/ForecastSpotlight";
@@ -327,6 +328,11 @@ export function DashboardView() {
       {/* Alerts Panel */}
       <div className="animate-slide-up stagger-4">
         <AlertsPanel alerts={alerts} />
+      </div>
+
+      {/* AI Financial Analysis Panel */}
+      <div className="animate-slide-up stagger-4">
+        <AiAnalysisPanel referenceMonth={yearMonth} />
       </div>
 
       {/* Forecast Spotlight - right after alerts */}

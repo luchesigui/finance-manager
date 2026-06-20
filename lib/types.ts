@@ -244,7 +244,12 @@ export type ApiSuccessResponse = { success: boolean };
 export type ApiErrorResponse = { error: string };
 
 export type DefaultPayerResponse = { defaultPayerId: string | null };
-export type CurrentUserResponse = { userId: string };
+export type CurrentUserResponse = {
+  userId: string;
+  openrouterApiKeyConfigured?: boolean;
+  aiAnalysisMonths?: number;
+  aiCustomContext?: string | null;
+};
 export type EmergencyFundResponse = { emergencyFund: number };
 
 // ============================================================================
@@ -278,4 +283,47 @@ export type CategoryStatistics = {
   mean: number;
   standardDeviation: number;
   transactionCount: number;
+};
+
+// ============================================================================
+// AI Analysis & Insights Types
+// ============================================================================
+
+export type AiSettings = {
+  openrouterApiKeyConfigured: boolean;
+  aiAnalysisMonths: number;
+  aiCustomContext: string | null;
+};
+
+export type AiInsight = {
+  id: string;
+  type: "positive" | "negative" | "warning" | "info";
+  title: string;
+  description: string;
+};
+
+export type AiAnalysis = {
+  id: string;
+  householdId: string;
+  referenceMonth: string;
+  createdBy: string | null;
+  createdAt: string;
+  insights: AiInsight[];
+};
+
+export type AiAnalysisRow = {
+  id: string;
+  household_id: string;
+  reference_month: string;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type AiInsightRow = {
+  id: string;
+  analysis_id: string;
+  type: "positive" | "negative" | "warning" | "info";
+  title: string;
+  description: string;
+  created_at: string;
 };
