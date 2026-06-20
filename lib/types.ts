@@ -300,6 +300,9 @@ export type AiInsight = {
   type: "positive" | "negative" | "warning" | "info";
   title: string;
   description: string;
+  comment?: string | null;
+  isDeleted?: boolean;
+  isArchived?: boolean;
 };
 
 export type AiAnalysis = {

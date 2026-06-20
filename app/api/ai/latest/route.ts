@@ -29,7 +29,10 @@ export async function GET(request: Request) {
           id,
           type,
           title,
-          description
+          description,
+          comment,
+          is_deleted,
+          is_archived
         )
       `)
       .eq("household_id", auth.householdId)
@@ -55,11 +58,17 @@ export async function GET(request: Request) {
           type: string;
           title: string;
           description: string;
+          comment?: string | null;
+          is_deleted?: boolean;
+          is_archived?: boolean;
         }) => ({
           id: insight.id,
           type: insight.type,
           title: insight.title,
           description: insight.description,
+          comment: insight.comment ?? null,
+          isDeleted: insight.is_deleted ?? false,
+          isArchived: insight.is_archived ?? false,
         }),
       ),
     });

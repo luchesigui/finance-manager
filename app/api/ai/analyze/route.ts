@@ -122,6 +122,51 @@ export async function POST(request: Request) {
       is_recurring: tx.is_recurring ?? false,
     }));
 
+    const lancamentosMesAtual = mappedTransactions.filter((tx) => tx.date.startsWith(month));
+    const lancamentosMesesAnteriores = mappedTransactions.filter(
+      (tx) => !tx.date.startsWith(month),
+    );
+
+    // Fetch previous analyses and insights in the analysis window (excluding current month)
+    const previousMonths: string[] = [];
+    for (let i = 1; i < aiAnalysisMonths; i++) {
+      previousMonths.push(refMonth.subtract(i, "month").format("YYYY-MM"));
+    }
+
+    const { data: previousAnalyses, error: previousAnalysesError } = await supabase
+      .from("ai_analyses")
+      .select(`
+        reference_month,
+        ai_insights (
+          id,
+          type,
+          title,
+          description,
+          comment,
+          is_deleted,
+          is_archived
+        )
+      `)
+      .eq("household_id", auth.householdId)
+      .in("reference_month", previousMonths);
+
+    if (previousAnalysesError) {
+      console.error("Failed to fetch previous AI analyses:", previousAnalysesError);
+    }
+
+    const insightsMesesAnteriores = (previousAnalyses || []).map((analysis) => ({
+      mes_referencia: analysis.reference_month,
+      insights: (analysis.ai_insights || []).map((insight) => ({
+        id: insight.id,
+        type: insight.type,
+        title: insight.title,
+        description: insight.description,
+        comentario_usuario: insight.comment || null,
+        excluido_pelo_usuario: insight.is_deleted ?? false,
+        arquivado_pelo_usuario: insight.is_archived ?? false,
+      })),
+    }));
+
     // 8. Assemble prompt payload
     const payload = {
       contexto_usuario: profile.ai_custom_context || "Nenhum contexto pessoal configurado.",
@@ -132,30 +177,37 @@ export async function POST(request: Request) {
         })),
         reserva_de_emergencia_atual: Number(household?.emergency_fund || 0),
       },
-      transacoes: mappedTransactions,
+      lancamentos_mes_atual: lancamentosMesAtual,
+      lancamentos_meses_anteriores: lancamentosMesesAnteriores,
+      insights_meses_anteriores: insightsMesesAnteriores,
     };
 
     const systemPrompt = `
 Você é um consultor financeiro analítico de alto nível.
-Analise a lista crua de transações dos últimos meses, o salário dos indivíduos e a reserva de emergência atual do household.
+Analise os lançamentos do mês atual (lancamentos_mes_atual) em comparação com o histórico de meses anteriores (lancamentos_meses_anteriores), além do salário dos indivíduos e a reserva de emergência atual.
 
-Você deve responder estritamente com um JSON que contenha um array de insights estruturados. Cada insight deve ter:
+Você também tem acesso aos insights gerados nos meses anteriores (insights_meses_anteriores), incluindo os comentários do usuário (comentario_usuario), se o usuário excluiu/desconsiderou o insight (excluido_pelo_usuario) e se o insight foi arquivado pelo usuário (arquivado_pelo_usuario). Use essa informação para:
+1. Respeitar o feedback do usuário: se o usuário desconsiderou um insight no passado ou comentou algo a respeito, adapte suas recomendações futuras para não repetir o mesmo conselho indesejado ou ajustar o foco.
+2. Identificar insights arquivados: os insights arquivados (arquivado_pelo_usuario: true) indicam que o usuário já compreendeu ou fixou aquele comportamento/alerta. A IA NÃO deve gerar novos insights repetitivos sobre o mesmo tema ou comportamento já arquivado.
+3. Evitar repetições desnecessárias de alertas idênticos, focando em novas tendências ou variações importantes.
+
+Você deve responder estritamente com um JSON que contenha um array de insights estruturados sobre o mês atual. Cada insight deve ter:
 - "type": "positive" (para metas batidas, recordes ou economias), "negative" (para alertas de gastos excessivos, anomalias ou despesas muito altas), "warning" (para itens que exigem atenção ou monitoramento) ou "info" (para despesas pontuais explicativas ou notas informativas).
 - "title": Um título curto em negrito resumindo o insight (máximo 60 caracteres).
-- "description": Detalhes do insight com valores comparativos, percentuais de mudança e recomendações acionáveis.
+- "description": Detalhes do insight com valores comparativos do mês atual frente aos meses anteriores, percentuais de mudança e recomendações acionáveis.
 
 Exemplo de formato esperado:
 {
   "insights": [
     {
       "type": "positive",
-      "title": "Terceiro mês positivo consecutivo",
-      "description": "Superavit médio de +R$ 5,2k no período analisado. Reserva de emergência subiu 12%."
+      "title": "Redução em Delivery no mês atual",
+      "description": "Os gastos com delivery caíram para R$ 150 no mês atual, comparado à média de R$ 400 dos meses anteriores (-62%). Excelente evolução!"
     },
     {
       "type": "negative",
-      "title": "Gastos com Alimentação dispararam +45%",
-      "description": "Aumento significativo saindo de R$ 1,2k para R$ 1,74k de média mensal. Principais responsáveis: Delivery fora do horário comercial."
+      "title": "Aumento de 40% em energia e contas de consumo",
+      "description": "As contas de consumo totalizaram R$ 680 no mês atual, R$ 200 acima da média histórica. Vale verificar possíveis vazamentos ou uso ineficiente."
     }
   ]
 }
@@ -267,7 +319,10 @@ Responda APENAS com o JSON, sem explicações adicionais, sem marcas de markdown
           id,
           type,
           title,
-          description
+          description,
+          comment,
+          is_deleted,
+          is_archived
         )
       `)
       .eq("id", analysisId)
@@ -287,11 +342,17 @@ Responda APENAS com o JSON, sem explicações adicionais, sem marcas de markdown
           type: string;
           title: string;
           description: string;
+          comment?: string | null;
+          is_deleted?: boolean;
+          is_archived?: boolean;
         }) => ({
           id: insight.id,
           type: insight.type,
           title: insight.title,
           description: insight.description,
+          comment: insight.comment ?? null,
+          isDeleted: insight.is_deleted ?? false,
+          isArchived: insight.is_archived ?? false,
         }),
       ),
     });

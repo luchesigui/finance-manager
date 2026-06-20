@@ -3,19 +3,23 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchJson } from "@/lib/apiClient";
-import type { AiAnalysis, CurrentUserResponse } from "@/lib/types";
+import type { AiAnalysis, AiInsight, CurrentUserResponse } from "@/lib/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   AlertTriangle,
+  Archive,
   ArrowUpRight,
   Brain,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Info,
+  MessageSquare,
   Sparkles,
+  Trash2,
   TrendingDown,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -101,6 +105,119 @@ function SkeletonLoader() {
   );
 }
 
+function InsightCard({
+  insight,
+  config,
+  onDelete,
+  onArchive,
+  onSaveComment,
+}: {
+  insight: AiInsight;
+  config: (typeof INSIGHT_CONFIG)[keyof typeof INSIGHT_CONFIG];
+  onDelete: (id: string) => Promise<void>;
+  onArchive: (id: string) => Promise<void>;
+  onSaveComment: (id: string, comment: string | null) => Promise<void>;
+}) {
+  const Icon = config.icon;
+  const [isCommenting, setIsCommenting] = useState(false);
+  const [commentText, setCommentText] = useState(insight.comment || "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveComment = async () => {
+    setIsSaving(true);
+    try {
+      await onSaveComment(insight.id, commentText.trim() || null);
+      setIsCommenting(false);
+    } catch {
+      // Error handled by caller
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className={`relative flex gap-4 p-4 rounded-card border transition-all duration-200 ${config.borderColor} ${config.bgColor}`}
+    >
+      <div className={`p-2 rounded-interactive self-start ${config.iconBg} ${config.iconColor}`}>
+        <Icon size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-4">
+          <h4 className="text-sm font-bold text-heading">{insight.title}</h4>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsCommenting(!isCommenting)}
+              className="p-1 rounded-interactive text-muted hover:text-heading hover:bg-noir-active/30 transition-colors"
+              title={insight.comment ? "Editar comentário" : "Adicionar comentário"}
+            >
+              <MessageSquare size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onArchive(insight.id)}
+              className="p-1 rounded-interactive text-muted hover:text-heading hover:bg-noir-active/30 transition-colors"
+              title="Arquivar insight"
+            >
+              <Archive size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(insight.id)}
+              className="p-1 rounded-interactive text-muted hover:text-accent-negative hover:bg-accent-negative/10 transition-colors"
+              title="Descartar insight"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-muted mt-1 leading-relaxed pr-8">{insight.description}</p>
+
+        {insight.comment && !isCommenting && (
+          <div className="mt-2 text-xs bg-noir-active/50 border border-noir-border p-2 rounded-card text-heading flex flex-col gap-0.5">
+            <span className="text-[10px] text-muted uppercase font-semibold tracking-wider">
+              Seu comentário:
+            </span>
+            <span>{insight.comment}</span>
+          </div>
+        )}
+
+        {isCommenting && (
+          <div className="mt-3 flex gap-2">
+            <input
+              type="text"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Adicione suas observações sobre este insight..."
+              className="flex-1 text-xs px-2.5 py-1.5 rounded-interactive border border-noir-border bg-noir-active text-heading placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-primary"
+            />
+            <Button
+              size="sm"
+              onClick={handleSaveComment}
+              disabled={isSaving}
+              className="text-xs px-2.5 py-1.5 h-auto flex items-center gap-1"
+            >
+              {isSaving ? "..." : "Salvar"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setIsCommenting(false);
+                setCommentText(insight.comment || "");
+              }}
+              className="text-xs px-2 py-1.5 h-auto"
+            >
+              <X size={12} />
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AiAnalysisPanel({ referenceMonth }: AiAnalysisPanelProps) {
   const queryClient = useQueryClient();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -145,6 +262,80 @@ export function AiAnalysisPanel({ referenceMonth }: AiAnalysisPanelProps) {
   };
 
   const isLoading = isUserLoading || isAnalysisLoading;
+
+  const visibleInsights = (analysis?.insights || []).filter(
+    (insight) => !insight.isDeleted && !insight.isArchived,
+  );
+
+  const handleArchiveInsight = async (insightId: string) => {
+    try {
+      await fetchJson(`/api/ai/insights/${insightId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isArchived: true }),
+      });
+
+      // Update local query cache
+      queryClient.setQueryData<AiAnalysis | null>(["aiAnalysis", referenceMonth], (prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          insights: prev.insights.map((ins) =>
+            ins.id === insightId ? { ...ins, isArchived: true } : ins,
+          ),
+        };
+      });
+      toast.success("Insight arquivado.");
+    } catch (error) {
+      console.error("Failed to archive insight:", error);
+      toast.error("Falha ao arquivar insight.");
+    }
+  };
+
+  const handleDeleteInsight = async (insightId: string) => {
+    try {
+      await fetchJson(`/api/ai/insights/${insightId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isDeleted: true }),
+      });
+
+      // Update local query cache
+      queryClient.setQueryData<AiAnalysis | null>(["aiAnalysis", referenceMonth], (prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          insights: prev.insights.map((ins) =>
+            ins.id === insightId ? { ...ins, isDeleted: true } : ins,
+          ),
+        };
+      });
+      toast.success("Insight descartado.");
+    } catch (error) {
+      console.error("Failed to delete insight:", error);
+      toast.error("Falha ao descartar insight.");
+    }
+  };
+
+  const handleSaveComment = async (insightId: string, comment: string | null) => {
+    try {
+      await fetchJson(`/api/ai/insights/${insightId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ comment }),
+      });
+
+      // Update local query cache
+      queryClient.setQueryData<AiAnalysis | null>(["aiAnalysis", referenceMonth], (prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          insights: prev.insights.map((ins) => (ins.id === insightId ? { ...ins, comment } : ins)),
+        };
+      });
+      toast.success(comment ? "Comentário salvo." : "Comentário removido.");
+    } catch (error) {
+      console.error("Failed to save comment:", error);
+      toast.error("Falha ao salvar comentário.");
+    }
+  };
 
   // Format reference month for nice header display (ex: 2026-06 -> Junho 2026)
   const formatMonthTitle = (monthStr: string) => {
@@ -233,33 +424,24 @@ export function AiAnalysisPanel({ referenceMonth }: AiAnalysisPanelProps) {
         <div className="p-card-padding space-y-4 animate-in slide-in-from-top-2 duration-200">
           {isAnalyzing ? (
             <SkeletonLoader />
-          ) : analysis && analysis.insights.length > 0 ? (
+          ) : analysis && visibleInsights.length > 0 ? (
             <div className="space-y-3">
               <div className="text-xs text-muted flex items-center justify-between pb-1">
                 <span>Ref: {formatMonthTitle(referenceMonth)}</span>
                 <span>Gerada em: {new Date(analysis.createdAt).toLocaleString("pt-BR")}</span>
               </div>
               <div className="space-y-3">
-                {analysis.insights.map((insight) => {
+                {visibleInsights.map((insight) => {
                   const config = INSIGHT_CONFIG[insight.type] || INSIGHT_CONFIG.info;
-                  const Icon = config.icon;
                   return (
-                    <div
+                    <InsightCard
                       key={insight.id}
-                      className={`flex gap-4 p-4 rounded-card border transition-all duration-200 ${config.borderColor} ${config.bgColor}`}
-                    >
-                      <div
-                        className={`p-2 rounded-interactive self-start ${config.iconBg} ${config.iconColor}`}
-                      >
-                        <Icon size={18} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-heading">{insight.title}</h4>
-                        <p className="text-xs text-muted mt-1 leading-relaxed">
-                          {insight.description}
-                        </p>
-                      </div>
-                    </div>
+                      insight={insight}
+                      config={config}
+                      onDelete={handleDeleteInsight}
+                      onArchive={handleArchiveInsight}
+                      onSaveComment={handleSaveComment}
+                    />
                   );
                 })}
               </div>

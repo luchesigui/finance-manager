@@ -91,6 +91,7 @@ export function SettingsView() {
 
   // AI settings state
   const [openrouterApiKey, setOpenrouterApiKey] = useState("");
+  const [isApiKeyDirty, setIsApiKeyDirty] = useState(false);
   const [aiAnalysisMonths, setAiAnalysisMonths] = useState(3);
   const [aiCustomContext, setAiCustomContext] = useState("");
   const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
@@ -139,7 +140,8 @@ export function SettingsView() {
   // Initialize AI Settings from fetched userData
   useEffect(() => {
     if (userData) {
-      setOpenrouterApiKey(userData.openrouterApiKeyConfigured ? "••••••••" : "");
+      setOpenrouterApiKey("");
+      setIsApiKeyDirty(false);
       setAiAnalysisMonths(userData.aiAnalysisMonths ?? 3);
       setAiCustomContext(userData.aiCustomContext ?? "");
     }
@@ -151,7 +153,11 @@ export function SettingsView() {
       const response = await fetchJson<{ success: boolean }>("/api/user", {
         method: "PATCH",
         body: JSON.stringify({
-          openrouterApiKey: openrouterApiKey === "••••••••" ? "••••••••" : openrouterApiKey,
+          openrouterApiKey: isApiKeyDirty
+            ? openrouterApiKey === ""
+              ? null
+              : openrouterApiKey
+            : undefined,
           aiAnalysisMonths,
           aiCustomContext: aiCustomContext.trim() || null,
         }),
@@ -701,8 +707,13 @@ export function SettingsView() {
                 id="openrouter-api-key"
                 type={showApiKey ? "text" : "password"}
                 value={openrouterApiKey}
-                onChange={(e) => setOpenrouterApiKey(e.target.value)}
-                placeholder="Insira sua chave sk-or-..."
+                onChange={(e) => {
+                  setOpenrouterApiKey(e.target.value);
+                  setIsApiKeyDirty(true);
+                }}
+                placeholder={
+                  userData?.openrouterApiKeyConfigured ? "••••••••" : "Insira sua chave sk-or-..."
+                }
                 className="pr-10"
               />
               <button
@@ -732,7 +743,7 @@ export function SettingsView() {
                   <label
                     key={months}
                     className={`
-                      relative flex flex-col items-center gap-2 p-3 rounded-card
+                      relative flex flex-col items-center justify-center min-h-[72px] p-3 rounded-card
                       border-2 cursor-pointer transition-all duration-200 text-center
                       ${
                         isSelected
@@ -749,10 +760,14 @@ export function SettingsView() {
                       onChange={() => setAiAnalysisMonths(months)}
                       className="sr-only"
                     />
-                    <span className="font-medium text-sm">{months} Meses</span>
-                    {months === 6 && (
-                      <span className="text-[10px] text-muted block mt-0.5">Recomendado</span>
-                    )}
+                    <div className="flex flex-col items-center justify-center gap-0.5">
+                      <span className="font-bold text-lg">{months} Meses</span>
+                      {months === 6 && (
+                        <span className="text-[10px] text-muted block leading-none">
+                          Recomendado
+                        </span>
+                      )}
+                    </div>
                   </label>
                 );
               })}
