@@ -4,8 +4,11 @@ import { useForm } from "@tanstack/react-form";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Brain,
+  Check,
+  Copy,
   Eye,
   EyeOff,
+  Key,
   Monitor,
   Moon,
   PieChart,
@@ -97,6 +100,12 @@ export function SettingsView() {
   const [isSavingAiSettings, setIsSavingAiSettings] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
 
+  // API Token settings state
+  const [apiToken, setApiToken] = useState("");
+  const [showApiToken, setShowApiToken] = useState(false);
+  const [isRegeneratingToken, setIsRegeneratingToken] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
   // Form state
   const [showNewPersonForm, setShowNewPersonForm] = useState(false);
   // Loading states
@@ -144,6 +153,7 @@ export function SettingsView() {
       setIsApiKeyDirty(false);
       setAiAnalysisMonths(userData.aiAnalysisMonths ?? 3);
       setAiCustomContext(userData.aiCustomContext ?? "");
+      setApiToken(userData.apiToken ?? "");
     }
   }, [userData]);
 
@@ -173,6 +183,42 @@ export function SettingsView() {
     } finally {
       setIsSavingAiSettings(false);
     }
+  };
+
+  const handleRegenerateApiToken = async () => {
+    if (
+      !confirm(
+        "Tem certeza que deseja regenerar o seu Token de API? O token anterior deixará de funcionar imediatamente.",
+      )
+    ) {
+      return;
+    }
+    setIsRegeneratingToken(true);
+    try {
+      const response = await fetchJson<{ success: boolean; apiToken?: string }>("/api/user", {
+        method: "PATCH",
+        body: JSON.stringify({
+          regenerateApiToken: true,
+        }),
+      });
+
+      if (response.success && response.apiToken) {
+        setApiToken(response.apiToken);
+        alert("Token de API regenerado com sucesso!");
+      }
+    } catch (error) {
+      console.error("Failed to regenerate API token:", error);
+      alert("Falha ao regenerar token de API. Por favor, tente novamente.");
+    } finally {
+      setIsRegeneratingToken(false);
+    }
+  };
+
+  const handleCopyApiToken = () => {
+    if (!apiToken) return;
+    navigator.clipboard.writeText(apiToken);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   // TanStack Form for creating new person
@@ -786,6 +832,77 @@ export function SettingsView() {
               placeholder="Descreva seus objetivos financeiros, perfil de gastos ou regras familiares para guiar as análises da IA (ex: 'Quero reduzir delivery, somos um casal com 1 filho, objetivo de fazer reserva de emergência de R$ 30k...')"
               className="w-full min-h-[100px] text-sm p-3 rounded-interactive border border-noir-border bg-noir-active text-heading placeholder-muted focus:outline-none focus:ring-1 focus:ring-accent-primary focus:border-accent-primary"
             />
+          </div>
+        </div>
+      </Card>
+
+      {/* API Token Section */}
+      <Card className="p-card-padding">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-heading flex items-center gap-2">
+              <Key size={20} className="text-accent-primary" />
+              Token de API para Integrações
+            </h2>
+            <p className="text-xs text-muted mt-1">
+              Use este token para criar transações programaticamente através da API
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={handleRegenerateApiToken}
+            disabled={isRegeneratingToken}
+            className="flex items-center gap-2 text-sm"
+          >
+            {isRegeneratingToken ? "Gerando..." : "Regenerar Token"}
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="api-token-value" className="text-sm font-medium text-heading block">
+              Seu Token de API (JWT)
+            </label>
+            <div className="relative flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="api-token-value"
+                  type={showApiToken ? "text" : "password"}
+                  value={apiToken}
+                  readOnly
+                  placeholder="Nenhum token disponível"
+                  className="pr-10 font-mono text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiToken(!showApiToken)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted hover:text-heading"
+                  aria-label={showApiToken ? "Esconder token de API" : "Mostrar token de API"}
+                >
+                  {showApiToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <Button
+                type="button"
+                onClick={handleCopyApiToken}
+                disabled={!apiToken}
+                className="flex items-center gap-2 min-w-[100px]"
+              >
+                {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                {isCopied ? "Copiado!" : "Copiar"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted mt-1">
+              Faça requisições POST para{" "}
+              <code className="bg-noir-active px-1.5 py-0.5 rounded font-mono text-accent-primary">
+                /api/transactions
+              </code>{" "}
+              com o header{" "}
+              <code className="bg-noir-active px-1.5 py-0.5 rounded font-mono text-accent-primary">
+                Authorization: Bearer &lt;seu_token&gt;
+              </code>
+              .
+            </p>
           </div>
         </div>
       </Card>

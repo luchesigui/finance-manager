@@ -14,6 +14,7 @@ const patchBodySchema = z.object({
     .refine((val) => [3, 6, 12].includes(val))
     .optional(),
   aiCustomContext: z.string().nullable().optional(),
+  regenerateApiToken: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -23,7 +24,7 @@ export async function GET() {
   const supabase = await createClient();
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("openrouter_api_key, ai_analysis_months, ai_custom_context")
+    .select("openrouter_api_key, ai_analysis_months, ai_custom_context, api_token_salt")
     .eq("id", auth.userId)
     .single();
 
@@ -32,11 +33,20 @@ export async function GET() {
     return NextResponse.json({ userId: auth.userId });
   }
 
+  // Generate JWT token for this user
+  const jwtSecret = process.env.API_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let apiToken = "";
+  if (jwtSecret && profile?.api_token_salt) {
+    const { signJwt } = await import("@/lib/server/jwt");
+    apiToken = signJwt({ userId: auth.userId, salt: profile.api_token_salt }, jwtSecret);
+  }
+
   return NextResponse.json({
     userId: auth.userId,
     openrouterApiKeyConfigured: !!profile?.openrouter_api_key,
     aiAnalysisMonths: profile?.ai_analysis_months ?? 3,
     aiCustomContext: profile?.ai_custom_context ?? null,
+    apiToken,
   });
 }
 
@@ -54,7 +64,7 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const { openrouterApiKey, aiAnalysisMonths, aiCustomContext } = result.data;
+  const { openrouterApiKey, aiAnalysisMonths, aiCustomContext, regenerateApiToken } = result.data;
   // biome-ignore lint/suspicious/noExplicitAny: supabase update payload is dynamic
   const updateData: Record<string, any> = {};
 
@@ -74,6 +84,11 @@ export async function PATCH(request: Request) {
     }
   }
 
+  if (regenerateApiToken) {
+    const crypto = await import("node:crypto");
+    updateData.api_token_salt = crypto.randomUUID();
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("profiles").update(updateData).eq("id", auth.userId);
 
@@ -82,5 +97,14 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Failed to update settings" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  let apiToken: string | undefined;
+  if (regenerateApiToken && updateData.api_token_salt) {
+    const jwtSecret = process.env.API_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (jwtSecret) {
+      const { signJwt } = await import("@/lib/server/jwt");
+      apiToken = signJwt({ userId: auth.userId, salt: updateData.api_token_salt }, jwtSecret);
+    }
+  }
+
+  return NextResponse.json({ success: true, ...(apiToken ? { apiToken } : {}) });
 }

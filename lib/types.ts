@@ -249,6 +249,7 @@ export type CurrentUserResponse = {
   openrouterApiKeyConfigured?: boolean;
   aiAnalysisMonths?: number;
   aiCustomContext?: string | null;
+  apiToken?: string;
 };
 export type EmergencyFundResponse = { emergencyFund: number };
 

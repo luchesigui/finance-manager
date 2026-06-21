@@ -247,9 +247,12 @@ export async function createTransaction(
     recurringTemplateId?: number | null;
     createdAt?: string;
   },
+  // biome-ignore lint/suspicious/noExplicitAny: clientOverride can be any Supabase client instance
+  clientOverride?: any,
+  householdIdOverride?: string,
 ): Promise<Transaction> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const supabase = clientOverride ?? (await createClient());
+  const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
 
   // Only use recurringTemplateId if explicitly passed (e.g., from monthly close)
   // Templates are now created separately via the recurring-templates API
