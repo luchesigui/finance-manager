@@ -51,10 +51,11 @@ export async function getTransactions(
   year?: number,
   month?: number,
   householdIdOverride?: string,
-  // biome-ignore lint/suspicious/noExplicitAny: clientOverride can be any SupabaseClient instance
-  clientOverride?: any,
+  clientOverride?: unknown,
 ): Promise<Transaction[]> {
-  const supabase = clientOverride ?? (await createClient());
+  const supabase = (clientOverride ?? (await createClient())) as Awaited<
+    ReturnType<typeof createClient>
+  >;
   const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
   const query = supabase.from("transactions").select("*").eq("household_id", householdId);
 
@@ -69,15 +70,23 @@ export async function getTransactions(
   return getTransactionsForMonth(supabase, householdId, year, month);
 }
 
-export async function getRecurringTransactions(options?: {
-  limit?: number;
-  offset?: number;
-}): Promise<{ transactions: Transaction[]; total: number }> {
-  const { templates, total } = await getRecurringTemplates({
-    activeOnly: true,
-    limit: options?.limit,
-    offset: options?.offset,
-  });
+export async function getRecurringTransactions(
+  options?: {
+    limit?: number;
+    offset?: number;
+  },
+  clientOverride?: unknown,
+  householdIdOverride?: string,
+): Promise<{ transactions: Transaction[]; total: number }> {
+  const { templates, total } = await getRecurringTemplates(
+    {
+      activeOnly: true,
+      limit: options?.limit,
+      offset: options?.offset,
+    },
+    clientOverride,
+    householdIdOverride,
+  );
 
   const todayDate = toDateString(new Date());
   const transactions = templates.map((template) =>
@@ -115,11 +124,20 @@ function templateAppliesToMonth(tpl: RecurringTemplate, year: number, month: num
   return year > createdYear || (year === createdYear && month >= createdMonth);
 }
 
-async function materializeRecurringTemplates(year: number, month: number): Promise<Transaction[]> {
-  const { templates } = await getRecurringTemplates({
-    activeOnly: true,
-    limit: 500,
-  });
+async function materializeRecurringTemplates(
+  year: number,
+  month: number,
+  clientOverride?: unknown,
+  householdIdOverride?: string,
+): Promise<Transaction[]> {
+  const { templates } = await getRecurringTemplates(
+    {
+      activeOnly: true,
+      limit: 500,
+    },
+    clientOverride,
+    householdIdOverride,
+  );
 
   const applicable = templates.filter((tpl) => templateAppliesToMonth(tpl, year, month));
   if (applicable.length === 0) return [];
@@ -166,11 +184,11 @@ async function materializeRecurringTemplates(year: number, month: number): Promi
 }
 
 async function getTransactionsForMonth(
-  // biome-ignore lint/suspicious/noExplicitAny: Supabase client type
-  supabase: any,
+  supabase: Awaited<ReturnType<typeof createClient>>,
   householdId: string,
   year: number,
   month: number,
+  clientOverride?: unknown,
 ): Promise<Transaction[]> {
   const endDate = new Date(Date.UTC(year, month, 0)).toISOString().split("T")[0];
   const prevMonthStartDate = new Date(Date.UTC(year, month - 2, 1)).toISOString().split("T")[0];
@@ -196,7 +214,7 @@ async function getTransactionsForMonth(
     ...currentMonthNextBillingRows.map((row: TransactionRow) => mapTransactionRow(row)),
   ];
 
-  const closed = await isMonthClosed(householdId, year, month);
+  const closed = await isMonthClosed(householdId, year, month, clientOverride);
   if (closed) {
     realTransactions.sort((a, b) => {
       const ca = a.createdAt ?? "";
@@ -208,7 +226,12 @@ async function getTransactionsForMonth(
   }
 
   // Materialize recurring templates as virtual transactions (only for open months)
-  const virtualTransactions = await materializeRecurringTemplates(year, month);
+  const virtualTransactions = await materializeRecurringTemplates(
+    year,
+    month,
+    clientOverride,
+    householdId,
+  );
 
   // Deduplicate: exclude virtual transactions whose template already has a real row this month
   const realTemplateIds = new Set(
@@ -249,11 +272,12 @@ export async function createTransaction(
     recurringTemplateId?: number | null;
     createdAt?: string;
   },
-  // biome-ignore lint/suspicious/noExplicitAny: clientOverride can be any Supabase client instance
-  clientOverride?: any,
+  clientOverride?: unknown,
   householdIdOverride?: string,
 ): Promise<Transaction> {
-  const supabase = clientOverride ?? (await createClient());
+  const supabase = (clientOverride ?? (await createClient())) as Awaited<
+    ReturnType<typeof createClient>
+  >;
   const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
 
   // Only use recurringTemplateId if explicitly passed (e.g., from monthly close)

@@ -6,8 +6,11 @@ export async function isMonthClosed(
   householdId: string,
   year: number,
   month: number,
+  clientOverride?: unknown,
 ): Promise<boolean> {
-  const supabase = await createClient();
+  const supabase = (clientOverride ?? (await createClient())) as Awaited<
+    ReturnType<typeof createClient>
+  >;
 
   const { data, error } = await supabase
     .from("closed_periods")
@@ -27,10 +30,13 @@ export type ClosedMonthsInput = { year: number; month: number }[];
 export async function getClosedMonthsSet(
   householdId: string,
   periods: ClosedMonthsInput,
+  clientOverride?: unknown,
 ): Promise<Set<string>> {
   if (periods.length === 0) return new Set();
 
-  const supabase = await createClient();
+  const supabase = (clientOverride ?? (await createClient())) as Awaited<
+    ReturnType<typeof createClient>
+  >;
   const periodKeys = new Set(periods.map((p) => `${p.year},${p.month}`));
   const years = [...new Set(periods.map((p) => p.year))];
 

@@ -18,9 +18,13 @@ type RecurringTemplateListOptions = {
 
 export async function getRecurringTemplates(
   options?: RecurringTemplateListOptions,
+  clientOverride?: unknown,
+  householdIdOverride?: string,
 ): Promise<{ templates: RecurringTemplate[]; total: number }> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const supabase = (clientOverride ?? (await createClient())) as Awaited<
+    ReturnType<typeof createClient>
+  >;
+  const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
   const limit = Math.min(options?.limit ?? 100, 100);
   const offset = options?.offset ?? 0;
 
@@ -113,9 +117,13 @@ export async function updateRecurringTemplate(
   id: number,
   patch: RecurringTemplatePatch,
   options?: { scope?: RecurringTemplateUpdateScope },
+  clientOverride?: unknown,
+  householdIdOverride?: string,
 ): Promise<RecurringTemplate> {
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const supabase = (clientOverride ?? (await createClient())) as Awaited<
+    ReturnType<typeof createClient>
+  >;
+  const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
   const dbPatch = toRecurringTemplateDbPatch(patch);
 
   const { data, error } = await supabase
@@ -137,14 +145,19 @@ export async function updateRecurringTemplate(
       .eq("household_id", householdId);
 
     if (!fetchError && rows && rows.length > 0) {
-      const periods = rows.map((r) => {
+      const rowList = (rows ?? []) as Array<{
+        id: number;
+        date: string;
+        is_next_billing?: boolean | null;
+      }>;
+      const periods: { year: number; month: number }[] = rowList.map((r) => {
         const { year, month } = getAccountingYearMonthUtc(r.date, r.is_next_billing ?? false);
         return { year, month };
       });
       const uniquePeriods = Array.from(
         new Map(periods.map((p) => [`${p.year},${p.month}`, p])).values(),
-      );
-      const closedSet = await getClosedMonthsSet(householdId, uniquePeriods);
+      ) as { year: number; month: number }[];
+      const closedSet = await getClosedMonthsSet(householdId, uniquePeriods, clientOverride);
 
       const toUpdate: number[] = [];
       for (const r of rows) {
@@ -187,11 +200,15 @@ export async function deleteRecurringTemplate(
     purgeTransactions?: boolean;
     fromDate?: string;
   },
+  clientOverride?: unknown,
+  householdIdOverride?: string,
 ): Promise<void> {
   const scope = resolveDeleteScope(options);
 
-  const supabase = await createClient();
-  const householdId = await getPrimaryHouseholdId();
+  const supabase = (clientOverride ?? (await createClient())) as Awaited<
+    ReturnType<typeof createClient>
+  >;
+  const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
 
   const { data: rows, error: fetchError } = await supabase
     .from("transactions")
@@ -201,14 +218,19 @@ export async function deleteRecurringTemplate(
 
   if (fetchError) throw fetchError;
 
-  const periods = (rows ?? []).map((r) => {
+  const rowList = (rows ?? []) as Array<{
+    id: number;
+    date: string;
+    is_next_billing?: boolean | null;
+  }>;
+  const periods: { year: number; month: number }[] = rowList.map((r) => {
     const { year, month } = getAccountingYearMonthUtc(r.date, r.is_next_billing ?? false);
     return { year, month };
   });
   const uniquePeriods = Array.from(
     new Map(periods.map((p) => [`${p.year},${p.month}`, p])).values(),
-  );
-  const closedSet = await getClosedMonthsSet(householdId, uniquePeriods);
+  ) as { year: number; month: number }[];
+  const closedSet = await getClosedMonthsSet(householdId, uniquePeriods, clientOverride);
 
   const toUnlink: number[] = [];
   const toDelete: number[] = [];
@@ -241,5 +263,11 @@ export async function deleteRecurringTemplate(
     if (deleteError) throw deleteError;
   }
 
-  await updateRecurringTemplate(id, { isActive: false });
+  await updateRecurringTemplate(
+    id,
+    { isActive: false },
+    undefined,
+    clientOverride,
+    householdIdOverride,
+  );
 }

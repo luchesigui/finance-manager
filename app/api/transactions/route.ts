@@ -17,8 +17,7 @@ async function authenticateRequest(request: Request): Promise<
       householdId: string;
       defaultPayerId: string | null;
       isTokenAuth: boolean;
-      // biome-ignore lint/suspicious/noExplicitAny: adminClient is a dynamic supabase client instance
-      adminClient?: any;
+      adminClient?: unknown;
     }
   | { success: false; response: NextResponse }
 > {
@@ -134,10 +133,14 @@ export async function GET(request: Request) {
           : pageParam !== null && pageParam !== ""
             ? (Math.max(1, Number.parseInt(pageParam, 10)) - 1) * limit
             : 0;
-      const { transactions, total } = await getRecurringTransactions({
-        limit,
-        offset,
-      });
+      const { transactions, total } = await getRecurringTransactions(
+        {
+          limit,
+          offset,
+        },
+        auth.adminClient,
+        auth.householdId,
+      );
       return NextResponse.json({ transactions, total });
     }
 
