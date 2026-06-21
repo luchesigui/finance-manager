@@ -51,8 +51,10 @@ export async function getTransactions(
   year?: number,
   month?: number,
   householdIdOverride?: string,
+  // biome-ignore lint/suspicious/noExplicitAny: clientOverride can be any SupabaseClient instance
+  clientOverride?: any,
 ): Promise<Transaction[]> {
-  const supabase = await createClient();
+  const supabase = clientOverride ?? (await createClient());
   const householdId = householdIdOverride ?? (await getPrimaryHouseholdId());
   const query = supabase.from("transactions").select("*").eq("household_id", householdId);
 
