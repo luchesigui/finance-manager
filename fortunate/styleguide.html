@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fortunate — Live Dashboard Prototype</title>
+  
+  <!-- Fontes Premium: Cinzel (Display Tarot), Outfit (Headings) e DM Sans (Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Reset Geral */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      background-color: var(--c-bg-solid);
+      min-height: 100%;
+      transition: background-color 400ms cubic-bezier(1, 0.0, 0.4, 1);
+    }
+
+    /* -------------------------------------------------------------
+       Variáveis Globais - Paleta Celestial & Prosperidade
+       ------------------------------------------------------------- */
+    :root {
+      /* degradê celestial padrão */
+      --sky-top: #5B8BAF;
+      --sky-mid: #8BBAD6;
+      --sky-bottom: #C3D5E4;
+      
+      --gold-light: #F3A83B;
+      --gold-dark: #E98024;
+      
+      --cloud-light: #F3E8DB;
+      --cloud-dark: #E9DFCE;
+      
+      --slate-deep: #1A3247;
+      --slate-muted: #4A607A;
+      --white: #ffffff;
+
+      /* Cores do Vidro Líquido mapeadas da paleta celestial */
+      --c-glass: #F3E8DB; /* Nuvem Clara */
+      --c-light: #ffffff; /* Brilho Branco */
+      --c-dark: #1A3247; /* Azul Profundo */
+      
+      --c-content: #1A3247; /* Azul Profundo */
+      --c-content-muted: #4A607A; /* Slate Muted */
+      --c-action: #E98024; /* Ouro Fortuna */
+      
+      /* degradê como fundo */
+      --c-bg: linear-gradient(135deg, var(--sky-top) 0%, var(--sky-mid) 35%, var(--sky-bottom) 65%, var(--cloud-light) 100%);
+      
+      --glass-reflex-dark: 1;
+      --glass-reflex-light: 1.2;
+      
+      --saturation: 130%;
+      --fz: 16px;
+
+      /* Cores dos 6 Pilares */
+      --pilar-essenciais: #3B82F6;
+      --pilar-conforto: #EC4899;
+      --pilar-prazeres: #F97316;
+      --pilar-conhecimento: #EAB308;
+      --pilar-metas: #6B7280;
+      --pilar-liberdade: #8B5CF6;
+
+      --font-display: 'Cinzel', serif;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+
+      --transition-base: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+      
+      /* Cor solida de fundo para saneamento de rolagem do body */
+      --c-bg-solid: #F3E8DB;
+
+      /* Unificação das Sombras Físicas 3D do Vidro Refractivo */
+      --shadow-glass-3d: 
+        inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+        inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent), 
+        inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent), 
+        inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent), 
+        inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent), 
+        inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent), 
+        0px 1px 5px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent), 
+        0px 6px 16px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 8%), transparent);
+    }
+
+    /* Variação de Cores do Switcher nos Temas: Céu Noturno */
+    body:has(input[value="dark"]:checked) {
+      --c-glass: #1A3247; /* Azul Profundo */
+      --c-light: #C3D5E4; /* Céu Claro */
+      --c-dark: #0A131C; /* Eclipse/Preto Noturno */
+      
+      --c-content: #F3E8DB; /* Nuvem Clara */
+      --c-content-muted: #8BBAD6;
+      --c-action: #E98024; /* Ouro Fortuna */
+      
+      --c-bg: linear-gradient(135deg, #0A131C 0%, #101E2B 40%, #1A3247 85%, #101E2B 100%);
+      --c-bg-solid: #101E2B;
+      
+      --glass-reflex-dark: 1.8;
+      --glass-reflex-light: 0.8;
+      
+      --saturation: 140%;
+    }
+
+    /* Variação de Cores do Switcher nos Temas: Céu Místico */
+    body:has(input[value="dim"]:checked) {
+      --c-glass: #4A607A; /* Slate */
+      --c-light: #F3E8DB; /* Nuvem Clara */
+      --c-dark: #1A3247; /* Azul Profundo */
+      
+      --c-content: #F3E8DB; /* Nuvem Clara */
+      --c-content-muted: #C3D5E4;
+      --c-action: #F3A83B; /* Brilho Solar */
+      
+      --c-bg: linear-gradient(135deg, #1A3247 0%, #2A445E 35%, #4A607A 70%, #1A3247 100%);
+      --c-bg-solid: #1A3247;
+      
+      --glass-reflex-dark: 1.5;
+      --glass-reflex-light: 1.0;
+      
+      --saturation: 150%;
+    }
+
+    /* Corpo & Plano de Fundo Dinâmico */
+    body {
+      font-family: var(--font-body);
+      background: var(--c-bg);
+      background-attachment: fixed;
+      color: var(--c-content);
+      min-height: 100vh;
+      padding: 9rem 2rem 9rem; /* Espaço para navbar e assistente flutuante */
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      position: relative; /* Ancorar nuvens com scroll parallax absoluto */
+      transition: background 400ms cubic-bezier(1, 0.0, 0.4, 1), color 400ms cubic-bezier(1, 0.0, 0.4, 1);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* -------------------------------------------------------------
+       Navbar Superior Flutuante
+       ------------------------------------------------------------- */
+    /* -------------------------------------------------------------
+       Navbar Superior Flutuante que se torna Glass no Scroll
+       ------------------------------------------------------------- */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 90px;
+      padding: 0 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none; /* Permitir rolagem por trás */
+      transition: 
+        height 300ms cubic-bezier(0.4, 0, 0.2, 1),
+        background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+        backdrop-filter 300ms cubic-bezier(0.4, 0, 0.2, 1),
+        border-bottom 300ms cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .navbar * {
+      pointer-events: auto; /* Reativa cliques nos botões da navbar */
+    }
+
+    /* Quando o usuário rola a página */
+    .navbar.scrolled {
+      height: 68px; /* Compacta a navbar */
+      background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+      backdrop-filter: blur(12px) url(#card-glass) saturate(var(--saturation));
+      -webkit-backdrop-filter: blur(12px) saturate(var(--saturation));
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 
+        0 4px 30px rgba(0, 0, 0, 0.03),
+        inset 0 1px 0 0 rgba(255, 255, 255, calc(0.12 * var(--glass-reflex-light)));
+    }
+
+    .navbar * {
+      pointer-events: auto; /* Reativa cliques nos botões da navbar */
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-brand .brand-logo-svg {
+      width: 32px;
+      height: 32px;
+      margin-bottom: 0;
+      transform: translateY(-5px);
+      transition: transform var(--transition-base);
+    }
+
+    .nav-brand .brand-logo-svg path {
+      fill: var(--c-content);
+      transition: fill var(--transition-base);
+    }
+
+    .brand-name-nav {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--c-content);
+    }
+
+    .nav-profile {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: color-mix(in srgb, var(--c-glass) 12%, transparent);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0.4rem 1rem 0.4rem 0.4rem;
+      border-radius: 99em;
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, calc(0.12 * var(--glass-reflex-light))),
+        0 4px 15px rgba(26, 50, 71, 0.04);
+    }
+
+    .profile-name {
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--c-content);
+    }
+
+    /* -------------------------------------------------------------
+       Switcher de Temas Orgânico (Copiado da Referência do Usuário)
+       ------------------------------------------------------------- */
+    /* -------------------------------------------------------------
+       Switcher de Temas Orgânico Vertical (Canto Inferior Esquerdo)
+       ------------------------------------------------------------- */
+    .switcher-wrapper {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      z-index: 1000;
+    }
+
+    .switcher {
+      display: flex;
+      flex-direction: column; /* Vertical */
+      align-items: center;
+      gap: 8px;
+      width: 70px;
+      height: 244px;
+      box-sizing: border-box;
+      padding: 12px 8px 10px;
+      margin: 0 auto;
+      border: none;
+      border-radius: 99em;
+      font-size: var(--fz);
+      background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+      backdrop-filter: blur(8px) url(#switcher) saturate(var(--saturation));
+      -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+      
+      box-shadow: var(--shadow-glass-3d);
+      
+      transition: 
+        background-color 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        box-shadow 400ms cubic-bezier(1, 0.0, 0.4, 1);
+    }
+
+    .switcher__legend {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      border: 0;
+      padding: 0;
+      white-space: nowrap;
+      clip-path: inset(100%);
+      clip: rect(0 0 0 0);
+      overflow: hidden;
+    }
+
+    .switcher__input {
+      clip: rect(0 0 0 0);
+      clip-path: inset(100%);
+      height: 1px;
+      width: 1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+    }
+
+    .switcher__icon {
+      display: block;
+      width: 100%;
+      transition: scale 200ms cubic-bezier(0.5, 0, 0, 1);
+    }
+
+    .switcher__filter {
+      position: absolute;
+      width: 0;
+      height: 0;
+      z-index: -1;
+    }
+
+    .switcher__option {
+      --c: var(--c-content);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px 0;
+      width: 100%;
+      height: 68px;
+      box-sizing: border-box;
+      border-radius: 99em;
+      opacity: 1;
+      transition: all 160ms;
+    }
+
+    .switcher__option:hover {
+      --c: var(--c-action);
+      cursor: pointer;
+    }
+
+    .switcher__option:hover .switcher__icon {
+      scale: 1.2;
+    }
+
+    .switcher__option:has(input:checked) {
+      --c: var(--c-content);
+      cursor: auto;
+    }
+
+    .switcher__option:has(input:checked) .switcher__icon {
+      scale: 1;
+    }
+
+    /* sliding capsule background vertical */
+    .switcher::after {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 4px;
+      display: block;
+      width: calc(100% - 8px);
+      height: 68px;
+      border-radius: 99em;
+      background-color: color-mix(in srgb, var(--c-glass) 36%, transparent);
+      z-index: -1;
+      box-shadow: 
+        inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+        inset 2px 1px 0px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent), 
+        inset -1.5px -1px 0px -1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent), 
+        inset -2px -6px 1px -5px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent), 
+        inset -1px 2px 3px -1px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        inset 0px -4px 1px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent), 
+        0px 3px 6px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 8%), transparent);
+    }
+
+    /* Translações verticais (77px por passo) */
+    .switcher:has(input[c-option="1"]:checked)::after {
+      translate: 0 0;
+      transform-origin: bottom;
+      transition: 
+        background-color 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        box-shadow 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        translate 400ms cubic-bezier(1, 0.0, 0.4, 1);
+      animation: scaleToggle 440ms ease; 
+    }
+
+    .switcher:has(input[c-option="2"]:checked)::after {
+      translate: 0 77px;
+      transition: 
+        background-color 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        box-shadow 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        translate 400ms cubic-bezier(1, 0.0, 0.4, 1);
+      animation: scaleToggle2 440ms ease; 
+    }
+
+    .switcher[c-previous="1"]:has(input[c-option="2"]:checked)::after { transform-origin: top; }
+    .switcher[c-previous="3"]:has(input[c-option="2"]:checked)::after { transform-origin: bottom; }
+
+    .switcher:has(input[c-option="3"]:checked)::after {
+      translate: 0 154px;
+      transform-origin: top;
+      transition: 
+        background-color 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        box-shadow 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        translate 400ms cubic-bezier(1, 0.0, 0.4, 1);
+      animation: scaleToggle3 440ms ease; 
+    }
+
+    /* Animações Verticais (Esqueleto Elástico no eixo Y) */
+    @keyframes scaleToggle {
+      0% { scale: 1 1; }
+      50% { scale: 1 1.15; }
+      100% { scale: 1 1; }
+    }
+    @keyframes scaleToggle2{
+      0% { scale: 1 1; }
+      50% { scale: 1 1.25; }
+      100% { scale: 1 1; }
+    } 
+    @keyframes scaleToggle3 {
+      0% { scale: 1 1; }
+      50% { scale: 1 1.15; }
+      100% { scale: 1 1; }
+    }
+
+    /* -------------------------------------------------------------
+       Cards com Efeito de Vidro Líquido (Idênticos à Referência)
+       ------------------------------------------------------------- */
+    .card-panel {
+      background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+      backdrop-filter: blur(8px) url(#card-glass) saturate(var(--saturation));
+      -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+      border: none;
+      border-radius: 24px;
+      padding: 3rem;
+      transition: 
+        background-color 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        box-shadow 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        transform 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+      box-shadow: 
+        inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+        inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent), 
+        inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent), 
+        inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent), 
+        inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent), 
+        inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent), 
+        0px 1px 5px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent), 
+        0px 6px 16px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 8%), transparent);
+    }
+
+    .card-panel:hover {
+      background-color: color-mix(in srgb, var(--c-glass) 16%, transparent);
+      transform: translateY(-2px);
+    }
+
+    /* -------------------------------------------------------------
+       Dashboard Hero Stats (Directly on Background, No Box)
+       ------------------------------------------------------------- */
+    .dashboard-hero {
+      text-align: center;
+      margin: 2.5rem auto 5.5rem;
+      max-width: 800px;
+    }
+
+    .hero-subtitle {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--c-content-muted);
+    }
+
+    .hero-title {
+      font-family: var(--font-heading);
+      font-size: 4.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0.4rem 0 1.2rem;
+      color: var(--c-content);
+      text-shadow: 0 4px 20px rgba(26, 50, 71, 0.06);
+    }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat-badge {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--c-content); /* Texto legível e padronizado */
+      
+      /* Efeito de Vidro Elevado (Nível acima do card principal) */
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, calc(0.3 * var(--glass-reflex-light))),
+        0 4px 10px rgba(0, 0, 0, 0.04);
+      transition: var(--transition-base);
+    }
+
+    .hero-stat-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Cores dos Status: Fundo misturando 10% da cor semântica ao vidro opaco e denso */
+    .stat-positive { background-color: color-mix(in srgb, #10b981 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .stat-positive::before { background-color: #10b981; }
+
+    .stat-negative { background-color: color-mix(in srgb, #e11d48 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .stat-negative::before { background-color: #e11d48; }
+
+    .stat-neutral { background-color: color-mix(in srgb, var(--pilar-essenciais) 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .stat-neutral::before { background-color: var(--pilar-essenciais); }
+
+    /* Grid Layout de Duas Colunas do Dashboard */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 2.5rem;
+      align-items: start;
+    }
+
+    .dashboard-column {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    @media (max-width: 950px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+      .navbar {
+        padding: 0 1.5rem;
+      }
+      .profile-name {
+        display: none;
+      }
+    }
+
+    /* -------------------------------------------------------------
+       Estilos de Elementos Internos
+       ------------------------------------------------------------- */
+    
+    /* 1. Cores e Tons */
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 2rem;
+    }
+
+    .palette-color {
+      text-align: center;
+    }
+
+    .color-swatch-circle {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-shadow: 0 4px 15px rgba(26, 50, 71, 0.08);
+    }
+
+    .palette-name {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .palette-hex {
+      font-size: 0.75rem;
+      font-family: monospace;
+      color: var(--c-content-muted);
+    }
+
+    /* 2. Tipografia */
+    .typo-section {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    .typo-example {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      align-items: baseline;
+      gap: 1.5rem;
+    }
+
+    .typo-meta {
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--c-content);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .tech-spec {
+      font-size: 0.7rem;
+      font-family: monospace;
+      color: var(--c-content-muted);
+      text-transform: none;
+      font-weight: 500;
+    }
+
+    .text-display {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      letter-spacing: 0.1em;
+    }
+
+    .text-heading {
+      font-family: var(--font-heading);
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+
+    .text-body {
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--c-content-muted);
+    }
+
+    .panel-title {
+      font-family: var(--font-heading);
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 3.5rem; /* Margem aumentada para dar mais espaço */
+      letter-spacing: 0.02em;
+      border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 10%, transparent);
+      padding-bottom: 0.75rem;
+      color: var(--c-content);
+    }
+
+    /* -------------------------------------------------------------
+       Especificações Técnicas de Design (Tabelas)
+       ------------------------------------------------------------- */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2.5rem;
+    }
+
+    .tech-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .tech-subtitle {
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--c-content);
+    }
+
+    .tech-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .tech-table td {
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--c-content) 8%, transparent);
+    }
+
+    .tech-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .tech-table td:first-child {
+      font-weight: 600;
+      color: var(--c-content-muted);
+      width: 150px;
+    }
+
+    .tech-table code {
+      font-family: monospace;
+      background: color-mix(in srgb, var(--c-glass) 15%, transparent);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    /* -------------------------------------------------------------
+       Stacked Cards (Cartões Empilhados com Tarot Spread)
+       ------------------------------------------------------------- */
+    .stacked-cards-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
+      max-width: 450px;
+      margin: 1.5rem 0;
+    }
+
+    .stacked-card {
+      position: absolute;
+      width: 100%;
+      height: 190px;
+      border-radius: 20px; /* Bordas de 20px de acordo com o design system */
+      padding: 1.8rem;
+      transition: 
+        transform 500ms cubic-bezier(0.2, 1, 0.2, 1),
+        opacity 500ms cubic-bezier(0.2, 1, 0.2, 1),
+        box-shadow 400ms cubic-bezier(1, 0.0, 0.4, 1),
+        background-color 400ms cubic-bezier(1, 0.0, 0.4, 1);
+      
+      /* Glass Opaco e denso (70% de opacidade) para torná-los quase brancos/creme com leve transparência */
+      background-color: color-mix(in srgb, var(--c-glass) 70%, transparent);
+      backdrop-filter: blur(12px) url(#card-glass) saturate(var(--saturation));
+      -webkit-backdrop-filter: blur(12px) saturate(var(--saturation));
+
+      box-shadow: 
+        inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+        inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent), 
+        inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent), 
+        inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent), 
+        inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent), 
+        inset -1.5px 2.5px 0px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        inset 2px -6.5px 1px -4px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent), 
+        0px 1px 5px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 10%), transparent), 
+        0px 6px 16px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 8%), transparent);
+    }
+
+    .stacked-card-1 {
+      top: 40px;
+      left: 0;
+      z-index: 3;
+      transform: scale(1);
+    }
+
+    .stacked-card-2 {
+      top: 20px;
+      left: 10px;
+      z-index: 2;
+      transform: scale(0.96);
+      opacity: 0.85;
+    }
+
+    .stacked-card-3 {
+      top: 0px;
+      left: 20px;
+      z-index: 1;
+      transform: scale(0.92);
+      opacity: 0.65;
+    }
+
+    /* Efeito de expansão interativa do Tarot Spread ao passar o mouse */
+    .stacked-cards-container:hover .stacked-card-1 {
+      transform: translateY(20px) scale(1.02);
+      box-shadow: 
+        inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 10%), transparent),
+        inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent), 
+        0px 8px 24px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent);
+    }
+
+    .stacked-cards-container:hover .stacked-card-2 {
+      transform: translateY(-5px) translateX(25px) scale(0.98) rotate(2deg);
+      opacity: 0.95;
+    }
+
+    .stacked-cards-container:hover .stacked-card-3 {
+      transform: translateY(-30px) translateX(50px) scale(0.94) rotate(4deg);
+      opacity: 0.85;
+    }
+
+    .card-inner {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    .card-label {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--c-content-muted);
+    }
+
+    .card-value {
+      font-family: var(--font-heading);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--c-content);
+    }
+
+    .card-meta {
+      font-size: 0.75rem;
+      color: var(--c-content-muted);
+      font-weight: 500;
+    }
+
+    /* 3. Pilares de Distribuição */
+    .pillars-display {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+
+    .pilar-card {
+      /* Alterado para Glass Transparente (12% de opacidade) sob solicitação de teste visual */
+      background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+      backdrop-filter: blur(8px) url(#card-glass) saturate(var(--saturation));
+      -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+      border: none;
+      border-radius: 18px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      transition: var(--transition-base);
+      box-shadow: var(--shadow-glass-3d);
+    }
+
+    .pilar-card:hover {
+      background-color: color-mix(in srgb, var(--c-glass) 16%, transparent);
+      transform: translateY(-2px);
+    }
+
+    /* Classes Utilitárias do Glass Design System para documentação */
+    .glass-fino {
+      background-color: color-mix(in srgb, var(--c-glass) 12%, transparent) !important;
+      backdrop-filter: blur(8px) url(#card-glass) saturate(var(--saturation)) !important;
+      -webkit-backdrop-filter: blur(8px) saturate(var(--saturation)) !important;
+      box-shadow: var(--shadow-glass-3d) !important;
+    }
+
+    .glass-denso {
+      background-color: color-mix(in srgb, var(--c-glass) 70%, transparent) !important;
+      backdrop-filter: blur(12px) url(#card-glass) saturate(var(--saturation)) !important;
+      -webkit-backdrop-filter: blur(12px) saturate(var(--saturation)) !important;
+      box-shadow: var(--shadow-glass-3d) !important;
+    }
+
+    .pilar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .pilar-badge {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px; /* Pílula de 999px de acordo com o design system */
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--c-content); /* Texto sempre legível usando a cor do tema */
+      
+      /* Efeito de Vidro Elevado (Nível acima do card principal) */
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, calc(0.3 * var(--glass-reflex-light))),
+        0 4px 10px rgba(0, 0, 0, 0.04);
+      transition: var(--transition-base);
+    }
+
+    .pilar-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Cores dos Pilares: Fundo com tint orgânico do pilar e bullet com cor sólida */
+    /* Cores dos Pilares: Fundo misturando 10% da cor do pilar ao vidro opaco e denso */
+    .p-essenciais { background-color: color-mix(in srgb, var(--pilar-essenciais) 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .p-conforto { background-color: color-mix(in srgb, var(--pilar-conforto) 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .p-prazeres { background-color: color-mix(in srgb, var(--pilar-prazeres) 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .p-conhecimento { background-color: color-mix(in srgb, var(--pilar-conhecimento) 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .p-metas { background-color: color-mix(in srgb, var(--pilar-metas) 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+    .p-liberdade { background-color: color-mix(in srgb, var(--pilar-liberdade) 10%, color-mix(in srgb, var(--c-glass) 80%, transparent)) !important; }
+
+    .p-essenciais::before { background: var(--pilar-essenciais); }
+    .p-conforto::before { background: var(--pilar-conforto); }
+    .p-prazeres::before { background: var(--pilar-prazeres); }
+    .p-conhecimento::before { background: var(--pilar-conhecimento); }
+    .p-metas::before { background: var(--pilar-metas); }
+    .p-liberdade::before { background: var(--pilar-liberdade); }
+
+    .pilar-target {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      color: var(--c-content-muted);
+      font-weight: 500;
+    }
+
+    .pilar-progress-bar {
+      height: 7px;
+      background: rgba(26, 50, 71, 0.1);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .pilar-progress-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    /* 4. Form/Inputs Glassmorphic */
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2rem;
+    }
+
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .input-label {
+      font-family: var(--font-heading);
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--c-content-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .input-field {
+      width: 100%;
+      display: block;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      background-color: color-mix(in srgb, var(--c-light) 8%, color-mix(in srgb, var(--c-glass) 10%, transparent));
+      border: 1px solid color-mix(in srgb, var(--c-content) 18%, transparent);
+      color: var(--c-content);
+      outline: none;
+      box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.03), 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+      transition: 
+        border-color 300ms,
+        background-color 300ms,
+        box-shadow 300ms;
+    }
+
+    .input-field:focus {
+      background-color: color-mix(in srgb, var(--c-light) 12%, color-mix(in srgb, var(--c-glass) 18%, transparent));
+      border-color: var(--c-content);
+      box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.06), 
+        0 0 0 3px color-mix(in srgb, var(--c-content) 10%, transparent),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+    }
+
+    /* Regras para Dropdown Select */
+    select.input-field {
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    select.input-field option {
+      background-color: var(--c-dark, #0A131C);
+      color: var(--c-light, #ffffff);
+    }
+
+    /* 5. Ações */
+    .actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .btn {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0.8rem 1.8rem;
+      border-radius: 999px; /* Formato cápsula idêntico ao switcher de temas */
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: 
+        transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 300ms,
+        box-shadow 300ms,
+        border-color 300ms;
+    }
+
+    /* Efeito de Clique Elástico (Igual ao Switcher ao ser pressionado) */
+    .btn:active {
+      transform: scale(0.95) translateY(0);
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, var(--c-action) 0%, #f3a83b 100%);
+      color: #ffffff;
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.4),
+        0 4px 12px rgba(233, 128, 36, 0.22);
+    }
+
+    .btn-action:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.5),
+        0 8px 20px rgba(233, 128, 36, 0.32);
+    }
+
+    .btn-glass {
+      background-color: color-mix(in srgb, var(--c-glass) 30%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: var(--c-content);
+      box-shadow: var(--shadow-glass-3d);
+    }
+
+    .btn-glass:hover {
+      background-color: color-mix(in srgb, var(--c-glass) 50%, transparent);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: var(--shadow-glass-3d);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1.5px solid color-mix(in srgb, var(--c-content) 25%, transparent);
+      color: var(--c-content);
+    }
+
+    .btn-outline:hover {
+      background: color-mix(in srgb, var(--c-content) 6%, transparent);
+      border-color: color-mix(in srgb, var(--c-content) 45%, transparent);
+      transform: translateY(-2px) scale(1.03);
+    }
+
+    /* 6. Tabela */
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .modern-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      text-align: left;
+    }
+
+     .modern-table th {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      color: var(--c-content-muted);
+      padding: 1.25rem 1rem;
+      border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 12%, transparent);
+    }
+
+    .modern-table td {
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--c-content) 6%, transparent);
+      color: var(--c-content);
+      font-weight: 400;
+      transition: var(--transition-base);
+    }
+
+    .modern-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .modern-table tr:hover td {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .val-negative {
+      color: #e11d48;
+      font-weight: 600;
+    }
+
+    .val-positive {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .avatar-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .avatar-l { background: var(--c-content); color: var(--c-glass); }
+    .avatar-n { background: var(--sky-top); color: #ffffff; }
+
+    /* -------------------------------------------------------------
+       Background Clouds Container (mix-blend-mode: screen)
+       ------------------------------------------------------------- */
+    .clouds-container {
+      position: absolute; /* Estendido ao longo de toda a altura da página */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .cloud {
+      position: absolute;
+      background-image: url('cloud.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      mix-blend-mode: screen; /* Filtra o fundo preto do PNG */
+      opacity: 0.38; /* Opacidade suave e mística */
+      pointer-events: none;
+    }
+
+    /* Scroll Parallax: translateY baseado na variável CSS --scroll-top */
+    .cloud-1 {
+      top: 5%;
+      left: -10%;
+      width: 600px;
+      height: 360px;
+      transform: translateY(calc(var(--scroll-top, 0) * 0.15px)) rotate(-3deg);
+      opacity: 0.35;
+    }
+
+    .cloud-2 {
+      top: 30%;
+      right: -12%;
+      width: 650px;
+      height: 390px;
+      transform: scaleX(-1) translateY(calc(var(--scroll-top, 0) * 0.28px)) rotate(5deg);
+      opacity: 0.3;
+    }
+
+    .cloud-3 {
+      top: 60%;
+      left: 5%;
+      width: 750px;
+      height: 450px;
+      transform: translateY(calc(var(--scroll-top, 0) * 0.1px)) rotate(2deg);
+      opacity: 0.45;
+    }
+
+    .cloud-4 {
+      top: 85%;
+      left: 40%;
+      width: 480px;
+      height: 288px;
+      transform: translateY(calc(var(--scroll-top, 0) * 0.22px)) rotate(-8deg);
+      opacity: 0.22;
+    }
+
+    /* -------------------------------------------------------------
+       Floating AI Assistant Search Bar (Bottom Center)
+       ------------------------------------------------------------- */
+    .floating-assistant-container {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 580px;
+      padding: 0 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 900;
+      pointer-events: none;
+    }
+
+    .floating-assistant-container * {
+      pointer-events: auto;
+    }
+
+    .assistant-prompt-deck {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .prompt-pill {
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--c-content);
+      /* Quase branco/creme sólido (80% de opacidade) com leve reflexo de desfoque */
+      background: color-mix(in srgb, var(--c-glass) 80%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 0.4rem 0.85rem;
+      border-radius: 99em;
+      cursor: pointer;
+      box-shadow: 
+        inset 0 1.5px 0 0 rgba(255, 255, 255, calc(0.2 * var(--glass-reflex-light))),
+        0 4px 10px rgba(0, 0, 0, 0.03);
+      transition: var(--transition-base);
+    }
+
+    .prompt-pill:hover {
+      background: color-mix(in srgb, var(--c-glass) 60%, transparent);
+      border-color: rgba(255, 255, 255, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .assistant-search-bar {
+      width: 100%;
+      height: 52px;
+      border-radius: 99em;
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      gap: 0.75rem;
+      cursor: text;
+      
+      background-color: color-mix(in srgb, var(--c-glass) 16%, transparent);
+      backdrop-filter: blur(8px) url(#switcher) saturate(var(--saturation));
+      -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+
+      box-shadow: 
+        inset 0 0 0 1px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 15%), transparent),
+        inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent), 
+        inset -0.3px -1px 4px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 12%), transparent), 
+        inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent), 
+        0px 2px 8px 0px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 8%), transparent),
+        0px 15px 30px -10px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 15%), transparent);
+    }
+
+    .assistant-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--c-action);
+    }
+
+    .assistant-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: var(--c-content);
+      cursor: inherit;
+    }
+
+    .assistant-input::placeholder {
+      /* Cor idêntica ao texto ativo do switcher com 85% de opacidade para contraste máximo */
+      color: var(--c-content);
+      opacity: 0.85;
+    }
+
+    .assistant-kbd {
+      font-family: monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--c-content-muted);
+      background: color-mix(in srgb, var(--c-light) 25%, transparent);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    /* -------------------------------------------------------------
+       Modal Dialog (Frosted Glass Denso)
+       ------------------------------------------------------------- */
+    dialog.styleguide-modal {
+      background-color: color-mix(in srgb, color-mix(in srgb, var(--c-glass), var(--c-light) 30%) 60%, transparent);
+      backdrop-filter: blur(12px) url(#card-glass) saturate(var(--saturation));
+      -webkit-backdrop-filter: blur(12px) saturate(var(--saturation));
+      box-shadow: var(--shadow-glass-3d);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 24px;
+      padding: 2.5rem;
+      width: 90%;
+      max-width: 500px;
+      color: var(--c-content);
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
+      z-index: 2000; /* Garante que fique acima de navbar sticky e switcher */
+    }
+
+    /* Animacao suave para abertura do modal nativo */
+    dialog.styleguide-modal[open] {
+      animation: modalFadeIn 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -45%) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    dialog.styleguide-modal::backdrop {
+      background-color: rgba(26, 50, 71, 0.25);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      animation: backdropFadeIn 300ms ease-out;
+    }
+
+    @keyframes backdropFadeIn {
+      from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+        -webkit-backdrop-filter: blur(0px);
+      }
+      to {
+        opacity: 1;
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+      }
+    }
+
+    .btn-close-modal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: color-mix(in srgb, var(--c-light) 25%, color-mix(in srgb, var(--c-glass) 40%, transparent));
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: var(--c-content);
+      font-size: 1.35rem; /* X maior para melhor proporcao */
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-close-modal:hover {
+      background-color: color-mix(in srgb, var(--c-light) 35%, color-mix(in srgb, var(--c-glass) 50%, transparent));
+    }
+
+    /* Estilização temática de alta legibilidade e elevação 3D para inputs do modal */
+    dialog.styleguide-modal input,
+    dialog.styleguide-modal select {
+      background-color: color-mix(in srgb, var(--c-light) 8%, color-mix(in srgb, var(--c-glass) 10%, transparent)) !important;
+      border: 1px solid color-mix(in srgb, var(--c-content) 18%, transparent) !important;
+      color: var(--c-content) !important;
+      font-family: var(--font-body) !important;
+      font-size: 0.9rem !important;
+      border-radius: 12px !important;
+      padding: 0.75rem 1rem !important;
+      outline: none !important;
+      box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.03), 
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.12) !important;
+      transition: var(--transition-base) !important;
+      width: 100% !important;
+    }
+
+    dialog.styleguide-modal input:focus,
+    dialog.styleguide-modal select:focus {
+      background-color: color-mix(in srgb, var(--c-light) 12%, color-mix(in srgb, var(--c-glass) 18%, transparent)) !important;
+      border-color: var(--c-content) !important;
+      box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.06), 
+        0 0 0 3px color-mix(in srgb, var(--c-content) 10%, transparent),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.18) !important;
+    }
+
+    dialog.styleguide-modal select option {
+      background-color: var(--c-dark, #0A131C) !important;
+      color: var(--c-light, #ffffff) !important;
+    }
+
+    dialog.styleguide-modal input::placeholder {
+      color: var(--c-content-muted) !important;
+      opacity: 0.85 !important;
+    }
+
+    /* -------------------------------------------------------------
+       Form Design System - Custom Glass Inputs & Controls
+       ------------------------------------------------------------- */
+    .input-prefix-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .input-prefix {
+      position: absolute;
+      left: 1rem;
+      font-family: var(--font-heading);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--c-content-muted);
+      pointer-events: none;
+    }
+
+    .input-prefix-wrapper input {
+      padding-left: 2.2rem !important;
+    }
+
+    /* Checkbox Customizada estilo Glass */
+    .form-checkbox {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--c-content) 22%, transparent);
+      cursor: pointer;
+      position: relative;
+      transition: 
+        transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 250ms,
+        border-color 250ms;
+      display: inline-block;
+      vertical-align: middle;
+      outline: none;
+    }
+
+    .form-checkbox:hover {
+      background-color: color-mix(in srgb, var(--c-glass) 20%, transparent);
+      border-color: color-mix(in srgb, var(--c-content) 40%, transparent);
+      transform: scale(1.08);
+    }
+
+    .form-checkbox:active {
+      transform: scale(0.92);
+    }
+
+    .form-checkbox:checked {
+      background-color: var(--c-action) !important;
+      border-color: var(--c-action) !important;
+      box-shadow: 0 2px 8px rgba(233, 128, 36, 0.25);
+    }
+
+    .form-checkbox:checked::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -52%);
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    /* Radio Box Customizada estilo Glass */
+    .form-radio {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--c-content) 22%, transparent);
+      cursor: pointer;
+      position: relative;
+      transition: 
+        transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 250ms,
+        border-color 250ms;
+      display: inline-block;
+      vertical-align: middle;
+      outline: none;
+    }
+
+    .form-radio:hover {
+      background-color: color-mix(in srgb, var(--c-glass) 20%, transparent);
+      border-color: color-mix(in srgb, var(--c-content) 40%, transparent);
+      transform: scale(1.08);
+    }
+
+    .form-radio:active {
+      transform: scale(0.92);
+    }
+
+    .form-radio:checked {
+      border-color: var(--c-action) !important;
+      background-color: color-mix(in srgb, var(--c-glass) 20%, transparent) !important;
+      box-shadow: 0 2px 8px rgba(233, 128, 36, 0.15);
+    }
+
+    .form-radio:checked::after {
+      content: '';
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--c-action);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Toggle Switch (Interruptor Deslizante) */
+    .form-toggle {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      vertical-align: middle;
+    }
+
+    .form-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: color-mix(in srgb, var(--c-glass) 20%, transparent);
+      border: 1px solid color-mix(in srgb, var(--c-content) 18%, transparent);
+      border-radius: 34px;
+      transition: 
+        background-color 300ms,
+        border-color 300ms,
+        box-shadow 300ms;
+    }
+
+    .toggle-slider::before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--c-content);
+      border-radius: 50%;
+      transition: 
+        transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 300ms;
+    }
+
+    .form-toggle input:checked + .toggle-slider {
+      background-color: var(--c-action);
+      border-color: var(--c-action);
+      box-shadow: 0 2px 8px rgba(233, 128, 36, 0.25);
+    }
+
+    .form-toggle input:checked + .toggle-slider::before {
+      transform: translateX(22px);
+      background-color: white;
+    }
+
+    /* Impedir rolagem do body quando modal estiver aberto */
+    body.modal-open {
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Container de Nuvens para o Fundo Celestial -->
+  <div class="clouds-container">
+    <div class="cloud cloud-1"></div>
+    <div class="cloud cloud-2"></div>
+    <div class="cloud cloud-3"></div>
+    <div class="cloud cloud-4"></div>
+  </div>
+
+  <!-- -------------------------------------------------------------
+       Navbar Superior (Logo flutuante e Perfil integrados ao fundo)
+       ------------------------------------------------------------- -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <svg class="brand-logo-svg" viewBox="0 0 100 100">
+        <!-- Tres raios superiores organicos com a cor de destaque (Ouro Fortuna/Brilho Solar) -->
+        <path class="gold-glow" d="M 16,33 C 14,35 24,47 28,49 C 29,49 20,38 16,33 Z" />
+        <path class="gold-glow" d="M 50,15 C 52,18 52,38 50,45 C 48,38 48,18 50,15 Z" />
+        <path class="gold-glow" d="M 84,33 C 80,38 71,49 72,49 C 76,47 86,35 84,33 Z" />
+        <!-- Barra horizontal e arco inferior com a cor de texto do tema -->
+        <path class="brand-base" d="M 5,56 C 25,54 75,54 95,56 C 80,58 45,59 5,56 Z" />
+        <path class="brand-base" d="M 18,63 C 12,75 30,92 50,92 C 70,92 88,75 82,63 C 86,75 70,96 50,96 C 30,96 14,75 18,63 Z" />
+      </svg>
+      <span class="brand-name-nav">Fortunate</span>
+    </div>
+
+    <!-- Perfil do Usuário na Navbar -->
+    <div class="nav-profile">
+      <span class="avatar-icon avatar-l">L</span>
+      <span class="profile-name">Luche Silva</span>
+    </div>
+  </nav>
+
+  <!-- Container Geral do Dashboard -->
+  <div class="container">
+    
+    <!-- -------------------------------------------------------------
+         Painel Principal de Saldos (Hero Fora de Container)
+         ------------------------------------------------------------- -->
+    <header class="dashboard-hero">
+      <span class="hero-subtitle">Demonstrativo Financeiro — Maio 2026</span>
+      <h1 class="hero-title">R$ 25.171,45</h1>
+      <div class="hero-stats">
+        <span class="hero-stat-badge stat-positive">Receitas R$ 35.928,25</span>
+        <span class="hero-stat-badge stat-negative">Despesas R$ 10.756,80</span>
+        <span class="hero-stat-badge stat-neutral">Investido R$ 15.000,00</span>
+      </div>
+    </header>
+
+    <!-- Grid do Dashboard de Duas Colunas (Como no app real) -->
+    <div class="dashboard-grid">
+      
+      <!-- Coluna da Esquerda (Controle Financeiro) -->
+      <div class="dashboard-column">
+        
+        <!-- Seção: Os 6 Pilares -->
+        <section class="card-panel">
+          <h2 class="panel-title">Distribuição por Pilares</h2>
+          <div class="pillars-display">
+            
+            <div class="pilar-card">
+              <div class="pilar-header">
+                <span class="pilar-badge p-essenciais">Gastos Essenciais</span>
+                <span class="pilar-target">Meta: 50%</span>
+              </div>
+              <div class="pilar-progress-bar">
+                <div class="pilar-progress-fill" style="width: 48%; background: var(--pilar-essenciais);"></div>
+              </div>
+            </div>
+            
+            <div class="pilar-card">
+              <div class="pilar-header">
+                <span class="pilar-badge p-conforto">Conforto</span>
+                <span class="pilar-target">Meta: 15%</span>
+              </div>
+              <div class="pilar-progress-bar">
+                <div class="pilar-progress-fill" style="width: 65%; background: var(--pilar-conforto);"></div>
+              </div>
+            </div>
+
+            <div class="pilar-card">
+              <div class="pilar-header">
+                <span class="pilar-badge p-prazeres">Prazeres</span>
+                <span class="pilar-target">Meta: 10%</span>
+              </div>
+              <div class="pilar-progress-bar">
+                <div class="pilar-progress-fill" style="width: 25%; background: var(--pilar-prazeres);"></div>
+              </div>
+            </div>
+
+            <div class="pilar-card">
+              <div class="pilar-header">
+                <span class="pilar-badge p-conhecimento">Conhecimento</span>
+                <span class="pilar-target">Meta: 10%</span>
+              </div>
+              <div class="pilar-progress-bar">
+                <div class="pilar-progress-fill" style="width: 80%; background: var(--pilar-conhecimento);"></div>
+              </div>
+            </div>
+
+            <div class="pilar-card">
+              <div class="pilar-header">
+                <span class="pilar-badge p-metas">Metas</span>
+                <span class="pilar-target">Meta: 5%</span>
+              </div>
+              <div class="pilar-progress-bar">
+                <div class="pilar-progress-fill" style="width: 15%; background: var(--pilar-metas);"></div>
+              </div>
+            </div>
+
+            <div class="pilar-card">
+              <div class="pilar-header">
+                <span class="pilar-badge p-liberdade">Liberdade Financeira</span>
+                <span class="pilar-target">Meta: 10%</span>
+              </div>
+              <div class="pilar-progress-bar">
+                <div class="pilar-progress-fill" style="width: 50%; background: var(--pilar-liberdade);"></div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- Seção: Inputs e Formulários -->
+        <section class="card-panel">
+          <h2 class="panel-title">Novo Lançamento</h2>
+          <div class="form-row">
+            <div class="input-wrapper">
+              <label class="input-label">Descrição</label>
+              <input class="input-field" type="text" placeholder="Ex: Assinatura de Software" />
+            </div>
+            <div class="input-wrapper">
+              <label class="input-label">Valor</label>
+              <input class="input-field" type="text" placeholder="R$ 0,00" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção: Botões de Ação -->
+        <section class="card-panel">
+          <h2 class="panel-title">Ações Rápidas</h2>
+          <div class="actions-row">
+            <button class="btn btn-action" onclick="openModal()">Inserir Lançamento (Modal)</button>
+            <button class="btn btn-glass">Exportar Dados</button>
+            <button class="btn btn-outline">Cancelar</button>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Coluna da Direita (Documentação, Contas e Histórico) -->
+      <div class="dashboard-column">
+        
+        <!-- Seção: Cartões Empilhados (Stacked Cards) -->
+        <section class="card-panel">
+          <h2 class="panel-title">Suas Carteiras (Stacked Cards)</h2>
+          <p class="text-body" style="margin-bottom: 2rem;">Passe o mouse por cima do deck de cartões para ver a animação física de espalhar (Tarot Spread), ideal para alternar entre contas financeiras ou cartões de crédito.</p>
+          <div class="stacked-cards-container">
+            <div class="stacked-card stacked-card-3">
+              <div class="card-inner">
+                <span class="card-label">Reserva de Emergência</span>
+                <span class="card-value">R$ 25.000,00</span>
+                <span class="card-meta">Banco do Sol • Liquidez Diária</span>
+              </div>
+            </div>
+            <div class="stacked-card stacked-card-2">
+              <div class="card-inner">
+                <span class="card-label">Carteira de Investimentos</span>
+                <span class="card-value">R$ 78.430,00</span>
+                <span class="card-meta">Ações & Fundos Imobiliários</span>
+              </div>
+            </div>
+            <div class="stacked-card stacked-card-1">
+              <div class="card-inner">
+                <span class="card-label">Conta Corrente Principal</span>
+                <span class="card-value">R$ 14.280,00</span>
+                <span class="card-meta">Banco Celestial • Conta Ativa</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Seção: Detalhamento do Glassmorphism & Bordas -->
+        <section class="card-panel">
+          <h2 class="panel-title">Fórmulas do Glassmorphism</h2>
+          <div class="tech-grid">
+            <div class="tech-col">
+              <h3 class="tech-subtitle">Especificação do Vidro</h3>
+              <table class="tech-table">
+                <tr>
+                  <td>Background</td>
+                  <td><code>color-mix(in srgb, var(--c-glass) 12%, transparent)</code></td>
+                </tr>
+                <tr>
+                  <td>Backdrop Filter</td>
+                  <td><code>blur(8px) url(#card-glass) saturate(var(--saturation))</code></td>
+                </tr>
+                <tr>
+                  <td>Sombra Física</td>
+                  <td>10 camadas combinando reflexo superior e relevo inferior.</td>
+                </tr>
+              </table>
+            </div>
+            <div class="tech-col">
+              <h3 class="tech-subtitle">Sistema de Bordas (Radius)</h3>
+              <table class="tech-table">
+                <tr>
+                  <td>Painéis Grandes</td>
+                  <td><code>border-radius: 24px</code> (Ex: Seções)</td>
+                </tr>
+                <tr>
+                  <td>Cartões / Wallets</td>
+                  <td><code>border-radius: 20px</code> (Ex: Stacked)</td>
+                </tr>
+                <tr>
+                  <td>Botões & Inputs</td>
+                  <td><code>border-radius: 12px</code> (Ex: Formulário)</td>
+                </tr>
+                <tr>
+                  <td>Pills & Switchers</td>
+                  <td><code>border-radius: 99em</code> (Ex: Badges)</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+
+
+
+        <!-- Seção: Cores -->
+        <section class="card-panel">
+          <h2 class="panel-title">Cores do Sistema</h2>
+          <div class="palette-grid">
+            <div class="palette-color">
+              <div class="color-swatch-circle" style="background: #5B8BAF;"></div>
+              <p class="palette-name">Céu Topo</p>
+              <p class="palette-hex">#5B8BAF</p>
+            </div>
+            <div class="palette-color">
+              <div class="color-swatch-circle" style="background: #8BBAD6;"></div>
+              <p class="palette-name">Céu Médio</p>
+              <p class="palette-hex">#8BBAD6</p>
+            </div>
+            <div class="palette-color">
+              <div class="color-swatch-circle" style="background: #F3E8DB;"></div>
+              <p class="palette-name">Nuvem Clara</p>
+              <p class="palette-hex">#F3E8DB</p>
+            </div>
+            <div class="palette-color">
+              <div class="color-swatch-circle" style="background: #E98024;"></div>
+              <p class="palette-name">Ouro Fortuna</p>
+              <p class="palette-hex">#E98024</p>
+            </div>
+            <div class="palette-color">
+              <div class="color-swatch-circle" style="background: #F3A83B;"></div>
+              <p class="palette-name">Brilho Solar</p>
+              <p class="palette-hex">#F3A83B</p>
+            </div>
+            <div class="palette-color">
+              <div class="color-swatch-circle" style="background: #1A3247;"></div>
+              <p class="palette-name">Azul Profundo</p>
+              <p class="palette-hex">#1A3247</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+
+    <!-- Seção: Glass Design System (Tipos de Cards & Vidros - Full Width) -->
+    <section class="card-panel" style="margin-top: 2.5rem;">
+      <h2 class="panel-title">Glass Design System — Tipos de Cards</h2>
+      <p class="text-body" style="margin-bottom: 2rem;">Demonstração comparativa lado a lado das duas versões de refração líquida oficiais do design system do Fortunate, projetadas para equilibrar leveza estética e legibilidade em diferentes escalas.</p>
+      <div class="tech-grid" style="grid-template-columns: 1fr 1fr; gap: 3rem;">
+        
+        <!-- Coluna 1: Cards Individuais -->
+        <div class="tech-col" style="gap: 2rem;">
+          <h3 class="tech-subtitle">1. Cards Individuais</h3>
+          
+          <div class="glass-fino" style="border-radius: 20px; padding: 2rem;">
+            <div class="card-inner">
+              <span class="card-label">Card Transparente (Glass Fino)</span>
+              <span class="card-value" style="font-size: 1.5rem; margin: 0.75rem 0 0.5rem; display: block;">R$ 14.280,00</span>
+              <span class="card-meta">Opacidade: 12% • Blur: 8px. Ideal para grandes painéis de fundo e containers estruturais secundários.</span>
+            </div>
+          </div>
+
+          <div class="glass-denso" style="border-radius: 20px; padding: 2rem;">
+            <div class="card-inner">
+              <span class="card-label">Card Leitoso (Glass Denso)</span>
+              <span class="card-value" style="font-size: 1.5rem; margin: 0.75rem 0 0.5rem; display: block;">R$ 14.280,00</span>
+              <span class="card-meta">Opacidade: 70% • Blur: 12px. Ideal para informações textuais densas, pequenos cartões e dados críticos de alta legibilidade.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna 2: Decks Empilhados -->
+        <div class="tech-col" style="gap: 2rem;">
+          <h3 class="tech-subtitle">2. Decks Empilhados (Tarot Spread)</h3>
+          
+          <!-- Restrição do Design System: Stacked Transparente Proibido -->
+          <div class="styleguide-warning" style="background: rgba(225, 29, 72, 0.08); border-left: 4px solid #e11d48; padding: 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border-top: 1px solid rgba(255, 255, 255, 0.1); border-right: 1px solid rgba(255, 255, 255, 0.1); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+            <h4 style="color: #e11d48; margin: 0 0 0.5rem; font-family: var(--font-heading); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">⚠️ Restrição: Decks Transparentes Proibidos</h4>
+            <p style="margin: 0; font-size: 0.8rem; line-height: 1.4; color: var(--c-content-muted);">Decks empilhados <strong>nunca</strong> devem utilizar a opacidade de 12% (Glass Fino). O empilhamento de múltiplas camadas de alta transparência funde os textos e dados inferiores com os superiores, destruindo a legibilidade. Use obrigatoriamente <strong>Glass Denso (70%)</strong> em estruturas empilhadas.</p>
+          </div>
+
+          <!-- Stacked Leitoso -->
+          <div style="margin-top: 1rem;">
+            <span class="card-label" style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem;">Versão Leitosa (Glass Denso - 70%)</span>
+            <div class="stacked-cards-container" style="height: 160px; margin: 0;">
+              <div class="stacked-card stacked-card-3 glass-denso" style="height: 120px;">
+                <div class="card-inner">
+                  <span class="card-label">Reserva</span>
+                  <span class="card-value" style="font-size: 1.2rem;">R$ 25.000</span>
+                </div>
+              </div>
+              <div class="stacked-card stacked-card-2 glass-denso" style="height: 120px;">
+                <div class="card-inner">
+                  <span class="card-label">Investimentos</span>
+                  <span class="card-value" style="font-size: 1.2rem;">R$ 78.430</span>
+                </div>
+              </div>
+              <div class="stacked-card stacked-card-1 glass-denso" style="height: 120px;">
+                <div class="card-inner">
+                  <span class="card-label">Conta Corrente</span>
+                  <span class="card-value" style="font-size: 1.2rem;">R$ 14.280</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Seção: Form Design System (Coleção de Inputs & Controls - Full Width) -->
+    <section class="card-panel" style="margin-top: 2.5rem;">
+      <h2 class="panel-title">Form Design System — Componentes de Formulário</h2>
+      <p class="text-body" style="margin-bottom: 2rem;">Especificação visual e interativa de todos os elementos de controle e entrada de dados do ecossistema Fortunate, seguindo a estética de refração líquida e feedback elástico.</p>
+      
+      <div class="tech-grid" style="grid-template-columns: 1fr 1fr; gap: 3rem;">
+        
+        <!-- Coluna 1: Campos de Texto e Seleção -->
+        <div class="tech-col" style="gap: 1.5rem;">
+          <h3 class="tech-subtitle">1. Entradas de Texto e Seleção</h3>
+          
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <label class="input-label" style="font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted);">Input de Texto Padrão</label>
+            <input type="text" class="input-field" placeholder="Insira o texto..." />
+          </div>
+
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <label class="input-label" style="font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted);">Input com Máscara / Prefixo</label>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix">R$</span>
+              <input type="text" class="input-field" placeholder="0,00" />
+            </div>
+          </div>
+
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <label class="input-label" style="font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted);">Seletor Dropdown (Select)</label>
+            <div style="position: relative; width: 100%;">
+              <select class="input-field" style="-webkit-appearance: none; appearance: none; padding-right: 2.5rem;">
+                <option>Gastos Essenciais</option>
+                <option>Estilo de Vida</option>
+                <option>Investimentos</option>
+              </select>
+              <div style="position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--c-content-muted); font-size: 0.85rem;">▼</div>
+            </div>
+          </div>
+
+          <div class="form-group" style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <label class="input-label" style="font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted);">Área de Texto (Textarea)</label>
+            <textarea class="input-field" placeholder="Escreva observações adicionais..." style="min-height: 100px; resize: vertical; font-family: var(--font-body);"></textarea>
+          </div>
+        </div>
+
+        <!-- Coluna 2: Controles de Opção (Checkbox, Radio, Toggle) -->
+        <div class="tech-col" style="gap: 1.5rem;">
+          <h3 class="tech-subtitle">2. Controles de Opção & Alternância</h3>
+          
+          <!-- Checkbox Demo -->
+          <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+            <span class="input-label" style="font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted); display: block;">Caixas de Seleção (Checkboxes)</span>
+            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-size: 0.9rem;">
+              <input type="checkbox" class="form-checkbox" checked />
+              <span>Transação recorrente mensal</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer; font-size: 0.9rem;">
+              <input type="checkbox" class="form-checkbox" />
+              <span>Notificar no aplicativo móvel</span>
+            </label>
+          </div>
+
+          <!-- Radio Demo -->
+          <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 0.5rem;">
+            <span class="input-label" style="font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted); display: block;">Botões de Opção Única (Radios)</span>
+            <div style="display: flex; gap: 1.5rem;">
+              <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-size: 0.9rem;">
+                <input type="radio" name="pilar-opt" class="form-radio" checked />
+                <span>Receita</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-size: 0.9rem;">
+                <input type="radio" name="pilar-opt" class="form-radio" />
+                <span>Despesa</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-size: 0.9rem;">
+                <input type="radio" name="pilar-opt" class="form-radio" />
+                <span>Investimento</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Toggle Demo -->
+          <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 0.5rem;">
+            <span class="input-label" style="font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted); display: block;">Interruptores de Alternância (Toggles)</span>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 0.9rem; max-width: 320px;">
+                <span>Ativar Inteligência Artificial</span>
+                <label class="form-toggle">
+                  <input type="checkbox" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </label>
+              <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 0.9rem; max-width: 320px;">
+                <span>Modo de visualização familiar</span>
+                <label class="form-toggle">
+                  <input type="checkbox" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </label>
+            </div>
+          </div>
+
+        </div>
+        
+      </div>
+    </section>
+
+    <!-- Seção: Tipografia & Hierarquia (Full Width, acima da tabela) -->
+    <section class="card-panel" style="margin-top: 2.5rem;">
+      <h2 class="panel-title">Tipografia & Hierarquia</h2>
+      <div class="typo-section">
+        <div class="typo-example">
+          <div class="typo-meta">
+            Display (Brand)
+            <div class="tech-spec">Cinzel • 2.5rem (40px) • 500</div>
+          </div>
+          <span class="text-display">THE FORTUNATE</span>
+        </div>
+        <div class="typo-example">
+          <div class="typo-meta">
+            Heading 1
+            <div class="tech-spec">Outfit • 1.8rem (28px) • 600</div>
+          </div>
+          <span class="text-heading">R$ 14.280,00</span>
+        </div>
+        <div class="typo-example">
+          <div class="typo-meta">
+            Mapeamento de Cores de Texto
+            <div class="tech-spec">Strict Theme Standards</div>
+          </div>
+          <div class="text-body" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div><strong style="color: var(--c-content); font-weight: 600;">Cabeçalhos, Valores & Títulos:</strong> Sempre <code>var(--c-content)</code> (Contraste Máximo)</div>
+            <div><strong style="color: var(--c-content-muted); font-weight: 500;">Textos Secundários, Muted & Labels:</strong> Sempre <code>var(--c-content-muted)</code> (Contraste Suave)</div>
+            <div><strong style="color: var(--c-action); font-weight: 600;">Destaques & Ações Principais:</strong> Sempre <code>var(--c-action)</code> (Brilho Solar/Ouro Fortuna)</div>
+          </div>
+        </div>
+        <div class="typo-example">
+          <div class="typo-meta">
+            Sistema de Pesos (Weights)
+            <div class="tech-spec">Strict Typography Weights</div>
+          </div>
+          <div class="text-body" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div><span style="font-weight: 700; color: var(--c-content);">Peso Bold (700)</span> — Valores em destaque, Títulos Principais.</div>
+            <div><span style="font-weight: 600; color: var(--c-content);">Peso Semibold (600)</span> — Títulos de Seções, Badges, Botões de Ação.</div>
+            <div><span style="font-weight: 500; color: var(--c-content);">Peso Medium (500)</span> — Labels de inputs, Cabeçalhos de tabela.</div>
+            <div><span style="font-weight: 400; color: var(--c-content-muted);">Peso Regular (400)</span> — Textos de parágrafos, células de tabelas, metadados.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seção: Tabela de Lançamentos (Full Width, abaixo do Grid do Dashboard) -->
+    <section class="card-panel" style="margin-top: 2.5rem;">
+      <h2 class="panel-title">Lançamentos Recentes</h2>
+      <div class="table-responsive">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Descrição</th>
+              <th>Pilar</th>
+              <th>Atribuído a</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>28 de Jun, 2026</td>
+              <td>Aluguel do Mês</td>
+              <td><span class="pilar-badge p-essenciais">Gastos Essenciais</span></td>
+              <td><span class="avatar-icon avatar-l">L</span> Luche</td>
+              <td class="val-negative">- R$ 3.500,00</td>
+            </tr>
+            <tr>
+              <td>28 de Jun, 2026</td>
+              <td>Salário de Desenvolvimento</td>
+              <td><span class="pilar-badge p-liberdade">Liberdade Financeira</span></td>
+              <td><span class="avatar-icon avatar-l">L</span> Luche</td>
+              <td class="val-positive">+ R$ 14.500,00</td>
+            </tr>
+            <tr>
+              <td>27 de Jun, 2026</td>
+              <td>Jantar Especial</td>
+              <td><span class="pilar-badge p-conforto">Conforto</span></td>
+              <td><span class="avatar-icon avatar-n">N</span> Namorada</td>
+              <td class="val-negative">- R$ 320,00</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- -------------------------------------------------------------
+       Barra de Pesquisa e Assistente AI Flutuante (Bottom Center)
+       ------------------------------------------------------------- -->
+  <div class="floating-assistant-container">
+    <div class="assistant-prompt-deck">
+      <button class="prompt-pill">Qual é o saldo da minha meta de Liberdade?</button>
+      <button class="prompt-pill">Estou dentro do limite de Custos Essenciais?</button>
+    </div>
+    <div class="assistant-search-bar">
+      <svg class="assistant-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+      <input type="text" class="assistant-input" placeholder="Pergunte ao Fortunate AI ou busque transações..." readonly />
+      <span class="assistant-kbd">⌘K</span>
+    </div>
+  </div>
+
+  <!-- -------------------------------------------------------------
+       Modal Dialog de Exemplo (Vidro Leitoso e Denso)
+       ------------------------------------------------------------- -->
+  <dialog id="styleguide-modal" class="styleguide-modal" closedby="any" aria-labelledby="modal-title">
+    <form method="dialog" style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h2 id="modal-title" style="margin: 0; font-family: var(--font-heading); font-size: 1.4rem; font-weight: 600; color: var(--c-content);">Novo Lançamento</h2>
+        <button type="button" class="btn-close-modal" onclick="document.getElementById('styleguide-modal').close()" aria-label="Fechar">&times;</button>
+      </div>
+      
+      <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+        <label style="font-family: var(--font-heading); font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted);">Descrição</label>
+        <input type="text" placeholder="Ex: Supermercado Celestial" required />
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <label style="font-family: var(--font-heading); font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted);">Valor (R$)</label>
+          <input type="text" placeholder="0,00" required />
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          <label style="font-family: var(--font-heading); font-weight: 500; font-size: 0.85rem; color: var(--c-content-muted);">Pilar</label>
+          <div style="position: relative; width: 100%;">
+            <select style="-webkit-appearance: none; appearance: none; padding-right: 2.5rem !important;">
+              <option value="1">Essenciais</option>
+              <option value="2">Conforto</option>
+              <option value="3">Metas</option>
+              <option value="4">Liberdade</option>
+            </select>
+            <div style="position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--c-content-muted); font-size: 0.85rem;">▼</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+        <button type="button" class="btn btn-outline" onclick="document.getElementById('styleguide-modal').close()" style="padding: 0.75rem 1.5rem; border-radius: 999px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">Cancelar</button>
+        <button type="submit" class="btn btn-action" style="padding: 0.75rem 1.5rem; border-radius: 999px; font-weight: 600; font-size: 0.9rem; cursor: pointer;">Salvar Lançamento</button>
+      </div>
+    </form>
+  </dialog>
+
+    <!-- Switcher de Temas Vertical Realocado para a Base do Body (Independente do Header) -->
+  <div class="switcher-wrapper">
+    <fieldset class="switcher" id="theme-switcher" c-previous="1">
+      <legend class="switcher__legend">Choose theme</legend>
+      
+      <!-- Opção Light -->
+      <label class="switcher__option" onclick="document.getElementById('theme-switcher').setAttribute('c-previous', '1')">
+        <input class="switcher__input" type="radio" name="theme" value="light" c-option="1" checked />
+        <!-- Sol -->
+        <svg class="switcher__icon" viewBox="0 0 36 36">
+          <path fill="var(--c)" fill-rule="evenodd" d="M18 12a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm0 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" clip-rule="evenodd"/>
+          <path fill="var(--c)" d="M17 6.038a1 1 0 1 1 2 0v3a1 1 0 0 1-2 0v-3ZM24.244 7.742a1 1 0 1 1 1.618 1.176L24.1 11.345a1 1 0 1 1-1.618-1.176l1.763-2.427ZM29.104 13.379a1 1 0 0 1 .618 1.902l-2.854.927a1 1 0 1 1-.618-1.902l2.854-.927ZM29.722 20.795a1 1 0 0 1-.619 1.902l-2.853-.927a1 1 0 1 1 .618-1.902l2.854.927ZM25.862 27.159a1 1 0 0 1-1.618 1.175l-1.763-2.427a1 1 0 1 1 1.618-1.175l1.763 2.427ZM19 30.038a1 1 0 0 1-2 0v-3a1 1 0 1 1 2 0v3ZM11.755 28.334a1 1 0 0 1-1.618-1.175l1.764-2.427a1 1 0 1 1 1.618 1.175l-1.764 2.427ZM6.896 22.697a1 1 0 1 1-.618-1.902l2.853-.927a1 1 0 1 1 .618 1.902l-2.853.927ZM6.278 15.28a1 1 0 1 1-.618-1.901l2.853.927a1 1 0 1 1-.618 1.902l-2.853-.927ZM10.137 8.918a1 1 0 0 1 1.618-1.176l1.764 2.427a1 1 0 0 1-1.618 1.176l-1.764-2.427Z"/>
+        </svg>
+      </label>
+      
+      <!-- Opção Dark -->
+      <label class="switcher__option" onclick="document.getElementById('theme-switcher').setAttribute('c-previous', '2')">
+        <input class="switcher__input" type="radio" name="theme" value="dark" c-option="2" />
+        <!-- Lua -->
+        <svg class="switcher__icon" viewBox="0 0 36 36">
+          <path fill="var(--c)" d="M12.5 8.473a10.968 10.968 0 0 1 8.785-.97 7.435 7.435 0 0 0-3.737 4.672l-.09.373A7.454 7.454 0 0 0 28.732 20.4a10.97 10.97 0 0 1-5.232 7.125l-.497.27c-5.014 2.566-11.175.916-14.234-3.813l-.295-.483C5.53 18.403 7.13 11.93 12.017 8.77l.483-.297Zm4.234.616a8.946 8.946 0 0 0-2.805.883l-.429.234A9 9 0 0 0 10.206 22.5l.241.395A9 9 0 0 0 22.5 25.794l.416-.255a8.94 8.94 0 0 0 2.167-1.99 9.433 9.433 0 0 1-2.782-.313c-5.043-1.352-8.036-6.535-6.686-11.578l.147-.491c.242-.745.573-1.44.972-2.078Z"/>
+        </svg>
+      </label>
+      
+      <!-- Opção Dim (Celestial) -->
+      <label class="switcher__option" onclick="document.getElementById('theme-switcher').setAttribute('c-previous', '3')">
+        <input class="switcher__input" type="radio" name="theme" value="dim" c-option="3" />
+        <!-- Planeta -->
+        <svg class="switcher__icon" viewBox="0 0 36 36">
+          <path fill="var(--c)" d="M5 21a1 1 0 0 1 1-1h24a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1ZM12 25a1 1 0 0 1 1-1h10a1 1 0 1 1 0 2H13a1 1 0 0 1-1-1ZM15 29a1 1 0 0 1 1-1h4a1 1 0 1 1 0 2h-4a1 1 0 0 1-1-1ZM18 13a6 6 0 0 1 5.915 7h-2.041A4.005 4.005 0 0 0 18 15a4 4 0 0 0-3.874 5h-2.041A6 6 0 0 1 18 13ZM17 7.038a1 1 0 1 1 2 0v3a1 1 0 0 1-2 0v-3ZM24.244 8.742a1 1 0 1 1 1.618 1.176L24.1 12.345a1 1 0 1 1-1.618-1.176l1.763-2.427ZM29.104 14.379a1 1 0 0 1 .618 1.902l-2.854.927a1 1 0 1 1-.618-1.902l2.854-.927ZM6.278 16.28a1 1 0 1 1 .618-1.901l2.853.927a1 1 0 1 1-.618 1.902l-2.853-.927ZM10.137 9.918a1 1 0 0 1 1.618-1.176l1.764 2.427a1 1 0 0 1-1.618 1.176l-1.764-2.427Z"/>
+        </svg>
+      </label>
+    </fieldset>
+  </div>
+
+  <!-- -------------------------------------------------------------
+       Filtros SVG de Refração Líquida (Copiados da Referência)
+       ------------------------------------------------------------- -->
+  <div style="width: 0; height: 0; overflow: hidden; position: absolute;">
+    <svg>
+      <!-- Filtro para o Switcher e Cabeçalho (Fator de escala de deslocamento de 0.5) -->
+      <filter id="switcher" primitiveUnits="objectBoundingBox">
+        <feImage result="map" width="100%" height="100%" x="0" y="0" href="data:image/webp;base64,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"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="0.04" result="blur"/>
+        <feDisplacementMap 
+                           id="disp" 
+                           in="blur" 
+                           in2="map" 
+                           scale="0.08" 
+                           xChannelSelector="R" 
+                           yChannelSelector="G">
+        </feDisplacementMap>
+      </filter>
+    </svg>
+  </div>
+
+  <!-- Parallax Scroll & Sticky Navbar Morphing Script -->
+  <script>
+    // Funcao global para abrir modal e bloquear scroll
+    window.openModal = function() {
+      const modal = document.getElementById('styleguide-modal');
+      if (modal) {
+        modal.showModal();
+        document.body.classList.add('modal-open');
+      }
+    };
+
+    // Monitorar fechamento nativo para desbloquear scroll
+    const modalEl = document.getElementById('styleguide-modal');
+    if (modalEl) {
+      modalEl.addEventListener('close', () => {
+        document.body.classList.remove('modal-open');
+      });
+    }
+
+        // Fallback de clique externo (light dismiss) para dialogos em navegadores sem suporte nativo
+    const styleguideDialog = document.getElementById('styleguide-modal');
+    if (styleguideDialog && !('closedBy' in HTMLDialogElement.prototype)) {
+      styleguideDialog.addEventListener('click', (event) => {
+        if (event.target !== styleguideDialog) return;
+        const rect = styleguideDialog.getBoundingClientRect();
+        const isDialogContent = (
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width
+        );
+        if (!isDialogContent) {
+          styleguideDialog.close();
+        }
+      });
+    }
+
+    const navbar = document.querySelector('.navbar');
+    window.addEventListener('scroll', () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      document.documentElement.style.setProperty('--scroll-top', scrollTop);
+      
+      // Quando passar de 20px de altura de scroll, vira barra glass
+      if (scrollTop > 20) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+    }, { passive: true });
+  </script>
+
+</body>
+</html>
