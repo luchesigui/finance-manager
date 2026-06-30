@@ -1,0 +1,134 @@
+/* ============================================================
+   Toast — Glassmorphic Notification
+   ============================================================ */
+
+.toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  width: 360px;
+  min-width: 280px;
+  padding: 1rem 1rem 1rem 1rem;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+
+  /* Glass base — denso style */
+  background-color: color-mix(in srgb, var(--c-glass) 70%, transparent);
+  backdrop-filter: blur(12px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(12px) saturate(var(--saturation));
+  box-shadow: var(--shadow-glass-3d);
+
+  transition: var(--transition-base);
+}
+
+/* ── Icon ──────────────────────────────────────── */
+.icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin-top: 1px;
+}
+
+.success .icon {
+  color: var(--status-positive);
+  background-color: color-mix(in srgb, var(--status-positive) 14%, transparent);
+}
+.error .icon {
+  color: var(--status-negative);
+  background-color: color-mix(in srgb, var(--status-negative) 14%, transparent);
+}
+.warning .icon {
+  color: #f5a623;
+  background-color: color-mix(in srgb, #f5a623 14%, transparent);
+}
+.info .icon {
+  color: var(--c-action);
+  background-color: color-mix(in srgb, var(--c-action) 14%, transparent);
+}
+
+/* ── Body text ─────────────────────────────────── */
+.body {
+  flex: 1;
+  min-width: 0;
+  padding-right: 0.5rem;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--c-content);
+  margin: 0 0 0.2rem;
+  line-height: 1.4;
+}
+
+.message {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--c-content-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Close button ──────────────────────────────── */
+.close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  color: var(--c-content-muted);
+  background-color: color-mix(in srgb, var(--c-glass) 40%, transparent);
+  box-shadow: var(--shadow-glass-3d);
+  transition: var(--transition-base);
+  margin-top: 2px;
+  padding: 0;
+}
+
+.close:hover {
+  background-color: color-mix(in srgb, var(--c-glass) 60%, transparent);
+  color: var(--c-content);
+}
+
+/* ── Auto-dismiss progress bar ─────────────────── */
+.progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  transform-origin: left center;
+  animation: toastProgress 4s linear forwards;
+}
+
+.success .progress {
+  background-color: var(--status-positive);
+}
+.error .progress {
+  background-color: var(--status-negative);
+}
+.warning .progress {
+  background-color: #f5a623;
+}
+.info .progress {
+  background-color: var(--c-action);
+}
+
+@keyframes toastProgress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

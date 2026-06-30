@@ -1,0 +1,27 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background-color: var(--c-bg-solid);
+  min-height: 100%;
+  transition: background-color 400ms var(--ease-celestial);
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--c-bg);
+  background-attachment: fixed;
+  color: var(--c-content);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background 400ms var(--ease-celestial), color 400ms var(--ease-celestial);
+}

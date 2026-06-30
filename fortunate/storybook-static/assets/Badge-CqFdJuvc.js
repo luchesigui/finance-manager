@@ -1,0 +1,6 @@
+import{j as a}from"./jsx-runtime-BjG_zV1W.js";import{c as s}from"./clsx-B-dksMZM.js";import{P as o}from"./Pill-Bsap-_Mk.js";const t="_badge_1g1wo_1",n="_dot_1g1wo_5",e={badge:t,dot:n,"pilar-essenciais":"_pilar-essenciais_1g1wo_14","pilar-conforto":"_pilar-conforto_1g1wo_23","pilar-prazeres":"_pilar-prazeres_1g1wo_32","pilar-conhecimento":"_pilar-conhecimento_1g1wo_41","pilar-metas":"_pilar-metas_1g1wo_50","pilar-liberdade":"_pilar-liberdade_1g1wo_59"};function p({variant:r="pilar-metas",children:i,className:l}){return a.jsx(o,{icon:a.jsx("span",{className:e.dot}),className:s(e.badge,e[r],l),children:i})}p.__docgenInfo={description:"",methods:[],displayName:"Badge",props:{variant:{required:!1,tsType:{name:"union",raw:`| "pilar-essenciais"
+| "pilar-conforto"
+| "pilar-prazeres"
+| "pilar-conhecimento"
+| "pilar-metas"
+| "pilar-liberdade"`,elements:[{name:"literal",value:'"pilar-essenciais"'},{name:"literal",value:'"pilar-conforto"'},{name:"literal",value:'"pilar-prazeres"'},{name:"literal",value:'"pilar-conhecimento"'},{name:"literal",value:'"pilar-metas"'},{name:"literal",value:'"pilar-liberdade"'}]},description:"",defaultValue:{value:'"pilar-metas"',computed:!1}},children:{required:!0,tsType:{name:"ReactReactNode",raw:"React.ReactNode"},description:""},className:{required:!1,tsType:{name:"string"},description:""}}};export{p as B};

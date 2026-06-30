@@ -1,0 +1,183 @@
+.card {
+  background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+  backdrop-filter: blur(8px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+  border-radius: var(--radius-card);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: var(--transition-base);
+  box-shadow: var(--shadow-glass-3d);
+}
+
+.card:hover {
+  background-color: color-mix(in srgb, var(--c-glass) 16%, transparent);
+  transform: translateY(-2px);
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pilarInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 300ms;
+}
+
+.label {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-content);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.percent {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--c-content-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.percentOverflow {
+  color: var(--status-negative);
+}
+
+/* ── Progress bar ── */
+.progressBar {
+  height: 8px;
+  background: color-mix(in srgb, var(--c-content) 10%, transparent);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progressFillOverflow {
+  animation: overflowPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes overflowPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* ── Footer ── */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.spent {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--c-content);
+}
+
+.spentOverflow {
+  color: var(--status-negative);
+}
+
+.target {
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--c-content-muted);
+  white-space: nowrap;
+}
+
+/* ── Config mode ── */
+.configPercent {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.percentInput {
+  width: 52px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--c-content) 20%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--c-light) 8%,
+    color-mix(in srgb, var(--c-glass) 12%, transparent)
+  );
+  color: var(--c-content);
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: right;
+  outline: none;
+  transition: border-color 200ms, box-shadow 200ms;
+  -moz-appearance: textfield;
+}
+
+.percentInput:focus {
+  border-color: var(--c-content);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-content) 10%, transparent);
+}
+
+.percentInput::-webkit-outer-spin-button,
+.percentInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.percentSymbol {
+  font-family: var(--font-heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--c-content-muted);
+}
+
+/* ── Overflow card state ── */
+.cardOverflow {
+  background-color: color-mix(
+    in srgb,
+    var(--status-negative) 6%,
+    color-mix(in srgb, var(--c-glass) 12%, transparent)
+  );
+  box-shadow: var(--shadow-glass-3d), inset 0 0 0 1px
+    color-mix(in srgb, var(--status-negative) 20%, transparent);
+}
+
+.cardOverflow:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--status-negative) 9%,
+    color-mix(in srgb, var(--c-glass) 16%, transparent)
+  );
+}

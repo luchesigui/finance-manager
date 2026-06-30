@@ -1,0 +1,41 @@
+.tag {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  gap: 0.3rem;
+}
+
+.previsao {
+  --pill-color: #d4a017;
+  --pill-bg: color-mix(in srgb, #d4a017 12%, transparent);
+  --pill-border: 1px solid color-mix(in srgb, #d4a017 30%, transparent);
+}
+
+.fora-do-padrao {
+  --pill-color: #e05c5c;
+  --pill-bg: color-mix(in srgb, #e05c5c 12%, transparent);
+  --pill-border: 1px solid color-mix(in srgb, #e05c5c 28%, transparent);
+}
+
+.cartao {
+  --pill-color: #7b8fd4;
+  --pill-bg: color-mix(in srgb, #7b8fd4 12%, transparent);
+  --pill-border: 1px solid color-mix(in srgb, #7b8fd4 28%, transparent);
+}
+
+.proxima-fatura {
+  --pill-color: #7b8fd4;
+  --pill-bg: color-mix(in srgb, #7b8fd4 12%, transparent);
+  --pill-border: 1px solid color-mix(in srgb, #7b8fd4 28%, transparent);
+}
+
+.recorrente {
+  --pill-color: var(--status-positive);
+  --pill-bg: color-mix(in srgb, var(--status-positive) 12%, transparent);
+  --pill-border: 1px solid color-mix(in srgb, var(--status-positive) 28%, transparent);
+}
+
+.parcelado {
+  --pill-color: var(--c-action);
+  --pill-bg: color-mix(in srgb, var(--c-action) 12%, transparent);
+  --pill-border: 1px solid color-mix(in srgb, var(--c-action) 28%, transparent);
+}

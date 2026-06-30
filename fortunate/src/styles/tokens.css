@@ -1,0 +1,183 @@
+/* ============================================================
+   Fortunate Design System — Design Tokens
+   Paleta Celestial & Prosperidade
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Outfit:wght@300;400;500;600;700&display=swap");
+
+:root {
+  /* --------------------------------------------------
+     Core Palette — Fixed Values
+     -------------------------------------------------- */
+  --sky-top: #5b8baf;
+  --sky-mid: #8bbad6;
+  --sky-bottom: #c3d5e4;
+
+  --gold-light: #f3a83b;
+  --gold-dark: #e98024;
+
+  --cloud-light: #f3e8db;
+  --cloud-dark: #e9dfce;
+
+  --slate-deep: #1a3247;
+  --slate-muted: #4a607a;
+  --white: #ffffff;
+
+  /* --------------------------------------------------
+     Semantic Tokens — Theme-aware (Light / Day default)
+     -------------------------------------------------- */
+  --c-glass: #f3e8db;
+  --c-light: #ffffff;
+  --c-dark: #1a3247;
+
+  --c-content: #1a3247;
+  --c-content-muted: #4a607a;
+  --c-action: #e98024;
+
+  --c-bg: linear-gradient(
+    135deg,
+    var(--sky-top) 0%,
+    var(--sky-mid) 35%,
+    var(--sky-bottom) 65%,
+    var(--cloud-light) 100%
+  );
+  --c-bg-solid: #f3e8db;
+
+  --glass-reflex-dark: 1;
+  --glass-reflex-light: 1.2;
+  --saturation: 130%;
+
+  /* --------------------------------------------------
+     Pilar Colors
+     -------------------------------------------------- */
+  --pilar-essenciais: #3b82f6;
+  --pilar-conforto: #ec4899;
+  --pilar-prazeres: #f97316;
+  --pilar-conhecimento: #eab308;
+  --pilar-metas: #6b7280;
+  --pilar-liberdade: #8b5cf6;
+
+  /* --------------------------------------------------
+     Semantic Status
+     -------------------------------------------------- */
+  --status-positive: #10b981;
+  --status-negative: #e11d48;
+  --status-neutral: var(--pilar-essenciais);
+
+  /* --------------------------------------------------
+     Typography
+     -------------------------------------------------- */
+  --font-display: "Cinzel", serif;
+  --font-heading: "Outfit", sans-serif;
+  --font-body: "DM Sans", sans-serif;
+
+  /* --------------------------------------------------
+     Motion
+     -------------------------------------------------- */
+  --transition-base: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-celestial: cubic-bezier(1, 0.0, 0.4, 1);
+
+  /* --------------------------------------------------
+     Spacing & Radius
+     -------------------------------------------------- */
+  --radius-panel: 24px;
+  --radius-card: 20px;
+  --radius-input: 12px;
+  --radius-pill: 999px;
+
+  /* --------------------------------------------------
+     3D Glass Shadow System
+     -------------------------------------------------- */
+  --shadow-glass-3d:
+    inset 0 0 0 1px color-mix(
+      in srgb,
+      var(--c-light) calc(var(--glass-reflex-light) * 10%),
+      transparent
+    ),
+    inset 1.8px 3px 0px -2px color-mix(
+      in srgb,
+      var(--c-light) calc(var(--glass-reflex-light) * 90%),
+      transparent
+    ),
+    inset -2px -2px 0px -2px color-mix(
+      in srgb,
+      var(--c-light) calc(var(--glass-reflex-light) * 80%),
+      transparent
+    ),
+    inset -3px -8px 1px -6px color-mix(
+      in srgb,
+      var(--c-light) calc(var(--glass-reflex-light) * 60%),
+      transparent
+    ),
+    inset -0.3px -1px 4px 0px color-mix(
+      in srgb,
+      var(--c-dark) calc(var(--glass-reflex-dark) * 12%),
+      transparent
+    ),
+    inset -1.5px 2.5px 0px -2px color-mix(
+      in srgb,
+      var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+      transparent
+    ),
+    inset 0px 3px 4px -2px color-mix(
+      in srgb,
+      var(--c-dark) calc(var(--glass-reflex-dark) * 20%),
+      transparent
+    ),
+    inset 2px -6.5px 1px -4px color-mix(
+      in srgb,
+      var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+      transparent
+    ),
+    0px 1px 5px 0px color-mix(
+      in srgb,
+      var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
+      transparent
+    ),
+    0px 6px 16px 0px color-mix(
+      in srgb,
+      var(--c-dark) calc(var(--glass-reflex-dark) * 8%),
+      transparent
+    );
+}
+
+/* --------------------------------------------------
+   Theme: Dark (Céu Noturno)
+   -------------------------------------------------- */
+[data-theme="dark"] {
+  --c-glass: #1a3247;
+  --c-light: #c3d5e4;
+  --c-dark: #0a131c;
+
+  --c-content: #f3e8db;
+  --c-content-muted: #8bbad6;
+  --c-action: #e98024;
+
+  --c-bg: linear-gradient(135deg, #0a131c 0%, #101e2b 40%, #1a3247 85%, #101e2b 100%);
+  --c-bg-solid: #101e2b;
+
+  --glass-reflex-dark: 1.8;
+  --glass-reflex-light: 0.8;
+  --saturation: 140%;
+}
+
+/* --------------------------------------------------
+   Theme: Dim (Céu Místico / Crepúsculo)
+   -------------------------------------------------- */
+[data-theme="dim"] {
+  --c-glass: #4a607a;
+  --c-light: #f3e8db;
+  --c-dark: #1a3247;
+
+  --c-content: #f3e8db;
+  --c-content-muted: #c3d5e4;
+  --c-action: #f3a83b;
+
+  --c-bg: linear-gradient(135deg, #1a3247 0%, #2a445e 35%, #4a607a 70%, #1a3247 100%);
+  --c-bg-solid: #1a3247;
+
+  --glass-reflex-dark: 1.5;
+  --glass-reflex-light: 1.0;
+  --saturation: 150%;
+}

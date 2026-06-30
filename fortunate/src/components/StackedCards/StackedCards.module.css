@@ -1,0 +1,109 @@
+.container {
+  position: relative;
+  height: 250px;
+  width: 100%;
+  max-width: 450px;
+  margin: 1rem 0;
+}
+
+.card {
+  position: absolute;
+  width: 100%;
+  height: 190px;
+  border-radius: var(--radius-card);
+  padding: 1.8rem;
+  transition: transform 500ms cubic-bezier(0.2, 1, 0.2, 1), opacity 500ms
+    cubic-bezier(0.2, 1, 0.2, 1), box-shadow 400ms var(--ease-celestial), background-color 400ms
+    var(--ease-celestial);
+
+  background-color: color-mix(in srgb, var(--c-glass) 70%, transparent);
+  backdrop-filter: blur(12px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(12px) saturate(var(--saturation));
+  box-shadow: var(--shadow-glass-3d);
+}
+
+/* Default stacked positions */
+.card1 {
+  top: 40px;
+  left: 0;
+  z-index: 3;
+  transform: scale(1);
+}
+
+.card2 {
+  top: 20px;
+  left: 10px;
+  z-index: 2;
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+.card3 {
+  top: 0px;
+  left: 20px;
+  z-index: 1;
+  transform: scale(0.92);
+  opacity: 0.65;
+}
+
+/* Hover — Tarot Spread */
+.container:hover .card1 {
+  transform: translateY(20px) scale(1.02);
+  box-shadow:
+    inset 0 0 0 1px color-mix(
+      in srgb,
+      var(--c-light) calc(var(--glass-reflex-light) * 10%),
+      transparent
+    ),
+    inset 1.8px 3px 0px -2px color-mix(
+      in srgb,
+      var(--c-light) calc(var(--glass-reflex-light) * 90%),
+      transparent
+    ),
+    0px 8px 24px 0px color-mix(
+      in srgb,
+      var(--c-dark) calc(var(--glass-reflex-dark) * 12%),
+      transparent
+    );
+}
+
+.container:hover .card2 {
+  transform: translateY(-5px) translateX(25px) scale(0.98) rotate(2deg);
+  opacity: 0.95;
+}
+
+.container:hover .card3 {
+  transform: translateY(-30px) translateX(50px) scale(0.94) rotate(4deg);
+  opacity: 0.85;
+}
+
+/* Card content */
+.inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.label {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-content-muted);
+}
+
+.value {
+  font-family: var(--font-heading);
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--c-content);
+}
+
+.meta {
+  font-size: 0.75rem;
+  color: var(--c-content-muted);
+  font-weight: 500;
+  font-family: var(--font-body);
+}

@@ -1,0 +1,64 @@
+.container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.cloud {
+  position: absolute;
+  user-select: none;
+  will-change: transform;
+  transition: translate 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.floatA {
+  animation-name: floatA;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+.floatB {
+  animation-name: floatB;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+@keyframes floatA {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(1.4rem, -0.9rem);
+  }
+  50% {
+    transform: translate(2.2rem, 0.5rem);
+  }
+  75% {
+    transform: translate(0.7rem, 1.1rem);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes floatB {
+  0% {
+    transform: translate(0, 0);
+  }
+  30% {
+    transform: translate(-1.8rem, 0.7rem);
+  }
+  55% {
+    transform: translate(-0.6rem, -1.2rem);
+  }
+  80% {
+    transform: translate(1.2rem, -0.5rem);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}

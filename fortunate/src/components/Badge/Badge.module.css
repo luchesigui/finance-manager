@@ -1,0 +1,66 @@
+.badge {
+  /* custom badge styles if any */
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  background-color: var(--badge-dot-color);
+}
+
+.pilar-essenciais {
+  --pill-bg: color-mix(
+    in srgb,
+    var(--pilar-essenciais) 10%,
+    color-mix(in srgb, var(--c-glass) 80%, transparent)
+  );
+  --badge-dot-color: var(--pilar-essenciais);
+}
+
+.pilar-conforto {
+  --pill-bg: color-mix(
+    in srgb,
+    var(--pilar-conforto) 10%,
+    color-mix(in srgb, var(--c-glass) 80%, transparent)
+  );
+  --badge-dot-color: var(--pilar-conforto);
+}
+
+.pilar-prazeres {
+  --pill-bg: color-mix(
+    in srgb,
+    var(--pilar-prazeres) 10%,
+    color-mix(in srgb, var(--c-glass) 80%, transparent)
+  );
+  --badge-dot-color: var(--pilar-prazeres);
+}
+
+.pilar-conhecimento {
+  --pill-bg: color-mix(
+    in srgb,
+    var(--pilar-conhecimento) 10%,
+    color-mix(in srgb, var(--c-glass) 80%, transparent)
+  );
+  --badge-dot-color: var(--pilar-conhecimento);
+}
+
+.pilar-metas {
+  --pill-bg: color-mix(
+    in srgb,
+    var(--pilar-metas) 10%,
+    color-mix(in srgb, var(--c-glass) 80%, transparent)
+  );
+  --badge-dot-color: var(--pilar-metas);
+}
+
+.pilar-liberdade {
+  --pill-bg: color-mix(
+    in srgb,
+    var(--pilar-liberdade) 10%,
+    color-mix(in srgb, var(--c-glass) 80%, transparent)
+  );
+  --badge-dot-color: var(--pilar-liberdade);
+}

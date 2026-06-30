@@ -1,0 +1,177 @@
+.card {
+  background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+  backdrop-filter: blur(8px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+  border-radius: var(--radius-card);
+  padding: 1.1rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: var(--shadow-glass-3d);
+  transition: var(--transition-base);
+}
+
+.cardDone {
+  opacity: 0.55;
+}
+
+/* ── Left column ── */
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* Three circles side by side, overlapping */
+.avatarStack {
+  display: flex;
+  align-items: center;
+}
+
+/* Shared circle size — position:relative needed for z-index in flex */
+.avatar,
+.arrowCircle {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* From avatar — solid warm gold */
+.avatar {
+  background-color: oklch(88% 0.08 53);
+  border: 1.5px solid color-mix(in srgb, var(--c-action) 50%, transparent);
+  color: var(--c-action);
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  z-index: 1;
+}
+
+/* Arrow circle — glass bubble in the middle */
+.arrowCircle {
+  background-color: color-mix(in srgb, var(--c-glass) 40%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--c-action);
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  z-index: 2;
+  box-shadow: var(--shadow-glass-3d);
+}
+
+/* To avatar — solid cool gray, in front of arrow */
+.avatarTo {
+  background-color: oklch(83% 0.01 240);
+  border: 1.5px solid oklch(75% 0.01 240);
+  color: oklch(40% 0.02 240);
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  z-index: 3;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  color: var(--c-content-muted);
+  white-space: nowrap;
+}
+
+/* ── Amount ── */
+.amount {
+  flex: 1;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--c-action);
+  white-space: nowrap;
+}
+
+.amountDone {
+  color: var(--status-positive);
+}
+
+/* ── CTA: glass circle icon button ── */
+.cta {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background-color: color-mix(in srgb, var(--c-glass) 30%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--c-content);
+  box-shadow: var(--shadow-glass-3d);
+  cursor: pointer;
+  transition: transform 300ms var(--ease-spring), background-color 300ms, border-color 300ms, color
+    300ms;
+}
+
+.cta:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--status-positive) 14%, transparent);
+  border-color: color-mix(in srgb, var(--status-positive) 40%, transparent);
+  color: var(--status-positive);
+  transform: scale(1.08);
+}
+
+.cta:active:not(:disabled) {
+  transform: scale(0.93) !important;
+}
+
+.cta:disabled {
+  cursor: default;
+}
+
+.ctaDone {
+  background-color: color-mix(in srgb, var(--status-positive) 12%, transparent);
+  border-color: color-mix(in srgb, var(--status-positive) 30%, transparent);
+  color: var(--status-positive);
+}
+
+/* ── Empty state ── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2rem 1.5rem;
+  background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+  backdrop-filter: blur(8px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-glass-3d);
+}
+
+.emptyIcon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(in srgb, var(--status-positive) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-positive) 28%, transparent);
+  color: var(--status-positive);
+  flex-shrink: 0;
+}
+
+.emptyText {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--c-content-muted);
+  text-align: center;
+}
