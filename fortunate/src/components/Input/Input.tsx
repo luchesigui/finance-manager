@@ -1,5 +1,5 @@
-import React from "react";
 import clsx from "clsx";
+import React from "react";
 import styles from "./Input.module.css";
 
 /* ----- Text / Number Input ----- */
@@ -113,7 +113,8 @@ export interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElemen
 }
 
 export function Checkbox({ label, className, id, ...props }: CheckboxProps) {
-  const inputId = id || `cb-${Math.random().toString(36).slice(2)}`;
+  const generatedId = React.useId();
+  const inputId = id ?? generatedId;
   return (
     <div className={styles.checkRow}>
       <input type="checkbox" id={inputId} className={clsx(styles.checkbox, className)} {...props} />
@@ -132,7 +133,8 @@ export interface RadioProps extends React.InputHTMLAttributes<HTMLInputElement> 
 }
 
 export function Radio({ label, className, id, ...props }: RadioProps) {
-  const inputId = id || `radio-${Math.random().toString(36).slice(2)}`;
+  const generatedId = React.useId();
+  const inputId = id ?? generatedId;
   return (
     <div className={styles.checkRow}>
       <input type="radio" id={inputId} className={clsx(styles.radio, className)} {...props} />
@@ -151,7 +153,8 @@ export interface ToggleProps extends React.InputHTMLAttributes<HTMLInputElement>
 }
 
 export function Toggle({ label, className, id, ...props }: ToggleProps) {
-  const inputId = id || `toggle-${Math.random().toString(36).slice(2)}`;
+  const generatedId = React.useId();
+  const inputId = id ?? generatedId;
   return (
     <div className={styles.checkRow}>
       <label className={styles.toggleWrapper} htmlFor={inputId}>
@@ -182,7 +185,7 @@ export interface CapsuleRadioProps {
 
 export function CapsuleRadio({ options, value, onChange, label }: CapsuleRadioProps) {
   return (
-    <div className={styles.wrapper} style={{ width: "fit-content" }}>
+    <div className={styles.wrapperFit}>
       {label && <span className={styles.label}>{label}</span>}
       <div className={styles.capsuleContainer}>
         {options.map((opt) => {

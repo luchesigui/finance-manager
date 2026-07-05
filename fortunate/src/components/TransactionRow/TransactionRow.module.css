@@ -67,6 +67,18 @@
   font-size: 0.95rem;
 }
 
+.income {
+  color: var(--status-positive);
+}
+
+.expense {
+  color: var(--status-negative);
+}
+
+.transfer {
+  color: var(--c-action, #e98024);
+}
+
 .actions {
   display: flex;
   align-items: center;

@@ -1,0 +1,169 @@
+.container {
+  min-height: 100vh;
+  background: var(--c-bg);
+  background-attachment: fixed;
+  padding: 6rem 2rem 10rem;
+  font-family: var(--font-body);
+}
+
+.heroHeader {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.monthSelector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.navButton {
+  background: color-mix(in srgb, var(--c-glass) 12%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--c-content);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: transform 200ms var(--ease-spring), background-color 200ms, border-color 200ms;
+}
+
+.navButton:hover {
+  background: color-mix(in srgb, var(--c-glass) 25%, transparent);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: scale(1.1) translateY(-1px);
+}
+
+.navButton:active {
+  transform: scale(0.92) translateY(0);
+}
+
+.heroSubtitle {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--c-content-muted);
+  margin: 0;
+}
+
+.heroTitle {
+  font-family: var(--font-heading);
+  font-size: 4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.2rem;
+  color: var(--c-content);
+}
+
+.trendsRow {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.content {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 2.5rem;
+  align-items: stretch;
+}
+
+.leftCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.cardPadding {
+  padding: 2.5rem;
+}
+
+.fieldsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.grid1to1 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.rightColCard {
+  padding: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+}
+
+.pillarsGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  grid-template-rows: repeat(3, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.panelTitle {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  letter-spacing: 0.02em;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 10%, transparent);
+  padding-bottom: 0.75rem;
+  color: var(--c-content);
+}
+
+.listCard {
+  padding: 1.5rem 2rem;
+}
+
+.listTitle {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--c-content);
+  margin: 0 0 0.75rem;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 10%, transparent);
+  padding-bottom: 0.75rem;
+}
+
+.assistantWrapper {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 580px;
+  padding: 0 1.5rem;
+  z-index: 900;
+}

@@ -1,5 +1,6 @@
-import React from "react";
 import clsx from "clsx";
+import React from "react";
+import { ArrowRight, Check } from "../Icons";
 import styles from "./TransferCard.module.css";
 
 export interface TransferPerson {
@@ -21,36 +22,6 @@ export interface TransferCardProps {
 const brl = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-const ArrowRight = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M5 12h14M13 6l6 6-6 6" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg
-    width="15"
-    height="15"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M20 6L9 17l-5-5" />
-  </svg>
-);
-
 export function TransferCard({
   from,
   to,
@@ -63,7 +34,7 @@ export function TransferCard({
     return (
       <div className={styles.emptyState}>
         <span className={styles.emptyIcon}>
-          <CheckIcon />
+          <Check width="15" height="15" />
         </span>
         <span className={styles.emptyText}>Nenhuma transferência este mês</span>
       </div>
@@ -78,16 +49,16 @@ export function TransferCard({
       <div className={styles.left}>
         <div className={styles.avatarStack}>
           {/* From avatar */}
-          <span className={styles.avatar}>{from!.initial}</span>
+          <span className={styles.avatar}>{from?.initial}</span>
           {/* Arrow circle */}
           <span className={styles.arrowCircle}>
-            <ArrowRight />
+            <ArrowRight width="14" height="14" />
           </span>
           {/* To avatar */}
-          <span className={clsx(styles.avatar, styles.avatarTo)}>{to!.initial}</span>
+          <span className={clsx(styles.avatar, styles.avatarTo)}>{to?.initial}</span>
         </div>
         <span className={styles.label}>
-          {from!.name} transfere para {to!.name}
+          {from?.name} transfere para {to?.name}
         </span>
       </div>
 
@@ -101,7 +72,7 @@ export function TransferCard({
         disabled={isDone}
         aria-label={isDone ? "Transferência concluída" : "Marcar como transferido"}
       >
-        <CheckIcon />
+        <Check width="15" height="15" />
       </button>
     </div>
   );

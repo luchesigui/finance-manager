@@ -1,5 +1,5 @@
-import React from "react";
 import clsx from "clsx";
+import type React from "react";
 import { Pill } from "../Pill/Pill";
 import styles from "./Badge.module.css";
 

@@ -25,3 +25,9 @@ body {
   overflow-x: hidden;
   transition: background 400ms var(--ease-celestial), color 400ms var(--ease-celestial);
 }
+
+hr {
+  border: none;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 10%, transparent);
+  margin: 0 0 1.5rem;
+}

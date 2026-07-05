@@ -1,0 +1,478 @@
+.container {
+  min-height: 100vh;
+  background: var(--c-bg);
+  padding: 6rem 2rem 10rem;
+  position: relative;
+  font-family: var(--font-body);
+  color: var(--c-content);
+}
+
+.content {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.titleContainer {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.sectionHeader {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--c-content);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.divider {
+  border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 8%, transparent);
+  margin: 1.5rem 0;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.subtitle {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--c-content-muted);
+}
+
+.twoColGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: stretch;
+}
+
+.card2 {
+  padding: 2rem;
+}
+
+.card2Col {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.grid1to1 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.msgBox {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.msgSuccess {
+  background-color: color-mix(in srgb, var(--status-positive) 15%, transparent);
+  color: var(--status-positive);
+  border: 1px solid color-mix(in srgb, var(--status-positive) 30%, transparent);
+}
+
+.msgError {
+  background-color: color-mix(in srgb, var(--status-negative) 15%, transparent);
+  color: var(--status-negative);
+  border: 1px solid color-mix(in srgb, var(--status-negative) 30%, transparent);
+}
+
+.alignEndRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+}
+
+.successText {
+  font-size: 0.85rem;
+  color: var(--status-positive);
+  font-weight: 600;
+}
+
+.card25 {
+  padding: 2.5rem;
+}
+
+.cardDesc {
+  font-size: 0.9rem;
+  color: var(--c-content-muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.flexColGap1 {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.peopleItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--c-glass) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-content) 6%, transparent);
+  box-shadow: var(--shadow-glass-3d);
+}
+
+.peopleInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.peopleAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--c-action);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+}
+
+.peopleName {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--c-content);
+}
+
+.mainProfileBadge {
+  margin-left: 0.5rem;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--c-content) 10%, transparent);
+  color: var(--c-content-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.addPersonWrapper {
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-end;
+  padding: 1.5rem;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--c-glass) 8%, transparent);
+  border: 1.5px dashed color-mix(in srgb, var(--c-content) 20%, transparent);
+  margin-bottom: 2rem;
+}
+
+.addPersonBtn {
+  width: 100%;
+  border-style: dashed;
+  margin-bottom: 2rem;
+}
+
+.defaultPayerWrapper {
+  padding-top: 1.5rem;
+  border-top: 1.5px solid color-mix(in srgb, var(--c-content) 8%, transparent);
+}
+
+.pillarsMetasGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.totalTargetContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 2rem;
+}
+
+.totalTargetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.totalTargetTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--c-content);
+}
+
+.totalTargetPercent {
+  font-weight: 700;
+}
+
+.totalTargetValid {
+  color: var(--status-positive);
+}
+
+.totalTargetInvalid {
+  color: var(--status-negative);
+}
+
+.invalidText {
+  font-size: 0.8rem;
+  color: var(--status-negative);
+  font-weight: 500;
+}
+
+.categoriesContainerGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.flexColGap15 {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.pillarCatHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.pillarCatDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.pillarCatTitle {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+}
+
+.emptyCatText {
+  font-size: 0.85rem;
+  color: var(--c-content-muted);
+  font-style: italic;
+  padding-left: 1rem;
+}
+
+.catsWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.catItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--c-glass) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-content) 10%, transparent);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.dashedCreateCard {
+  padding: 1.5rem;
+  background: color-mix(in srgb, var(--c-glass) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--c-content) 18%, transparent);
+}
+
+.flexColGap125 {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.grid1to2 {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.25rem;
+}
+
+.textareaLabel {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--c-content-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.textareaField {
+  width: 100%;
+  min-height: 80px;
+  border-radius: var(--radius-input);
+  padding: 0.6rem 0.8rem;
+  background: color-mix(in srgb, var(--c-light) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-content) 18%, transparent);
+  color: var(--c-content);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.apiKeysCreatedBox {
+  padding: 1.5rem;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--status-positive) 12%, transparent);
+  border: 1.5px solid var(--status-positive);
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.apiKeysCreatedTitle {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--status-positive);
+}
+
+.apiKeysCreatedSubtitle {
+  font-size: 0.85rem;
+  color: var(--c-content-muted);
+}
+
+.apiKeysCreatedTokenWrapper {
+  display: flex;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--c-dark) 40%, transparent);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--c-content) 12%, transparent);
+  align-items: center;
+}
+
+.apiKeysCreatedToken {
+  flex: 1;
+  font-size: 0.85rem;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.grid16to1 {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+.keyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--c-glass) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c-content) 8%, transparent);
+  box-shadow: var(--shadow-glass-3d);
+}
+
+.keyItemName {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--c-content);
+}
+
+.keyItemDetails {
+  font-size: 0.78rem;
+  color: var(--c-content-muted);
+}
+
+.keyItemToken {
+  font-size: 0.78rem;
+}
+
+.trashBtn {
+  background: transparent;
+  border: none;
+  color: var(--c-content-muted);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-base);
+}
+
+.trashBtn:hover {
+  color: var(--status-negative) !important;
+  background: color-mix(in srgb, var(--status-negative) 12%, transparent) !important;
+  transform: scale(1.08);
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.fs11 {
+  font-size: 1.1rem;
+}
+
+.fs085 {
+  font-size: 0.85rem;
+}
+
+.fs095 {
+  font-size: 0.95rem;
+}
+
+.gap1 {
+  gap: 1rem;
+}
+
+.gap04 {
+  gap: 0.4rem;
+}
+
+.mt05 {
+  margin-top: 0.5rem;
+}
+
+.pl0 {
+  padding-left: 0;
+}

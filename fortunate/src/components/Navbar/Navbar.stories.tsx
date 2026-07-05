@@ -36,3 +36,16 @@ export const Scrolled: Story = {
     userInitial: "L",
   },
 };
+
+export const WithNavigation: Story = {
+  args: {
+    scrolled: false,
+    userName: "Luche Silva",
+    userInitial: "L",
+    items: [
+      { label: "Dashboard", href: "#", active: true },
+      { label: "Lançamentos", href: "#" },
+      { label: "Configurações", href: "#" },
+    ],
+  },
+};

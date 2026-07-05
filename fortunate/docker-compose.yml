@@ -1,0 +1,19 @@
+services:
+  fortunate:
+    build: .
+    image: fortunate:latest
+    container_name: fortunate
+    restart: unless-stopped
+    ports:
+      # "0.0.0.0:3000:3000" deixa explícito que o serviço aceita conexões de
+      # qualquer computador da rede local, não só do host que roda o Docker.
+      - "0.0.0.0:3000:3000"
+    environment:
+      - PORT=3000
+      - FORTUNATE_DB_PATH=/data/fortunate.db
+    volumes:
+      # Volume nomeado para o banco SQLite persistir entre restarts/updates do container.
+      - fortunate-data:/data
+
+volumes:
+  fortunate-data:

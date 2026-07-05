@@ -57,14 +57,23 @@
   right: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  pointer-events: none;
   color: var(--c-content-muted);
   font-size: 0.85rem;
   transition: transform 250ms ease;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
 }
 
 .arrowOpen {
   transform: translateY(-50%) rotate(180deg);
+}
+
+.badgeCustom {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.55rem;
+  gap: 0.35rem;
 }
 
 .dropdown {
@@ -132,7 +141,6 @@
   font-weight: 600;
 }
 
-
 .createHeader {
   padding: 0.5rem 0.85rem 0.25rem;
   font-family: var(--font-heading);
@@ -175,7 +183,6 @@
   display: flex;
   align-items: center;
 }
-
 
 .noResults {
   padding: 0.75rem 0.85rem;

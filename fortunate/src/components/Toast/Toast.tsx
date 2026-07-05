@@ -1,5 +1,5 @@
-import React from "react";
 import clsx from "clsx";
+import type React from "react";
 import styles from "./Toast.module.css";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";

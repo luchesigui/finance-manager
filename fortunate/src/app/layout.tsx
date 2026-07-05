@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
+import { ToastProvider } from "@/components/Toast/ToastProvider";
+import { AppNavbar } from "./AppNavbar";
 
 export const metadata: Metadata = {
   title: "Fortunate",
-  description: "Design System & Finance App",
+  description: "Gestão financeira do casal",
 };
 
 export default function RootLayout({
@@ -13,7 +15,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <ToastProvider>
+          <AppNavbar />
+          {children}
+        </ToastProvider>
+      </body>
     </html>
   );
 }

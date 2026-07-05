@@ -5,6 +5,13 @@
   width: 100%;
 }
 
+.wrapperFit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: fit-content;
+}
+
 .label {
   font-family: var(--font-heading);
   font-size: 0.85rem;

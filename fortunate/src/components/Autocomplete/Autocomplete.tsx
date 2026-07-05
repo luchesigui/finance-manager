@@ -185,7 +185,6 @@ export function Autocomplete({
             setIsOpen((o) => !o);
             inputRef.current?.focus();
           }}
-          style={{ cursor: "pointer", background: "none", border: "none", padding: 0 }}
         >
           ▾
         </button>
@@ -208,7 +207,7 @@ export function Autocomplete({
                   onClick={() => handleSelect(opt)}
                 >
                   <span>{opt.label}</span>
-                  <Badge variant={pillarToVariant(opt.pillar)} style={{ fontSize: "0.68rem", padding: "0.15rem 0.55rem", gap: "0.35rem" }}>
+                  <Badge variant={pillarToVariant(opt.pillar)} className={styles.badgeCustom}>
                     {opt.pillar}
                   </Badge>
                 </button>
@@ -237,7 +236,7 @@ export function Autocomplete({
                     <span className={styles.createLabel}>
                       <span className={styles.createIcon}>+</span> Criar em
                     </span>
-                    <Badge variant={pillarToVariant(pillar)} style={{ fontSize: "0.68rem", padding: "0.15rem 0.55rem", gap: "0.35rem" }}>
+                    <Badge variant={pillarToVariant(pillar)} className={styles.badgeCustom}>
                       {pillar}
                     </Badge>
                   </button>

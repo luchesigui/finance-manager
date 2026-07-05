@@ -1,0 +1,17 @@
+node_modules
+.next
+storybook-static
+.storybook
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+.dockerignore
+*.db
+*.db-shm
+*.db-wal
+tsconfig.tsbuildinfo
+debug-storybook.log
+styleguide.html
+npm-debug.log*
+.DS_Store
