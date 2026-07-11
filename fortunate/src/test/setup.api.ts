@@ -68,7 +68,8 @@ sqlite.exec(`
     parcela_numero integer,
     recurrence_template_id text REFERENCES recurrence_templates(id),
     is_overridden integer NOT NULL DEFAULT 0,
-    is_deleted integer NOT NULL DEFAULT 0
+    is_deleted integer NOT NULL DEFAULT 0,
+    ignored integer NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS settings (

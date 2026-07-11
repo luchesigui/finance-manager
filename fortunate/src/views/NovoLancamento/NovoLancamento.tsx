@@ -55,6 +55,7 @@ interface Transaction {
   pillar?: string;
   categoryId?: string | null;
   ignored: boolean;
+  pending?: boolean;
 }
 
 type TransactionType = "despesa" | "renda" | "transferencia";
@@ -167,6 +168,24 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const [filterCardOnly, setFilterCardOnly] = React.useState(false);
   const [filterRecurringOnly, setFilterRecurringOnly] = React.useState(false);
   const { currentMonthStr, monthLabel, handlePrevMonth, handleNextMonth } = useCurrentMonth();
+  const [includeFuture, setIncludeFuture] = React.useState(false);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("fortunate_include_future");
+    if (saved !== null) {
+      setIncludeFuture(saved === "true");
+    }
+  }, []);
+
+  const handleToggleIncludeFuture = (val: boolean) => {
+    setIncludeFuture(val);
+    localStorage.setItem("fortunate_include_future", String(val));
+  };
+
+  const todayStr = React.useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }, []);
 
   const handleViewChange = (view: "expense" | "income" | "transfer") => {
     setActiveView(view);
@@ -252,6 +271,8 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
       const matchedCategory = categories.find((c) => c.value === tx.categoryId);
       const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
 
+      const isFutureOrForecast = !!tx.isPrevisao || tx.date > todayStr;
+
       return {
         id: tx.id,
         avatar: assignedUser?.avatarInitials ?? "?",
@@ -271,9 +292,10 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         pillar: matchedCategory ? matchedCategory.pillar : undefined,
         categoryId: tx.categoryId,
         ignored: !!tx.ignored,
+        pending: isFutureOrForecast,
       };
     });
-  }, [dbTxs, categories, users]);
+  }, [dbTxs, categories, users, todayStr]);
 
   const filteredTransactions = React.useMemo(() => {
     return transactions.filter((tx) => {
@@ -328,7 +350,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
 
   const contextSum = React.useMemo(() => {
     return filteredTransactions.reduce((acc, tx) => {
-      if (activeView === "expense" && tx.isPrevisao) {
+      if (!includeFuture && tx.pending) {
         return acc;
       }
       if (tx.ignored) {
@@ -336,7 +358,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
       }
       return acc + tx.amount;
     }, 0);
-  }, [filteredTransactions, activeView]);
+  }, [filteredTransactions, includeFuture]);
 
   const handleCreateCategory = async (name: string, pillar: string) => {
     const slug = name
@@ -927,6 +949,16 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
               >
                 🔄 Apenas Recorrentes
               </button>
+
+              <button
+                type="button"
+                onClick={() => handleToggleIncludeFuture(!includeFuture)}
+                className={clsx(styles.filterPill, {
+                  [styles.filterPillActive]: includeFuture,
+                })}
+              >
+                📅 Incluir Previsões/Futuros
+              </button>
             </div>
           </div>
 
@@ -960,6 +992,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
                       onEdit={() => handleEditClick(tx)}
                       onDelete={() => handleDeleteClick(tx)}
                       onToggleIgnore={() => handleToggleIgnore(tx)}
+                      pending={tx.pending}
                     />
                   );
                 })}

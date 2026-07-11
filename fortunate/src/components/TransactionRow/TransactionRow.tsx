@@ -17,6 +17,7 @@ export interface TransactionRowProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onToggleIgnore?: () => void;
+  pending?: boolean;
 }
 
 export function TransactionRow({
@@ -32,6 +33,7 @@ export function TransactionRow({
   onEdit,
   onDelete,
   onToggleIgnore,
+  pending,
 }: TransactionRowProps) {
   const signedAmount =
     transactionType === "income" || transactionType === "transfer" ? amount : -amount;
@@ -43,7 +45,12 @@ export function TransactionRow({
   const showConfirm = onConfirm && transactionType === "expense" && pills?.includes("previsao");
 
   return (
-    <div className={clsx(styles.row, { [styles.rowIgnored]: ignored })}>
+    <div
+      className={clsx(styles.row, {
+        [styles.rowIgnored]: ignored,
+        [styles.pending]: pending,
+      })}
+    >
       <div className={styles.avatar}>{avatar}</div>
       <div className={styles.body}>
         <span className={styles.description}>{description}</span>

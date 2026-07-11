@@ -8,7 +8,7 @@ import { Button } from "../../components/Button/Button";
 import { CloudBackground } from "../../components/CloudBackground/CloudBackground";
 import { GlassCard } from "../../components/GlassCard/GlassCard";
 import { ArrowLeft, ArrowRight } from "../../components/Icons";
-import { Input } from "../../components/Input/Input";
+import { Input, Toggle } from "../../components/Input/Input";
 import { Modal } from "../../components/Modal/Modal";
 import { PilarCard } from "../../components/PilarCard/PilarCard";
 import { TabSelector } from "../../components/TabSelector/TabSelector";
@@ -59,6 +59,7 @@ interface Transaction {
   pillar?: string;
   categoryId?: string | null;
   ignored: boolean;
+  pending?: boolean;
 }
 
 const TYPE_ACCENT = {
@@ -85,6 +86,25 @@ export function DashboardPreview() {
   const [selectedCategory, setSelectedCategory] = React.useState("");
 
   const toast = useToast();
+
+  const [includeFuture, setIncludeFuture] = React.useState(false);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("fortunate_include_future");
+    if (saved !== null) {
+      setIncludeFuture(saved === "true");
+    }
+  }, []);
+
+  const handleToggleIncludeFuture = (val: boolean) => {
+    setIncludeFuture(val);
+    localStorage.setItem("fortunate_include_future", String(val));
+  };
+
+  const todayStr = React.useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }, []);
 
   const padZero = (n: number) => n.toString().padStart(2, "0");
   const { transactions: dbTxs } = useTransactions(currentMonthStr);
@@ -252,6 +272,8 @@ export function DashboardPreview() {
       if (tx.ignored) {
         continue;
       }
+      const isFutureOrForecast = !!tx.isPrevisao || tx.date > todayStr;
+      if (isFutureOrForecast && !includeFuture) continue;
       const amountFloat = tx.amount / 100;
       const isForecast = tx.isPrevisao || tx.date > todayStr;
 
@@ -373,7 +395,7 @@ export function DashboardPreview() {
       targetValues,
       transfer,
     };
-  }, [dbTxs, categories, users, settings]);
+  }, [dbTxs, categories, users, settings, includeFuture]);
 
   const autocompleteOptions = React.useMemo(() => {
     return categories.map((c) => ({
@@ -448,9 +470,10 @@ export function DashboardPreview() {
         pillar: matchedCategory ? matchedCategory.pillar : undefined,
         categoryId: tx.categoryId,
         ignored: !!tx.ignored,
+        pending: !!tx.isPrevisao || tx.date > todayStr,
       };
     });
-  }, [dbTxs, autocompleteOptions, users]);
+  }, [dbTxs, autocompleteOptions, users, todayStr]);
 
   const filteredTransactions = React.useMemo(() => {
     return transactions.filter((tx) => {
@@ -545,6 +568,20 @@ export function DashboardPreview() {
           <TrendBadge trend="up">Receitas {formatCurrency(stats.receitas)}</TrendBadge>
           <TrendBadge trend="down">Despesas {formatCurrency(stats.despesas)}</TrendBadge>
           <TrendBadge trend="up">Investido {formatCurrency(stats.investido)}</TrendBadge>
+        </div>
+        <div
+          style={{
+            marginTop: "1.5rem",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Toggle
+            label="Incluir previsões e lançamentos futuros nos totais"
+            checked={includeFuture}
+            onChange={(e) => handleToggleIncludeFuture(e.target.checked)}
+          />
         </div>
       </header>
 
@@ -805,6 +842,7 @@ export function DashboardPreview() {
                       onEdit={() => handleEditClick(tx)}
                       onDelete={() => handleDeleteClick(tx)}
                       onToggleIgnore={() => handleToggleIgnore(tx)}
+                      pending={tx.pending}
                     />
                   );
                 })}
