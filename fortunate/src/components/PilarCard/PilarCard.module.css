@@ -181,3 +181,7 @@
     color-mix(in srgb, var(--c-glass) 16%, transparent)
   );
 }
+
+.clickable {
+  cursor: pointer;
+}

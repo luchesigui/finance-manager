@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import React from "react";
 import { Autocomplete } from "../../components/Autocomplete/Autocomplete";
 import { Button } from "../../components/Button/Button";
@@ -56,6 +57,7 @@ function formatCurrency(value: number) {
 }
 
 export function DashboardPreview() {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = React.useState<Date>(() => new Date());
   const [description, setDescription] = React.useState("");
   const [amount, setAmount] = React.useState("");
@@ -420,6 +422,7 @@ export function DashboardPreview() {
                   pilar={PILLAR_SLUG_TO_PILAR_KEY[slug]}
                   targetValue={stats.targetValues[slug]}
                   usedValue={stats.pilarUsed[slug]}
+                  onClick={() => router.push(`/lancamentos?pilar=${slug}`)}
                 />
               ))}
             </div>

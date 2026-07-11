@@ -1,6 +1,7 @@
 "use client";
 
 import clsx from "clsx";
+import { useSearchParams } from "next/navigation";
 import React from "react";
 import { Autocomplete } from "../../components/Autocomplete/Autocomplete";
 import { Button } from "../../components/Button/Button";
@@ -139,6 +140,9 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const [showEditRecurrenceModal, setShowEditRecurrenceModal] = React.useState(false);
 
   // Views and Filters States
+  const searchParams = useSearchParams();
+  const pilarParam = searchParams ? searchParams.get("pilar") : null;
+
   const [activeView, setActiveView] = React.useState<"expense" | "income" | "transfer">("expense");
   const [searchTerm, setSearchTerm] = React.useState("");
   const [filterAssigned, setFilterAssigned] = React.useState("todos");
@@ -186,6 +190,40 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
       })),
     [dbCategories],
   );
+
+  const initialPillar = React.useMemo(() => {
+    if (!pilarParam) return "todos";
+    // Check if it's a direct display name
+    const displayNames = PILLAR_SLUGS.map((slug) => PILLAR_NAMES[slug]);
+    const matchedDisplayName = displayNames.find(
+      (name) => name.toLowerCase() === pilarParam.toLowerCase(),
+    );
+    if (matchedDisplayName) return matchedDisplayName;
+
+    // Check if it matches a slug
+    let slugStr = pilarParam.toLowerCase();
+    if (slugStr === "metas") {
+      slugStr = "planejamento";
+    }
+    const matchedSlug = PILLAR_SLUGS.find((s) => s === slugStr);
+    if (matchedSlug) {
+      return PILLAR_NAMES[matchedSlug];
+    }
+    return "todos";
+  }, [pilarParam]);
+
+  React.useEffect(() => {
+    setFilterPillar(initialPillar);
+  }, [initialPillar]);
+
+  React.useEffect(() => {
+    if (filterPillar !== "todos") {
+      const matchedCat = categories.find((c) => c.value === filterCategory);
+      if (matchedCat && matchedCat.pillar !== filterPillar) {
+        setFilterCategory("todas");
+      }
+    }
+  }, [filterPillar, categories, filterCategory]);
 
   const transactions = React.useMemo(() => {
     return dbTxs.map((tx): Transaction => {
@@ -711,8 +749,11 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
             {/* Atribuído a (Household Filter) */}
             {people.length > 1 && (
               <div className={styles.filterGroup}>
-                <label className={styles.filterLabel}>Atribuído a</label>
+                <label className={styles.filterLabel} htmlFor="filter-assigned">
+                  Atribuído a
+                </label>
                 <select
+                  id="filter-assigned"
                   value={filterAssigned}
                   onChange={(e) => setFilterAssigned(e.target.value)}
                   className={styles.filterSelect}
@@ -730,18 +771,23 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
             {/* Categorias (only for despesas) */}
             {activeView === "expense" && (
               <div className={styles.filterGroup}>
-                <label className={styles.filterLabel}>Categoria</label>
+                <label className={styles.filterLabel} htmlFor="filter-category">
+                  Categoria
+                </label>
                 <select
+                  id="filter-category"
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
                   className={styles.filterSelect}
                 >
                   <option value="todas">Todas</option>
-                  {categories.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
+                  {categories
+                    .filter((c) => filterPillar === "todos" || c.pillar === filterPillar)
+                    .map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
                 </select>
               </div>
             )}
@@ -749,8 +795,11 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
             {/* Pilares (only for despesas) */}
             {activeView === "expense" && (
               <div className={styles.filterGroup}>
-                <label className={styles.filterLabel}>Pilar</label>
+                <label className={styles.filterLabel} htmlFor="filter-pillar">
+                  Pilar
+                </label>
                 <select
+                  id="filter-pillar"
                   value={filterPillar}
                   onChange={(e) => setFilterPillar(e.target.value)}
                   className={styles.filterSelect}

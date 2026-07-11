@@ -37,6 +37,7 @@ export interface PilarCardProps {
   percentTarget?: number;
   /** Config mode: callback ao alterar percentual */
   onPercentChange?: (value: number) => void;
+  onClick?: () => void;
 }
 
 export function PilarCard({
@@ -46,6 +47,7 @@ export function PilarCard({
   targetValue = 0,
   percentTarget = 0,
   onPercentChange,
+  onClick,
 }: PilarCardProps) {
   const config = pilarConfig[pilar];
 
@@ -91,7 +93,25 @@ export function PilarCard({
   const accentColor = isOverflow ? "var(--status-negative)" : config.cssVar;
 
   return (
-    <div className={clsx(styles.card, { [styles.cardOverflow]: isOverflow })}>
+    <div
+      className={clsx(styles.card, {
+        [styles.cardOverflow]: isOverflow,
+        [styles.clickable]: !!onClick,
+      })}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+    >
       <div className={styles.header}>
         <div className={styles.pilarInfo}>
           <span className={styles.dot} style={{ background: accentColor }} />
