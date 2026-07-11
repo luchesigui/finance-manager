@@ -158,8 +158,13 @@ export function DashboardPreview() {
       paidSharedByUser[user.id] = 0;
     }
 
+    const today = new Date();
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
     for (const tx of dbTxs) {
       const amountFloat = tx.amount / 100;
+      const isForecast = tx.isPrevisao || tx.date > todayStr;
 
       if (tx.isPrevisao) {
         // Apenas para as previsões de gastos, somamos no forecast
@@ -184,11 +189,17 @@ export function DashboardPreview() {
         const cat = categories.find((c) => c.id === tx.categoryId);
         const pilarSlug = (cat?.pillarSlug ?? "conforto") as PillarSlug;
 
-        if (pilarSlug in pilarUsed) {
-          pilarUsed[pilarSlug] += amountFloat;
-        }
-        if (pilarSlug in pilarForecasted) {
-          pilarForecasted[pilarSlug] += amountFloat;
+        if (isForecast) {
+          if (pilarSlug in pilarForecasted) {
+            pilarForecasted[pilarSlug] += amountFloat;
+          }
+        } else {
+          if (pilarSlug in pilarUsed) {
+            pilarUsed[pilarSlug] += amountFloat;
+          }
+          if (pilarSlug in pilarForecasted) {
+            pilarForecasted[pilarSlug] += amountFloat;
+          }
         }
 
         if (pilarSlug === "liberdade") {
