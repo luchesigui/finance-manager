@@ -7,6 +7,7 @@ import { Autocomplete } from "../../components/Autocomplete/Autocomplete";
 import { Button } from "../../components/Button/Button";
 import { CloudBackground } from "../../components/CloudBackground/CloudBackground";
 import { GlassCard } from "../../components/GlassCard/GlassCard";
+import { ArrowLeft, ArrowRight } from "../../components/Icons";
 import { CapsuleRadio, Input, Select } from "../../components/Input/Input";
 import { Modal } from "../../components/Modal/Modal";
 import { TabSelector } from "../../components/TabSelector/TabSelector";
@@ -21,6 +22,7 @@ import {
   updateTransaction,
 } from "../../hooks/mutations";
 import { useCategories } from "../../hooks/useCategories";
+import { useCurrentMonth } from "../../hooks/useCurrentMonth";
 import { useSettings } from "../../hooks/useSettings";
 import { useTransactions } from "../../hooks/useTransactions";
 import { useUsers } from "../../hooks/useUsers";
@@ -48,6 +50,7 @@ interface Transaction {
   recurrenceTemplateId?: string | null;
   isCreditCard: boolean;
   isRecorrente: boolean;
+  nextInvoice: boolean;
   assignedToUserId: string;
   pillar?: string;
   categoryId?: string | null;
@@ -109,6 +112,16 @@ function InlineCheck({ label, checked, onChange }: InlineCheckProps) {
   );
 }
 
+function CardIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <rect x="1" y="2.5" width="10" height="7" rx="1.2" stroke="currentColor" strokeWidth="1.1" />
+      <line x1="1" y1="5" x2="11" y2="5" stroke="currentColor" strokeWidth="1.1" />
+      <rect x="2.5" y="6.5" width="3" height="1.5" rx="0.4" fill="currentColor" opacity={0.6} />
+    </svg>
+  );
+}
+
 /* ─── Main form component ─── */
 interface NovoLancamentoProps {
   initialType?: TransactionType;
@@ -117,6 +130,7 @@ interface NovoLancamentoProps {
 export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps) {
   const [type, setType] = React.useState<TransactionType>(initialType);
   const [rendaSubtype, setRendaSubtype] = React.useState<RendaSubtype>("incremento");
+  const [cardMode, setCardMode] = React.useState(false);
   const [isCard, setIsCard] = React.useState(false);
   const [proximaFatura, setProximaFatura] = React.useState(false);
   const [naoEntraDivisao, setNaoEntraDivisao] = React.useState(false);
@@ -131,6 +145,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const [selectedCategory, setSelectedCategory] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [date, setDate] = React.useState(() => new Date().toISOString().split("T")[0]);
+  const formWrapperRef = React.useRef<HTMLDivElement>(null);
 
   const toast = useToast();
 
@@ -150,6 +165,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const [filterPillar, setFilterPillar] = React.useState("todos");
   const [filterCardOnly, setFilterCardOnly] = React.useState(false);
   const [filterRecurringOnly, setFilterRecurringOnly] = React.useState(false);
+  const { currentMonthStr, monthLabel, handlePrevMonth, handleNextMonth } = useCurrentMonth();
 
   const handleViewChange = (view: "expense" | "income" | "transfer") => {
     setActiveView(view);
@@ -157,8 +173,6 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     setFilterPillar("todos");
     setFilterCardOnly(false);
   };
-
-  const currentMonthStr = React.useMemo(() => date.slice(0, 7), [date]);
 
   const { transactions: dbTxs } = useTransactions(currentMonthStr);
   const { categories: dbCategories } = useCategories();
@@ -233,7 +247,6 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
       if (tx.recurrenceTemplateId) pills.push("recorrente");
       if (tx.isParcelado) pills.push("parcelado");
       if (tx.isCreditCard) pills.push("cartao");
-      if (tx.nextInvoice) pills.push("proxima-fatura");
 
       const matchedCategory = categories.find((c) => c.value === tx.categoryId);
       const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
@@ -252,6 +265,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         recurrenceTemplateId: tx.recurrenceTemplateId,
         isCreditCard: !!tx.isCreditCard,
         isRecorrente: !!tx.recurrenceTemplateId || !!tx.isRecorrente,
+        nextInvoice: !!tx.nextInvoice,
         assignedToUserId: tx.assignedToUserId,
         pillar: matchedCategory ? matchedCategory.pillar : undefined,
         categoryId: tx.categoryId,
@@ -359,6 +373,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     if (type === "despesa") {
       categoryId = selectedCategory || null;
     }
+    const createAsCard = type === "despesa" && (isCard || cardMode);
 
     try {
       await createTransaction({
@@ -368,8 +383,8 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         date,
         assignedToUserId: atribuirA || null,
         paraQuemUserId: type === "transferencia" ? paraQuem || null : null,
-        isCreditCard: type === "despesa" && isCard,
-        nextInvoice: type === "despesa" && isCard && proximaFatura,
+        isCreditCard: createAsCard,
+        nextInvoice: createAsCard && proximaFatura,
         naoEntraDivisao: type === "despesa" && naoEntraDivisao,
         isPrevisao: previsao,
         isRecorrente: isRecorrente,
@@ -458,8 +473,18 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     setIsRecorrente(tx.pills?.includes("recorrente") || false);
     setIsParcelado(tx.pills?.includes("parcelado") || false);
     setIsCard(tx.pills?.includes("cartao") || false);
-    setProximaFatura(tx.pills?.includes("proxima-fatura") || false);
+    setProximaFatura(tx.nextInvoice);
     setPrevisao(tx.isPrevisao);
+
+    const scrollToForm = () => {
+      formWrapperRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(scrollToForm);
+    } else {
+      scrollToForm();
+    }
   };
 
   const handleDeleteClick = (tx: Transaction) => {
@@ -489,6 +514,10 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const accent = TYPE_ACCENT[type];
   const tabValues: TransactionType[] = ["despesa", "renda", "transferencia"];
   const activeTabIndex = tabValues.indexOf(type);
+  const parcelasCount = Number.parseInt(numParcelas, 10);
+  const valorPorParcela = isParcelado && valor !== null && parcelasCount > 1 ? valor / parcelasCount : null;
+  const cardModeActive = !editingTx && type === "despesa" && cardMode;
+  const cardChecked = isCard || cardModeActive;
 
   /* mutual exclusion: Recorrente vs Parcelado */
   const handleRecorrente = (v: boolean) => {
@@ -513,13 +542,52 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     <div className={styles.container}>
       <CloudBackground />
 
+      <header className={styles.pageHeader}>
+        <div className={styles.monthSelector}>
+          <button
+            type="button"
+            className={styles.navButton}
+            onClick={handlePrevMonth}
+            aria-label="Mês anterior"
+          >
+            <ArrowLeft />
+          </button>
+          <p className={styles.monthLabel}>{monthLabel}</p>
+          <button
+            type="button"
+            className={styles.navButton}
+            onClick={handleNextMonth}
+            aria-label="Próximo mês"
+          >
+            <ArrowRight />
+          </button>
+        </div>
+      </header>
+
       <div className={styles.content}>
-        <div className={styles.formWrapper}>
+        <div className={styles.formWrapper} ref={formWrapperRef}>
           <GlassCard variant="fino" className={styles.formCard}>
             {/* ── Header ── */}
-            <h2 className={styles.panelTitle}>
-              {editingTx ? `Editando Lançamento: ${editingTx.description}` : TITLE_LABEL[type]}
-            </h2>
+            <div className={styles.formHeader}>
+              <h2 className={styles.panelTitle}>
+                {editingTx ? `Editando Lançamento: ${editingTx.description}` : TITLE_LABEL[type]}
+              </h2>
+              {!editingTx && type === "despesa" && (
+                <div className={styles.cardModeControl}>
+                  <CardIcon />
+                  <span>Modo cartão</span>
+                  <button
+                    type="button"
+                    className={clsx(styles.cardModeSwitch, { [styles.cardModeSwitchActive]: cardMode })}
+                    onClick={() => setCardMode((value) => !value)}
+                    aria-label="Modo cartão"
+                    aria-pressed={cardMode}
+                  >
+                    <span className={styles.cardModeSwitchThumb} />
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* ── Type tab selector ── */}
             <div className={styles.tabSelectorWrapper}>
@@ -536,7 +604,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
 
             {/* ── Renda sub-type ── */}
             {type === "renda" && (
-              <div className={styles.checkboxesRow}>
+              <div className={styles.rendaSubtypeRow}>
                 <CapsuleRadio
                   options={[
                     { value: "incremento", label: "Incremento (Bônus, 13º salário)" },
@@ -622,13 +690,13 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
                   <>
                     <InlineCheck
                       label="Cartão de Crédito"
-                      checked={isCard}
+                      checked={cardChecked}
                       onChange={(v) => {
                         setIsCard(v);
-                        if (!v) setProximaFatura(false);
+                        if (!v && !cardModeActive) setProximaFatura(false);
                       }}
                     />
-                    {isCard && (
+                    {cardChecked && (
                       <InlineCheck
                         label="Próxima Fatura"
                         checked={proximaFatura}
@@ -651,6 +719,11 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
                     value={numParcelas}
                     onChange={(e) => setNumParcelas(e.target.value)}
                   />
+                  {valorPorParcela !== null && (
+                    <span className={styles.valorParcelaPreview}>
+                      {formatBrlCurrency(valorPorParcela)}/mês
+                    </span>
+                  )}
                 </div>
               )}
 

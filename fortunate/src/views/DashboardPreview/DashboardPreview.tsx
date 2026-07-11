@@ -21,6 +21,7 @@ import {
   deleteTransaction,
 } from "../../hooks/mutations";
 import { useCategories } from "../../hooks/useCategories";
+import { useCurrentMonth } from "../../hooks/useCurrentMonth";
 import { useSettings } from "../../hooks/useSettings";
 import { useTransactions } from "../../hooks/useTransactions";
 import { useUsers } from "../../hooks/useUsers";
@@ -34,21 +35,6 @@ import {
 } from "../../utils/pillars";
 import styles from "./DashboardPreview.module.css";
 
-const MONTH_NAMES = [
-  "Janeiro",
-  "Fevereiro",
-  "Março",
-  "Abril",
-  "Maio",
-  "Junho",
-  "Julho",
-  "Agosto",
-  "Setembro",
-  "Outubro",
-  "Novembro",
-  "Dezembro",
-];
-
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -58,7 +44,8 @@ function formatCurrency(value: number) {
 
 export function DashboardPreview() {
   const router = useRouter();
-  const [currentDate, setCurrentDate] = React.useState<Date>(() => new Date());
+  const { currentDate, currentMonthStr, monthLabel, handlePrevMonth, handleNextMonth } =
+    useCurrentMonth();
   const [description, setDescription] = React.useState("");
   const [amount, setAmount] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("");
@@ -66,8 +53,6 @@ export function DashboardPreview() {
   const toast = useToast();
 
   const padZero = (n: number) => n.toString().padStart(2, "0");
-  const currentMonthStr = `${currentDate.getFullYear()}-${padZero(currentDate.getMonth() + 1)}`;
-
   const { transactions: dbTxs } = useTransactions(currentMonthStr);
   const { categories } = useCategories();
   const { users } = useUsers();
@@ -75,21 +60,6 @@ export function DashboardPreview() {
 
   const pillars = PILLAR_SLUGS.map((slug) => PILLAR_NAMES[slug]);
 
-  const handlePrevMonth = () => {
-    setCurrentDate((prev) => {
-      const nextDate = new Date(prev);
-      nextDate.setMonth(nextDate.getMonth() - 1);
-      return nextDate;
-    });
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate((prev) => {
-      const nextDate = new Date(prev);
-      nextDate.setMonth(nextDate.getMonth() + 1);
-      return nextDate;
-    });
-  };
 
   const handleCreateCategory = async (name: string, pillarName: string) => {
     const slug = name
@@ -174,6 +144,7 @@ export function DashboardPreview() {
     // Divisão de gastos do casal, por usuário
     const incomeByUser: Record<string, number> = {};
     const paidSharedByUser: Record<string, number> = {};
+    const transferPaidByPair: Record<string, number> = {};
     for (const user of users) {
       incomeByUser[user.id] = 0;
       paidSharedByUser[user.id] = 0;
@@ -206,6 +177,9 @@ export function DashboardPreview() {
         if (!tx.naoEntraDivisao && tx.assignedToUserId in paidSharedByUser) {
           paidSharedByUser[tx.assignedToUserId] += amountFloat;
         }
+      } else if (tx.transactionType === "transfer" && tx.assignedToUserId && tx.paraQuemUserId) {
+        const pairKey = `${tx.assignedToUserId}->${tx.paraQuemUserId}`;
+        transferPaidByPair[pairKey] = (transferPaidByPair[pairKey] ?? 0) + amountFloat;
       }
     }
 
@@ -248,15 +222,21 @@ export function DashboardPreview() {
             : totalShared / 2;
 
         const diffA = paidA - shareA;
-        if (diffA < 0) {
-          transfer.amount = Math.abs(diffA);
-        } else if (diffA > 0) {
+        const targetSignedAmount = diffA < 0 ? Math.abs(diffA) : -diffA;
+        const existingSignedTransfers =
+          (transferPaidByPair[`${userA.id}->${userB.id}`] ?? 0) -
+          (transferPaidByPair[`${userB.id}->${userA.id}`] ?? 0);
+        const remainingSignedAmount = targetSignedAmount - existingSignedTransfers;
+
+        if (remainingSignedAmount > 0) {
+          transfer.amount = remainingSignedAmount;
+        } else if (remainingSignedAmount < 0) {
           transfer = {
             debtor: userB.name,
             debtorInitial: userB.avatarInitials[0],
             creditor: userA.name,
             creditorInitial: userA.avatarInitials[0],
-            amount: diffA,
+            amount: Math.abs(remainingSignedAmount),
           };
         }
       }
@@ -283,7 +263,7 @@ export function DashboardPreview() {
 
   // Mapeia transações do banco para o formato de exibição
   const viewTransactions = React.useMemo(() => {
-    return dbTxs.map((tx) => {
+    return dbTxs.filter((tx) => tx.transactionType === "expense").map((tx) => {
       const displayDate = tx.date.split("-").reverse().join("/");
       const pills: TransactionTagVariant[] = [];
       if (tx.isPrevisao) pills.push("previsao");
@@ -325,9 +305,7 @@ export function DashboardPreview() {
           >
             <ArrowLeft />
           </button>
-          <p className={styles.heroSubtitle}>
-            {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </p>
+          <p className={styles.heroSubtitle}>{monthLabel}</p>
           <button
             type="button"
             className={styles.navButton}

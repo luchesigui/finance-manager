@@ -207,3 +207,19 @@
     transform: rotate(360deg);
   }
 }
+
+@media (max-width: 560px) {
+  .input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .dropdown {
+    max-height: min(320px, 50vh);
+  }
+
+  .item,
+  .createItem {
+    min-height: 44px;
+  }
+}

@@ -98,6 +98,98 @@ describe("PUT /api/transactions/[id] — non-recurring", () => {
   });
 });
 
+describe("PUT /api/transactions/[id] — installments", () => {
+  it("updates every installment in the series", async () => {
+    db.insert(schema.recurrenceTemplates)
+      .values({
+        id: "rt-parc",
+        createdByUserId: "guilherme",
+        transactionType: "expense",
+        description: "Notebook",
+        amount: 10000,
+        assignedToUserId: "guilherme",
+        dayOfMonth: 10,
+        startDate: "2026-07-10",
+        endDate: "2026-09-10",
+        isActive: 0,
+      })
+      .run();
+
+    db.insert(schema.transactions)
+      .values([
+        {
+          id: "tx-parc-1",
+          createdByUserId: "guilherme",
+          transactionType: "expense",
+          description: "Notebook (1/3)",
+          amount: 10000,
+          date: "2026-07-10",
+          assignedToUserId: "guilherme",
+          isParcelado: 1,
+          numParcelas: 3,
+          parcelaNumero: 1,
+          recurrenceTemplateId: "rt-parc",
+        },
+        {
+          id: "tx-parc-2",
+          createdByUserId: "guilherme",
+          transactionType: "expense",
+          description: "Notebook (2/3)",
+          amount: 10000,
+          date: "2026-08-10",
+          assignedToUserId: "guilherme",
+          isParcelado: 1,
+          numParcelas: 3,
+          parcelaNumero: 2,
+          recurrenceTemplateId: "rt-parc",
+        },
+        {
+          id: "tx-parc-3",
+          createdByUserId: "guilherme",
+          transactionType: "expense",
+          description: "Notebook (3/3)",
+          amount: 10000,
+          date: "2026-09-10",
+          assignedToUserId: "guilherme",
+          isParcelado: 1,
+          numParcelas: 3,
+          parcelaNumero: 3,
+          recurrenceTemplateId: "rt-parc",
+        },
+      ])
+      .run();
+
+    const res = await putRequest(
+      "tx-parc-2",
+      { amount: 12000, description: "Notebook Pro (2/3)", date: "2026-08-15" },
+      "only_this",
+    );
+    expect(res.status).toBe(200);
+
+    expect(getTx("tx-parc-1")).toMatchObject({
+      amount: 12000,
+      description: "Notebook Pro (1/3)",
+      date: "2026-07-15",
+    });
+    expect(getTx("tx-parc-2")).toMatchObject({
+      amount: 12000,
+      description: "Notebook Pro (2/3)",
+      date: "2026-08-15",
+    });
+    expect(getTx("tx-parc-3")).toMatchObject({
+      amount: 12000,
+      description: "Notebook Pro (3/3)",
+      date: "2026-09-15",
+    });
+    expect(getTemplate("rt-parc")).toMatchObject({
+      description: "Notebook Pro",
+      amount: 12000,
+      startDate: "2026-07-15",
+      endDate: "2026-09-15",
+    });
+  });
+});
+
 describe("PUT /api/transactions/[id] — recurring scopes", () => {
   it("only_this: overrides a single occurrence and leaves the rest untouched", async () => {
     const { templateId, july, august, september } = await seedRecurringExpense();
@@ -184,6 +276,58 @@ describe("PUT /api/transactions/[id] — recurring scopes", () => {
 });
 
 describe("DELETE /api/transactions/[id]", () => {
+  it("only_this: removes just one installment from a grouped parcelado", async () => {
+    db.insert(schema.recurrenceTemplates)
+      .values({
+        id: "rt-del-parc",
+        createdByUserId: "guilherme",
+        transactionType: "expense",
+        description: "Seguro viagem",
+        amount: 12914,
+        assignedToUserId: "guilherme",
+        dayOfMonth: 8,
+        startDate: "2026-03-08",
+        endDate: "2026-08-08",
+        isActive: 0,
+      })
+      .run();
+    db.insert(schema.transactions)
+      .values([
+        {
+          id: "tx-del-parc-1",
+          createdByUserId: "guilherme",
+          transactionType: "expense",
+          description: "Seguro viagem (1/2)",
+          amount: 12914,
+          date: "2026-03-08",
+          assignedToUserId: "guilherme",
+          isParcelado: 1,
+          numParcelas: 2,
+          parcelaNumero: 1,
+          recurrenceTemplateId: "rt-del-parc",
+        },
+        {
+          id: "tx-del-parc-2",
+          createdByUserId: "guilherme",
+          transactionType: "expense",
+          description: "Seguro viagem (2/2)",
+          amount: 12914,
+          date: "2026-04-08",
+          assignedToUserId: "guilherme",
+          isParcelado: 1,
+          numParcelas: 2,
+          parcelaNumero: 2,
+          recurrenceTemplateId: "rt-del-parc",
+        },
+      ])
+      .run();
+
+    await deleteRequest("tx-del-parc-1", "only_this");
+
+    expect(getTx("tx-del-parc-1")?.isDeleted).toBe(1);
+    expect(getTx("tx-del-parc-2")?.isDeleted).toBe(0);
+  });
+
   it("rejects an invalid option", async () => {
     const res = await deleteRequest("qualquer", "everything");
     expect(res.status).toBe(400);

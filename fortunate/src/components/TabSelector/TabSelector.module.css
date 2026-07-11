@@ -30,3 +30,16 @@
   cursor: default;
   border-bottom-color: var(--tab-accent, var(--c-action));
 }
+
+@media (max-width: 560px) {
+  .container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    min-width: max-content;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.85rem;
+  }
+}

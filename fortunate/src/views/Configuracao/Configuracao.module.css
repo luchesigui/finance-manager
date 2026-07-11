@@ -461,6 +461,52 @@
   font-size: 0.95rem;
 }
 
+@media (max-width: 760px) {
+  .container {
+    padding: 5rem 1rem 7rem;
+  }
+
+  .content {
+    gap: 1rem;
+  }
+
+  .title {
+    font-size: clamp(2rem, 12vw, 2.6rem);
+  }
+
+  .twoColGrid,
+  .grid1to1,
+  .categoriesContainerGrid,
+  .grid1to2,
+  .grid16to1 {
+    grid-template-columns: 1fr;
+  }
+
+  .card2,
+  .card2Col,
+  .card25,
+  .dashedCreateCard {
+    padding: 1rem;
+  }
+
+  .sectionHeader {
+    font-size: 1.05rem;
+  }
+
+  .alignEndRow,
+  .addPersonWrapper,
+  .apiKeysCreatedTokenWrapper,
+  .keyItem {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .peopleItem {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
 .gap1 {
   gap: 1rem;
 }

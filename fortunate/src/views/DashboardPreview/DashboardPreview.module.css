@@ -167,3 +167,66 @@
   padding: 0 1.5rem;
   z-index: 900;
 }
+
+@media (max-width: 760px) {
+  .container {
+    padding: 5rem 1rem 7rem;
+    background-attachment: scroll;
+  }
+
+  .heroHeader {
+    margin-bottom: 2rem;
+  }
+
+  .monthSelector {
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .heroTitle {
+    font-size: clamp(2.35rem, 13vw, 3.2rem);
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .trendsRow {
+    justify-content: stretch;
+    gap: 0.6rem;
+  }
+
+  .content,
+  .leftCol,
+  .topGrid {
+    gap: 1rem;
+  }
+
+  .topGrid,
+  .grid1to1,
+  .pillarsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pillarsGrid {
+    grid-template-rows: none;
+  }
+
+  .cardPadding,
+  .rightColCard,
+  .listCard {
+    padding: 1rem;
+  }
+
+  .rightColCard {
+    min-height: 0;
+  }
+
+  .panelTitle,
+  .listTitle {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .actionsRow {
+    flex-direction: column-reverse;
+  }
+}

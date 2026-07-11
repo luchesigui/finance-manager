@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "./schema";
 
@@ -48,6 +48,15 @@ export function formatDayOfMonth(monthStr: string, day: number): string {
   return `${monthStr}-${String(cappedDay).padStart(2, "0")}`;
 }
 
+function addMonths(dateStr: string, monthsToAdd: number): string {
+  const [yearStr, monthStr, dayStr] = dateStr.split("-");
+  const date = new Date(Number(yearStr), Number(monthStr) - 1 + monthsToAdd, 1);
+  return formatDayOfMonth(
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
+    Number(dayStr),
+  );
+}
+
 // Get all categories
 export async function getCategories() {
   return db.select().from(schema.categories).all();
@@ -87,6 +96,7 @@ export async function getTransactionsForMonth(monthStr: string) {
         ),
       ),
     )
+    .orderBy(desc(schema.transactions.date))
     .all();
 
   return allTxs;
@@ -125,12 +135,15 @@ async function materializeRecurringForMonth(monthStr: string) {
     // If nextInvoice = 0, it counts for monthStr and occurred in monthStr.
     const purchaseMonth = template.nextInvoice === 1 ? prevMonthStr : monthStr;
     const purchaseDate = formatDayOfMonth(purchaseMonth, template.dayOfMonth);
+    if (purchaseDate < template.startDate || (template.endDate && purchaseDate > template.endDate)) {
+      continue;
+    }
 
     // Check if we already have a transaction instance for this template in monthStr
     // That means:
     // - associated with the template ID
     // - AND counts for monthStr (either date in monthStr with nextInvoice=0, or date in prevMonthStr with nextInvoice=1)
-    const exists = db
+    const existing = db
       .select()
       .from(schema.transactions)
       .where(
@@ -148,9 +161,17 @@ async function materializeRecurringForMonth(monthStr: string) {
           ),
         ),
       )
-      .get();
+      .all();
+    const activeExisting = existing.filter((tx) => tx.isDeleted === 0);
 
-    if (!exists) {
+    for (const duplicate of activeExisting.slice(1)) {
+      db.update(schema.transactions)
+        .set({ isDeleted: 1 })
+        .where(eq(schema.transactions.id, duplicate.id))
+        .run();
+    }
+
+    if (existing.length === 0) {
       // Create the transaction instance
       db.insert(schema.transactions)
         .values({
@@ -205,26 +226,34 @@ export async function createTransaction(data: {
   const numParcelas = data.numParcelas || 1;
 
   if (isParcelado && numParcelas > 1) {
-    // Generate all N installments
-    const baseId = crypto.randomUUID();
-    const currentDate = data.date;
+    // Generate all N installments and link them to a finite template used as the group id.
+    const templateId = crypto.randomUUID();
+    const installmentAmount = Math.round(data.amount / numParcelas);
+    const endDate = addMonths(data.date, numParcelas - 1);
+
+    db.insert(schema.recurrenceTemplates)
+      .values({
+        id: templateId,
+        createdByUserId: createdBy,
+        transactionType: data.transactionType,
+        description: data.description,
+        amount: installmentAmount,
+        categoryId: data.categoryId || null,
+        assignedToUserId: assignedTo,
+        paraQuemUserId: data.paraQuemUserId || null,
+        dayOfMonth: Number.parseInt(data.date.split("-")[2], 10),
+        startDate: data.date,
+        endDate,
+        isActive: 0,
+        isCreditCard: data.isCreditCard ? 1 : 0,
+        nextInvoice: data.nextInvoice ? 1 : 0,
+        naoEntraDivisao: data.naoEntraDivisao ? 1 : 0,
+        isPrevisao: data.isPrevisao ? 1 : 0,
+      })
+      .run();
 
     for (let i = 1; i <= numParcelas; i++) {
-      // Calculate date for installment i (currentDate incremented by i-1 months)
-      let installmentDate = currentDate;
-      if (i > 1) {
-        const [yearStr, monthStr, dayStr] = data.date.split("-");
-        let year = Number.parseInt(yearStr, 10);
-        let month = Number.parseInt(monthStr, 10);
-        const day = Number.parseInt(dayStr, 10);
-
-        month += i - 1;
-        while (month > 12) {
-          month -= 12;
-          year += 1;
-        }
-        installmentDate = formatDayOfMonth(`${year}-${String(month).padStart(2, "0")}`, day);
-      }
+      const installmentDate = addMonths(data.date, i - 1);
 
       // If nextInvoice is checked, the first installment is shifted to next month,
       // and subsequent installments are shifted accordingly.
@@ -235,7 +264,7 @@ export async function createTransaction(data: {
           createdByUserId: createdBy,
           transactionType: data.transactionType,
           description: `${data.description} (${i}/${numParcelas})`,
-          amount: data.amount, // each installment has the same amount
+          amount: installmentAmount,
           categoryId: data.categoryId || null,
           date: installmentDate,
           assignedToUserId: assignedTo,
@@ -248,6 +277,7 @@ export async function createTransaction(data: {
           isParcelado: 1,
           numParcelas: numParcelas,
           parcelaNumero: i,
+          recurrenceTemplateId: templateId,
           isOverridden: 0,
           isDeleted: 0,
         })
@@ -342,6 +372,35 @@ export async function deleteTransaction(
 
   if (!tx) throw new Error("Transaction not found");
 
+  if (tx.isParcelado && tx.recurrenceTemplateId) {
+    if (option === "only_this") {
+      db.update(schema.transactions)
+        .set({ isDeleted: 1 })
+        .where(eq(schema.transactions.id, id))
+        .run();
+    } else if (option === "all") {
+      db.update(schema.transactions)
+        .set({ isDeleted: 1 })
+        .where(eq(schema.transactions.recurrenceTemplateId, tx.recurrenceTemplateId))
+        .run();
+      db.update(schema.recurrenceTemplates)
+        .set({ isActive: 0 })
+        .where(eq(schema.recurrenceTemplates.id, tx.recurrenceTemplateId))
+        .run();
+    } else if (option === "future") {
+      db.update(schema.transactions)
+        .set({ isDeleted: 1 })
+        .where(
+          and(
+            eq(schema.transactions.recurrenceTemplateId, tx.recurrenceTemplateId),
+            gte(schema.transactions.parcelaNumero, tx.parcelaNumero || 0),
+          ),
+        )
+        .run();
+    }
+    return { success: true };
+  }
+
   if (!tx.recurrenceTemplateId) {
     // Non-recurring transaction, simple soft delete
     db.update(schema.transactions)
@@ -432,6 +491,80 @@ export async function updateTransaction(
     mappedFields.naoEntraDivisao = updatedFields.naoEntraDivisao ? 1 : 0;
   if (updatedFields.isPrevisao !== undefined)
     mappedFields.isPrevisao = updatedFields.isPrevisao ? 1 : 0;
+
+  const installmentMatch = tx.description.match(/^(.*) \((\d+)\/(\d+)\)$/);
+  if (tx.isParcelado && tx.numParcelas && tx.parcelaNumero && installmentMatch) {
+    const [, currentBase] = installmentMatch;
+    const newBase = updatedFields.description?.match(/^(.*) \((\d+)\/(\d+)\)$/)?.[1] ?? updatedFields.description;
+    const installments = tx.recurrenceTemplateId
+      ? db
+          .select()
+          .from(schema.transactions)
+          .where(
+            and(
+              eq(schema.transactions.recurrenceTemplateId, tx.recurrenceTemplateId),
+              eq(schema.transactions.isDeleted, 0),
+            ),
+          )
+          .all()
+      : db
+          .select()
+          .from(schema.transactions)
+          .where(
+            and(
+              eq(schema.transactions.isParcelado, 1),
+              eq(schema.transactions.numParcelas, tx.numParcelas),
+              eq(schema.transactions.createdByUserId, tx.createdByUserId),
+              eq(schema.transactions.isDeleted, 0),
+            ),
+          )
+          .all()
+          .filter(
+            (candidate) => candidate.description.match(/^(.*) \((\d+)\/(\d+)\)$/)?.[1] === currentBase,
+          );
+
+    for (const installment of installments) {
+      const fields = { ...mappedFields };
+      if (newBase) fields.description = `${newBase} (${installment.parcelaNumero}/${tx.numParcelas})`;
+      if (updatedFields.date && installment.parcelaNumero) {
+        fields.date = addMonths(updatedFields.date, installment.parcelaNumero - tx.parcelaNumero);
+      }
+      db.update(schema.transactions).set(fields).where(eq(schema.transactions.id, installment.id)).run();
+    }
+
+    if (tx.recurrenceTemplateId) {
+      const templateFields: any = {};
+      if (newBase) templateFields.description = newBase;
+      if (updatedFields.amount !== undefined) templateFields.amount = updatedFields.amount;
+      if (updatedFields.categoryId !== undefined) templateFields.categoryId = updatedFields.categoryId;
+      if (updatedFields.assignedToUserId !== undefined)
+        templateFields.assignedToUserId = updatedFields.assignedToUserId;
+      if (updatedFields.paraQuemUserId !== undefined)
+        templateFields.paraQuemUserId = updatedFields.paraQuemUserId;
+      if (updatedFields.isCreditCard !== undefined)
+        templateFields.isCreditCard = mappedFields.isCreditCard;
+      if (updatedFields.nextInvoice !== undefined) templateFields.nextInvoice = mappedFields.nextInvoice;
+      if (updatedFields.naoEntraDivisao !== undefined)
+        templateFields.naoEntraDivisao = mappedFields.naoEntraDivisao;
+      if (updatedFields.isPrevisao !== undefined) templateFields.isPrevisao = mappedFields.isPrevisao;
+      if (updatedFields.transactionType !== undefined)
+        templateFields.transactionType = updatedFields.transactionType;
+      if (updatedFields.date) {
+        const startDate = addMonths(updatedFields.date, 1 - tx.parcelaNumero);
+        templateFields.startDate = startDate;
+        templateFields.endDate = addMonths(startDate, tx.numParcelas - 1);
+        templateFields.dayOfMonth = Number.parseInt(startDate.split("-")[2], 10);
+      }
+      if (Object.keys(templateFields).length > 0) {
+        db.update(schema.recurrenceTemplates)
+          .set(templateFields)
+          .where(eq(schema.recurrenceTemplates.id, tx.recurrenceTemplateId))
+          .run();
+      }
+    }
+
+    return { success: true };
+  }
 
   if (!tx.recurrenceTemplateId) {
     // Non-recurring transaction, simple update

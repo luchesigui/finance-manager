@@ -15,6 +15,13 @@
   z-index: 1;
 }
 
+.pageHeader {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
 .formWrapper {
   max-width: 900px;
   width: 100%;
@@ -25,15 +32,62 @@
   padding: 2.5rem;
 }
 
+.formHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 10%, transparent);
+  padding-bottom: 0.75rem;
+}
+
 .panelTitle {
   font-family: var(--font-heading);
   font-size: 1.4rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--c-content);
-  margin-bottom: 1.25rem;
-  border-bottom: 1.5px solid color-mix(in srgb, var(--c-content) 10%, transparent);
-  padding-bottom: 0.75rem;
+  margin: 0;
+}
+
+.cardModeControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--c-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cardModeSwitch {
+  width: 36px;
+  height: 20px;
+  border: 1px solid color-mix(in srgb, var(--c-content) 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c-content) 8%, transparent);
+  padding: 2px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.cardModeSwitchActive {
+  border-color: color-mix(in srgb, var(--c-action) 45%, transparent);
+  background: color-mix(in srgb, var(--c-action) 35%, transparent);
+}
+
+.cardModeSwitchThumb {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c-content);
+  transition: transform 0.2s ease;
+}
+
+.cardModeSwitchActive .cardModeSwitchThumb {
+  transform: translateX(16px);
 }
 
 .fieldsContainer {
@@ -62,8 +116,30 @@
   align-items: center;
 }
 
+.rendaSubtypeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
 .parcelasWrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  max-width: 320px;
+}
+
+.parcelasWrapper > :first-child {
   max-width: 160px;
+}
+
+.valorParcelaPreview {
+  padding-bottom: 0.85rem;
+  color: var(--c-muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .actionsRow {
@@ -85,6 +161,38 @@
   margin: 0;
   border-bottom: none;
   padding-bottom: 0;
+}
+
+.monthSelector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.navButton {
+  background: color-mix(in srgb, var(--c-glass) 12%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--c-content);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.monthLabel {
+  color: var(--c-content-muted);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  margin: 0;
+  text-transform: uppercase;
 }
 
 .tabSelectorWrapper {
@@ -352,4 +460,71 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+@media (max-width: 760px) {
+  .container {
+    padding: 5rem 1rem 7rem;
+  }
+
+  .content {
+    gap: 1rem;
+  }
+
+  .formCard,
+  .listCard {
+    padding: 1rem;
+  }
+
+  .panelTitle,
+  .listTitle {
+    font-size: 1.1rem;
+  }
+
+  .tabSelectorWrapper {
+    margin-bottom: 1.25rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .grid15to1,
+  .grid1to1 {
+    grid-template-columns: 1fr;
+  }
+
+  .fieldsContainer,
+  .filtersBar {
+    gap: 0.9rem;
+  }
+
+  .checkboxesRow,
+  .rendaSubtypeRow,
+  .filterToggles {
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .inlineCheck,
+  .filterPill {
+    justify-content: center;
+    min-height: 42px;
+  }
+
+  .parcelasWrapper,
+  .filterGroup,
+  .searchWrapper {
+    max-width: none;
+    width: 100%;
+  }
+
+  .actionsRow,
+  .listHeader,
+  .filtersBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sumRow {
+    padding-inline: 0;
+  }
 }

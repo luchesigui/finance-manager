@@ -1,3 +1,4 @@
+import { resetCurrentMonthForTest } from "@/hooks/useCurrentMonth";
 import {
   type ApiTransaction,
   findCall,
@@ -5,15 +6,16 @@ import {
   makeApiTransaction,
 } from "@/test/mockApi";
 import { NovoLancamentoPage } from "@/test/pageObjects/NovoLancamentoPage";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { SWRConfig } from "swr";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { NovoLancamento } from "./NovoLancamento";
 
 const brl = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 async function renderView(transactions: ApiTransaction[] = []) {
+  resetCurrentMonthForTest();
   const mock = installFetchMock({ transactions });
   render(
     // cache SWR novo por teste — sem provider, dados de um teste vazariam no seguinte
@@ -32,7 +34,32 @@ async function renderView(transactions: ApiTransaction[] = []) {
   return { page, ...mock };
 }
 
+const nextMonth = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+};
+
 describe("NovoLancamento — soma dos gastos na tabela", () => {
+  it("troca o mês corrente usado na busca", async () => {
+    const { calls } = await renderView();
+
+    fireEvent.click(screen.getByLabelText("Próximo mês"));
+
+    await waitFor(() => {
+      expect(findCall(calls, "GET", `/api/transactions?month=${nextMonth()}`)).toBeTruthy();
+    });
+  });
+
+  it("does not show a próxima fatura tag in the table", async () => {
+    await renderView([
+      makeApiTransaction({ description: "Apple One", isCreditCard: 1, nextInvoice: 1 }),
+    ]);
+
+    expect(screen.getByText("Cartão")).toBeInTheDocument();
+    expect(screen.queryByText("Próxima Fatura")).not.toBeInTheDocument();
+  });
+
   it("sums only confirmed expenses, excluding previsões", async () => {
     const { page } = await renderView([
       makeApiTransaction({ description: "Mercado", amount: 12345 }),
@@ -107,6 +134,23 @@ describe("NovoLancamento — criação de gasto recorrente", () => {
     });
   });
 
+  it("sends card credit payload when modo cartão is active", async () => {
+    const { page, calls } = await renderView();
+
+    fireEvent.click(screen.getByRole("button", { name: /modo cartão/i }));
+    await page.fillDescription("Mercado");
+    await page.fillValor("5000");
+    await page.submitNew();
+
+    const post = await waitFor(() => {
+      const call = findCall(calls, "POST", "/api/transactions");
+      expect(call).toBeTruthy();
+      return call!;
+    });
+
+    expect(post.body).toMatchObject({ isCreditCard: true });
+  });
+
   it("does not submit without a description or amount", async () => {
     const { page, calls } = await renderView();
 
@@ -134,6 +178,16 @@ describe("NovoLancamento — criação de gasto recorrente", () => {
     // installments count field appears
     expect(screen.getByLabelText("Número de parcelas")).toBeInTheDocument();
   });
+
+  it("shows the monthly value preview for installments", async () => {
+    const { page } = await renderView();
+
+    await page.fillValor("120000");
+    await page.toggleCheckbox("Parcelado");
+    await page.user.type(screen.getByLabelText("Número de parcelas"), "12");
+
+    expect(screen.getByText(/100,00\/mês/)).toBeInTheDocument();
+  });
 });
 
 describe("NovoLancamento — edição de gasto recorrente", () => {
@@ -147,6 +201,22 @@ describe("NovoLancamento — edição de gasto recorrente", () => {
       isRecorrente: 1,
       categoryId: "moradia",
     });
+
+  it("scrolls to the form when editing a row", async () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    const { page } = await renderView([recurringTx()]);
+
+    await page.editRow("Academia");
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    });
+  });
 
   it("opens the scope modal and applies the edit to future occurrences", async () => {
     const { page, calls } = await renderView([recurringTx()]);

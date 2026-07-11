@@ -1,4 +1,5 @@
 import { db } from "@/db/db";
+import { getTransactionsForMonth } from "@/db/queries";
 import * as schema from "@/db/schema";
 import { getRequest, jsonRequest } from "@/test/apiHelpers";
 import { eq } from "drizzle-orm";
@@ -69,6 +70,23 @@ describe("GET /api/transactions — validation and filtering", () => {
     const list = await res.json();
     expect(list).toHaveLength(1);
     expect(list[0].description).toBe("Mercado julho");
+  });
+
+  it("returns transactions ordered by launch date descending", async () => {
+    await POST(
+      jsonRequest("/api/transactions", {
+        body: { description: "Mais recente", amount: 1000, date: "2026-07-20" },
+      }),
+    );
+    await POST(
+      jsonRequest("/api/transactions", {
+        body: { description: "Mais antiga", amount: 1000, date: "2026-07-01" },
+      }),
+    );
+
+    const res = await GET(getRequest("/api/transactions?month=2026-07"));
+    const list = await res.json();
+    expect(list.map((tx: any) => tx.description)).toEqual(["Mais recente", "Mais antiga"]);
   });
 
   it("counts a next-invoice purchase in the following month", async () => {
@@ -190,7 +208,18 @@ describe("POST /api/transactions — installments (parcelado)", () => {
       "TV nova (3/3)",
     ]);
     expect(rows.map((r) => r.date)).toEqual(["2026-07-15", "2026-08-15", "2026-09-15"]);
-    expect(rows.every((r) => r.amount === 100000 && r.isParcelado === 1)).toBe(true);
+    expect(rows.every((r) => r.amount === 33333 && r.isParcelado === 1)).toBe(true);
+    expect(new Set(rows.map((r) => r.recurrenceTemplateId)).size).toBe(1);
+
+    expect(allTemplates()).toMatchObject([
+      {
+        description: "TV nova",
+        amount: 33333,
+        startDate: "2026-07-15",
+        endDate: "2026-09-15",
+        isActive: 0,
+      },
+    ]);
   });
 
   it("caps installment dates at the end of shorter months", async () => {
@@ -270,6 +299,52 @@ describe("POST /api/transactions — recurring (recorrente)", () => {
     const august = await (await GET(getRequest("/api/transactions?month=2026-08"))).json();
     expect(august).toHaveLength(1);
     expect(august[0].date).toBe("2026-08-10");
+  });
+
+  it("deduplicates existing instances for the same recurring template month", async () => {
+    await POST(
+      jsonRequest("/api/transactions", {
+        body: {
+          description: "Apple One",
+          amount: 6690,
+          date: "2026-06-29",
+          isRecorrente: true,
+          isCreditCard: true,
+          nextInvoice: true,
+        },
+      }),
+    );
+
+    const [first] = await getTransactionsForMonth("2026-07");
+    db.insert(schema.transactions)
+      .values({ ...first, id: "apple-one-duplicate" })
+      .run();
+
+    const july = await (await GET(getRequest("/api/transactions?month=2026-07"))).json();
+    expect(july.filter((tx: any) => tx.description === "Apple One")).toHaveLength(1);
+    expect(db.select().from(schema.transactions).where(eq(schema.transactions.id, "apple-one-duplicate")).get()?.isDeleted).toBe(1);
+  });
+
+  it("does not materialize next-invoice purchases before their purchase start date", async () => {
+    await POST(
+      jsonRequest("/api/transactions", {
+        body: {
+          description: "Apple One",
+          amount: 6690,
+          date: "2026-06-29",
+          isRecorrente: true,
+          isCreditCard: true,
+          nextInvoice: true,
+        },
+      }),
+    );
+
+    const june = await (await GET(getRequest("/api/transactions?month=2026-06"))).json();
+    const july = await (await GET(getRequest("/api/transactions?month=2026-07"))).json();
+
+    expect(june).toHaveLength(0);
+    expect(july).toHaveLength(1);
+    expect(july[0]).toMatchObject({ description: "Apple One", date: "2026-06-29" });
   });
 
   it("does not materialize before the template start date", async () => {
