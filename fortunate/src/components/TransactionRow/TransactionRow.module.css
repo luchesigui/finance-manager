@@ -134,3 +134,13 @@
     justify-content: center;
   }
 }
+
+.pending {
+  opacity: 0.55;
+  filter: saturate(0.85);
+}
+
+.pending .description {
+  font-style: italic;
+  color: var(--c-content-muted);
+}

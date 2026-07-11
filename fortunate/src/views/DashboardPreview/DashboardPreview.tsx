@@ -7,7 +7,7 @@ import { Button } from "../../components/Button/Button";
 import { CloudBackground } from "../../components/CloudBackground/CloudBackground";
 import { GlassCard } from "../../components/GlassCard/GlassCard";
 import { ArrowLeft, ArrowRight } from "../../components/Icons";
-import { Input } from "../../components/Input/Input";
+import { Input, Toggle } from "../../components/Input/Input";
 import { PilarCard } from "../../components/PilarCard/PilarCard";
 import { useToast } from "../../components/Toast/ToastProvider";
 import { TransactionRow } from "../../components/TransactionRow/TransactionRow";
@@ -51,6 +51,25 @@ export function DashboardPreview() {
   const [selectedCategory, setSelectedCategory] = React.useState("");
 
   const toast = useToast();
+
+  const [includeFuture, setIncludeFuture] = React.useState(false);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("fortunate_include_future");
+    if (saved !== null) {
+      setIncludeFuture(saved === "true");
+    }
+  }, []);
+
+  const handleToggleIncludeFuture = (val: boolean) => {
+    setIncludeFuture(val);
+    localStorage.setItem("fortunate_include_future", String(val));
+  };
+
+  const todayStr = React.useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  }, []);
 
   const padZero = (n: number) => n.toString().padStart(2, "0");
   const { transactions: dbTxs } = useTransactions(currentMonthStr);
@@ -163,6 +182,10 @@ export function DashboardPreview() {
     const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
     for (const tx of dbTxs) {
+      const isFutureOrForecast =
+        tx.isPrevisao === 1 || tx.isPrevisao === true || tx.date > todayStr;
+      if (isFutureOrForecast && !includeFuture) continue;
+
       const amountFloat = tx.amount / 100;
       const isForecast = tx.isPrevisao || tx.date > todayStr;
 
@@ -284,7 +307,7 @@ export function DashboardPreview() {
       targetValues,
       transfer,
     };
-  }, [dbTxs, categories, users, settings]);
+  }, [dbTxs, categories, users, settings, includeFuture]);
 
   const autocompleteOptions = React.useMemo(() => {
     return categories.map((c) => ({
@@ -310,6 +333,8 @@ export function DashboardPreview() {
         const catObj = categories.find((c) => c.id === tx.categoryId);
         const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
 
+        const isFutureOrForecast = tx.isPrevisao === 1 || tx.date > todayStr;
+
         return {
           id: tx.id,
           isPrevisao: !!tx.isPrevisao,
@@ -321,9 +346,10 @@ export function DashboardPreview() {
           transactionType:
             tx.transactionType === "income" ? ("income" as const) : ("expense" as const),
           pills: pills.length > 0 ? pills : undefined,
+          pending: isFutureOrForecast,
         };
       });
-  }, [dbTxs, categories, users]);
+  }, [dbTxs, categories, users, todayStr]);
 
   return (
     <div className={styles.container}>
@@ -355,6 +381,20 @@ export function DashboardPreview() {
           <TrendBadge trend="up">Receitas {formatCurrency(stats.receitas)}</TrendBadge>
           <TrendBadge trend="down">Despesas {formatCurrency(stats.despesas)}</TrendBadge>
           <TrendBadge trend="up">Investido {formatCurrency(stats.investido)}</TrendBadge>
+        </div>
+        <div
+          style={{
+            marginTop: "1.5rem",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Toggle
+            label="Incluir previsões e lançamentos futuros nos totais"
+            checked={includeFuture}
+            onChange={(e) => handleToggleIncludeFuture(e.target.checked)}
+          />
         </div>
       </header>
 
@@ -464,6 +504,7 @@ export function DashboardPreview() {
                 onConfirm={tx.isPrevisao ? () => handleConfirmTransaction(tx.id) : undefined}
                 onEdit={() => window.location.assign("/lancamentos")}
                 onDelete={() => handleDeleteTransaction(tx.id)}
+                pending={tx.pending}
               />
             ))
           )}
