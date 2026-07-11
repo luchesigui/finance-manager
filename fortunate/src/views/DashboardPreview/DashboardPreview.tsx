@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import clsx from "clsx";
+import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import { Autocomplete } from "../../components/Autocomplete/Autocomplete";
 import { Button } from "../../components/Button/Button";
@@ -8,7 +9,9 @@ import { CloudBackground } from "../../components/CloudBackground/CloudBackgroun
 import { GlassCard } from "../../components/GlassCard/GlassCard";
 import { ArrowLeft, ArrowRight } from "../../components/Icons";
 import { Input } from "../../components/Input/Input";
+import { Modal } from "../../components/Modal/Modal";
 import { PilarCard } from "../../components/PilarCard/PilarCard";
+import { TabSelector } from "../../components/TabSelector/TabSelector";
 import { useToast } from "../../components/Toast/ToastProvider";
 import { TransactionRow } from "../../components/TransactionRow/TransactionRow";
 import type { TransactionTagVariant } from "../../components/TransactionTag/TransactionTag";
@@ -19,12 +22,14 @@ import {
   createCategory,
   createTransaction,
   deleteTransaction,
+  updateTransaction,
 } from "../../hooks/mutations";
 import { useCategories } from "../../hooks/useCategories";
 import { useCurrentMonth } from "../../hooks/useCurrentMonth";
 import { useSettings } from "../../hooks/useSettings";
 import { useTransactions } from "../../hooks/useTransactions";
 import { useUsers } from "../../hooks/useUsers";
+import type { RecurrenceOption } from "../../lib/types";
 import {
   DEFAULT_PILLAR_TARGETS,
   PILLAR_NAMES,
@@ -34,6 +39,35 @@ import {
   type PillarSlug,
 } from "../../utils/pillars";
 import styles from "./DashboardPreview.module.css";
+
+interface Transaction {
+  id: string;
+  avatar: string;
+  date: string;
+  rawDate: string;
+  description: string;
+  category: string;
+  amount: number;
+  transactionType: "expense" | "income" | "transfer";
+  pills?: TransactionTagVariant[];
+  isPrevisao: boolean;
+  recurrenceTemplateId?: string | null;
+  isCreditCard: boolean;
+  isRecorrente: boolean;
+  nextInvoice: boolean;
+  assignedToUserId: string;
+  pillar?: string;
+  categoryId?: string | null;
+  ignored: boolean;
+}
+
+const TYPE_ACCENT = {
+  despesa: "var(--status-negative, #E05C5C)",
+  renda: "var(--status-positive, #4CAF82)",
+  transferencia: "var(--c-action, #E98024)",
+};
+
+const PILLARS = PILLAR_SLUGS.map((slug) => PILLAR_NAMES[slug]);
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -59,6 +93,30 @@ export function DashboardPreview() {
   const { settings } = useSettings();
 
   const pillars = PILLAR_SLUGS.map((slug) => PILLAR_NAMES[slug]);
+
+  // Views and Filters States
+  const searchParams = useSearchParams();
+  const pilarParam = searchParams ? searchParams.get("pilar") : null;
+
+  const [activeView, setActiveView] = React.useState<"expense" | "income" | "transfer">("expense");
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [filterAssigned, setFilterAssigned] = React.useState("todos");
+  const [filterCategory, setFilterCategory] = React.useState("todas");
+  const [filterPillar, setFilterPillar] = React.useState("todos");
+  const [filterCardOnly, setFilterCardOnly] = React.useState(false);
+  const [filterRecurringOnly, setFilterRecurringOnly] = React.useState(false);
+
+  // Delete Recurrence State
+  const [deletingTx, setDeletingTx] = React.useState<Transaction | null>(null);
+
+  const handleViewChange = (view: "expense" | "income" | "transfer") => {
+    setActiveView(view);
+    setFilterCategory("todas");
+    setFilterPillar("todos");
+    setFilterCardOnly(false);
+  };
+
+  const people = React.useMemo(() => users.map((u) => ({ value: u.id, label: u.name })), [users]);
 
   const handleCreateCategory = async (name: string, pillarName: string) => {
     const slug = name
@@ -106,9 +164,24 @@ export function DashboardPreview() {
     }
   };
 
-  const handleDeleteTransaction = async (id: string) => {
+  const handleDeleteClick = (tx: Transaction) => {
+    if (tx.recurrenceTemplateId) {
+      // It is a recurring transaction, show selection dialog
+      setDeletingTx(tx);
+    } else {
+      // Single transaction, delete directly
+      setDeletingTx(tx); // Set so submitDelete knows what to delete
+      setTimeout(() => submitDelete("only_this", tx.id), 0);
+    }
+  };
+
+  const submitDelete = async (option: RecurrenceOption, explicitId?: string) => {
+    const txId = explicitId || (deletingTx ? deletingTx.id : null);
+    if (!txId) return;
+
     try {
-      await deleteTransaction(id, "only_this");
+      await deleteTransaction(txId, option);
+      setDeletingTx(null);
     } catch (err) {
       console.error("Error deleting transaction", err);
       toast({ variant: "error", title: "Erro ao excluir lançamento" });
@@ -118,11 +191,24 @@ export function DashboardPreview() {
   const handleConfirmTransaction = async (id: string) => {
     try {
       await confirmTransaction(id);
-      toast({ variant: "success", title: "Previsão confirmada" });
     } catch (err) {
       console.error("Error confirming transaction", err);
       toast({ variant: "error", title: "Erro ao confirmar lançamento" });
     }
+  };
+
+  const handleToggleIgnore = async (tx: Transaction) => {
+    try {
+      await updateTransaction(tx.id, { ignored: !tx.ignored }, "only_this");
+    } catch (err) {
+      console.error("Error toggling ignore status", err);
+      toast({ variant: "error", title: "Erro ao alterar visibilidade do lançamento" });
+    }
+  };
+
+  const handleEditClick = (tx: Transaction) => {
+    // Navigate to releases page so user can edit there
+    router.push("/lancamentos");
   };
 
   // Cálculos financeiros do mês
@@ -163,6 +249,9 @@ export function DashboardPreview() {
     const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
     for (const tx of dbTxs) {
+      if (tx.ignored) {
+        continue;
+      }
       const amountFloat = tx.amount / 100;
       const isForecast = tx.isPrevisao || tx.date > todayStr;
 
@@ -294,36 +383,137 @@ export function DashboardPreview() {
     }));
   }, [categories]);
 
-  // Mapeia transações do banco para o formato de exibição
-  const viewTransactions = React.useMemo(() => {
-    return dbTxs
-      .filter((tx) => tx.transactionType === "expense")
-      .map((tx) => {
-        const displayDate = tx.date.split("-").reverse().join("/");
-        const pills: TransactionTagVariant[] = [];
-        if (tx.isPrevisao) pills.push("previsao");
-        if (tx.recurrenceTemplateId) pills.push("recorrente");
-        if (tx.isParcelado) pills.push("parcelado");
-        if (tx.isCreditCard) pills.push("cartao");
-        if (tx.nextInvoice) pills.push("proxima-fatura");
+  const initialPillar = React.useMemo(() => {
+    if (!pilarParam) return "todos";
+    // Check if it's a direct display name
+    const displayNames = PILLAR_SLUGS.map((slug) => PILLAR_NAMES[slug]);
+    const matchedDisplayName = displayNames.find(
+      (name) => name.toLowerCase() === pilarParam.toLowerCase(),
+    );
+    if (matchedDisplayName) return matchedDisplayName;
 
-        const catObj = categories.find((c) => c.id === tx.categoryId);
-        const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
+    // Check if it matches a slug
+    let slugStr = pilarParam.toLowerCase();
+    if (slugStr === "metas") {
+      slugStr = "planejamento";
+    }
+    const matchedSlug = PILLAR_SLUGS.find((s) => s === slugStr);
+    if (matchedSlug) {
+      return PILLAR_NAMES[matchedSlug];
+    }
+    return "todos";
+  }, [pilarParam]);
 
-        return {
-          id: tx.id,
-          isPrevisao: !!tx.isPrevisao,
-          avatar: assignedUser?.avatarInitials ?? "?",
-          date: displayDate,
-          description: tx.description,
-          category: catObj?.name ?? "—",
-          amount: tx.amount / 100,
-          transactionType:
-            tx.transactionType === "income" ? ("income" as const) : ("expense" as const),
-          pills: pills.length > 0 ? pills : undefined,
-        };
-      });
-  }, [dbTxs, categories, users]);
+  React.useEffect(() => {
+    setFilterPillar(initialPillar);
+  }, [initialPillar]);
+
+  React.useEffect(() => {
+    if (filterPillar !== "todos") {
+      const matchedCat = autocompleteOptions.find((c) => c.value === filterCategory);
+      if (matchedCat && matchedCat.pillar !== filterPillar) {
+        setFilterCategory("todas");
+      }
+    }
+  }, [filterPillar, autocompleteOptions, filterCategory]);
+
+  const transactions = React.useMemo(() => {
+    return dbTxs.map((tx): Transaction => {
+      const displayDate = tx.date.split("-").reverse().join("/");
+      const pills: TransactionTagVariant[] = [];
+      if (tx.isPrevisao) pills.push("previsao");
+      if (tx.recurrenceTemplateId) pills.push("recorrente");
+      if (tx.isParcelado) pills.push("parcelado");
+      if (tx.isCreditCard) pills.push("cartao");
+
+      const matchedCategory = autocompleteOptions.find((c) => c.value === tx.categoryId);
+      const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
+
+      return {
+        id: tx.id,
+        avatar: assignedUser?.avatarInitials ?? "?",
+        date: displayDate,
+        rawDate: tx.date,
+        description: tx.description,
+        category: matchedCategory ? matchedCategory.label : "—",
+        amount: tx.amount / 100, // cents to float
+        transactionType: tx.transactionType as "expense" | "income" | "transfer",
+        pills: pills.length > 0 ? pills : undefined,
+        isPrevisao: !!tx.isPrevisao,
+        recurrenceTemplateId: tx.recurrenceTemplateId,
+        isCreditCard: !!tx.isCreditCard,
+        isRecorrente: !!tx.recurrenceTemplateId || !!tx.isRecorrente,
+        nextInvoice: !!tx.nextInvoice,
+        assignedToUserId: tx.assignedToUserId,
+        pillar: matchedCategory ? matchedCategory.pillar : undefined,
+        categoryId: tx.categoryId,
+        ignored: !!tx.ignored,
+      };
+    });
+  }, [dbTxs, autocompleteOptions, users]);
+
+  const filteredTransactions = React.useMemo(() => {
+    return transactions.filter((tx) => {
+      // 1. View / Type filter
+      if (tx.transactionType !== activeView) return false;
+
+      // 2. Search term (description case-insensitive)
+      if (searchTerm && !tx.description.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+
+      // 3. Assigned to filter
+      if (filterAssigned !== "todos" && tx.assignedToUserId !== filterAssigned) {
+        return false;
+      }
+
+      // Contextual filters (only for despesa / expense view)
+      if (activeView === "expense") {
+        // 4. Category filter
+        if (filterCategory !== "todas" && tx.categoryId !== filterCategory) {
+          return false;
+        }
+
+        // 5. Pillar filter
+        if (filterPillar !== "todos" && tx.pillar !== filterPillar) {
+          return false;
+        }
+
+        // 6. Credit card filter
+        if (filterCardOnly && !tx.isCreditCard) {
+          return false;
+        }
+      }
+
+      // 7. Recurring filter
+      if (filterRecurringOnly && !tx.isRecorrente) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [
+    transactions,
+    activeView,
+    searchTerm,
+    filterAssigned,
+    filterCategory,
+    filterPillar,
+    filterCardOnly,
+    filterRecurringOnly,
+  ]);
+
+  const contextSum = React.useMemo(() => {
+    return filteredTransactions.reduce((acc, tx) => {
+      if (activeView === "expense" && tx.isPrevisao) {
+        return acc;
+      }
+      if (tx.ignored) {
+        return acc;
+      }
+      return acc + tx.amount;
+    }, 0);
+  }, [filteredTransactions, activeView]);
 
   return (
     <div className={styles.container}>
@@ -443,31 +633,228 @@ export function DashboardPreview() {
           </GlassCard>
         </div>
 
-        {/* Últimas Transações — full width */}
+        {/* ── Listagem de lançamentos ── */}
         <GlassCard variant="fino" className={styles.listCard}>
-          <h2 className={styles.listTitle}>Últimas Transações</h2>
-          {viewTransactions.length === 0 ? (
-            <p style={{ textAlign: "center", color: "var(--c-content-muted)", padding: "1rem" }}>
-              Nenhuma transação registrada para este mês.
+          <div className={styles.listHeader}>
+            <h2 className={styles.listTitle}>Lançamentos</h2>
+
+            {/* Search Bar */}
+            <div className={styles.searchWrapper}>
+              <input
+                type="text"
+                placeholder="Buscar por descrição..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className={styles.clearSearchBtn}
+                  onClick={() => setSearchTerm("")}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* View Tab Selector */}
+          <div className={styles.viewTabsRow}>
+            <TabSelector
+              tabs={[
+                { label: "Despesas", color: TYPE_ACCENT.despesa },
+                { label: "Rendas", color: TYPE_ACCENT.renda },
+                { label: "Transferências", color: TYPE_ACCENT.transferencia },
+              ]}
+              value={["expense", "income", "transfer"].indexOf(activeView)}
+              onChange={(idx) => {
+                const views: ("expense" | "income" | "transfer")[] = [
+                  "expense",
+                  "income",
+                  "transfer",
+                ];
+                handleViewChange(views[idx]);
+              }}
+            />
+          </div>
+
+          {/* Filters Bar */}
+          <div className={styles.filtersBar}>
+            {/* Atribuído a (Household Filter) */}
+            {people.length > 1 && (
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel} htmlFor="filter-assigned">
+                  Atribuído a
+                </label>
+                <select
+                  id="filter-assigned"
+                  value={filterAssigned}
+                  onChange={(e) => setFilterAssigned(e.target.value)}
+                  className={styles.filterSelect}
+                >
+                  <option value="todos">Todos</option>
+                  {people.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Categorias (only for despesas) */}
+            {activeView === "expense" && (
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel} htmlFor="filter-category">
+                  Categoria
+                </label>
+                <select
+                  id="filter-category"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className={styles.filterSelect}
+                >
+                  <option value="todas">Todas</option>
+                  {autocompleteOptions
+                    .filter((c) => filterPillar === "todos" || c.pillar === filterPillar)
+                    .map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+
+            {/* Pilares (only for despesas) */}
+            {activeView === "expense" && (
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel} htmlFor="filter-pillar">
+                  Pilar
+                </label>
+                <select
+                  id="filter-pillar"
+                  value={filterPillar}
+                  onChange={(e) => setFilterPillar(e.target.value)}
+                  className={styles.filterSelect}
+                >
+                  <option value="todos">Todos</option>
+                  {PILLARS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Checkbox/Pill Filters */}
+            <div className={styles.filterToggles}>
+              {activeView === "expense" && (
+                <button
+                  type="button"
+                  onClick={() => setFilterCardOnly(!filterCardOnly)}
+                  className={clsx(styles.filterPill, {
+                    [styles.filterPillActive]: filterCardOnly,
+                  })}
+                >
+                  💳 Apenas Cartão
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setFilterRecurringOnly(!filterRecurringOnly)}
+                className={clsx(styles.filterPill, {
+                  [styles.filterPillActive]: filterRecurringOnly,
+                })}
+              >
+                🔄 Apenas Recorrentes
+              </button>
+            </div>
+          </div>
+
+          <hr className={styles.listSeparator} />
+
+          {/* List Content */}
+          {transactions.length === 0 ? (
+            <p style={{ textAlign: "center", color: "var(--c-content-muted)", padding: "1.5rem" }}>
+              Nenhum lançamento cadastrado para este mês.
+            </p>
+          ) : filteredTransactions.length === 0 ? (
+            <p style={{ textAlign: "center", color: "var(--c-content-muted)", padding: "1.5rem" }}>
+              Nenhum lançamento encontrado para os filtros selecionados.
             </p>
           ) : (
-            viewTransactions.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                avatar={tx.avatar}
-                description={tx.description}
-                category={tx.category}
-                date={tx.date}
-                amount={tx.amount}
-                transactionType={tx.transactionType}
-                pills={tx.pills}
-                onConfirm={tx.isPrevisao ? () => handleConfirmTransaction(tx.id) : undefined}
-                onEdit={() => window.location.assign("/lancamentos")}
-                onDelete={() => handleDeleteTransaction(tx.id)}
-              />
-            ))
+            <div className={styles.transactionsWrapper}>
+              <div className={styles.transactionsList}>
+                {filteredTransactions.map((tx) => {
+                  return (
+                    <TransactionRow
+                      key={tx.id}
+                      avatar={tx.avatar}
+                      description={tx.description}
+                      category={tx.category}
+                      date={tx.date}
+                      amount={tx.amount}
+                      transactionType={tx.transactionType}
+                      pills={tx.pills}
+                      ignored={tx.ignored}
+                      onConfirm={tx.isPrevisao ? () => handleConfirmTransaction(tx.id) : undefined}
+                      onEdit={() => handleEditClick(tx)}
+                      onDelete={() => handleDeleteClick(tx)}
+                      onToggleIgnore={() => handleToggleIgnore(tx)}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Sum Row */}
+              <div className={styles.sumRow}>
+                <span className={styles.sumLabel}>Total do Contexto:</span>
+                <span
+                  className={clsx(styles.sumAmount, {
+                    [styles.sumExpense]: activeView === "expense",
+                    [styles.sumIncome]: activeView === "income",
+                    [styles.sumTransfer]: activeView === "transfer",
+                  })}
+                >
+                  {new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format(activeView === "expense" ? -contextSum : contextSum)}
+                </span>
+              </div>
+            </div>
           )}
         </GlassCard>
+
+        {/* Delete Choice Modal */}
+        <Modal
+          open={!!deletingTx}
+          onClose={() => setDeletingTx(null)}
+          title="Excluir Transação Recorrente"
+        >
+          <p className={styles.modalDescription}>
+            Esta é uma transação recorrente de <strong>{deletingTx?.description}</strong>. Como você
+            gostaria de realizar a exclusão?
+          </p>
+          <div className={styles.modalButtons}>
+            <Button variant="action" onClick={() => submitDelete("only_this")}>
+              Excluir apenas esta ocorrência
+            </Button>
+            <Button variant="action" onClick={() => submitDelete("future")}>
+              Excluir esta e todas as futuras
+            </Button>
+            <Button variant="outline" onClick={() => submitDelete("all")}>
+              Excluir todo o histórico (passado e futuro)
+            </Button>
+            <Button variant="outline" onClick={() => setDeletingTx(null)}>
+              Cancelar
+            </Button>
+          </div>
+        </Modal>
       </div>
     </div>
   );

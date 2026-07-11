@@ -6,6 +6,16 @@
   border-bottom: 1px solid color-mix(in srgb, var(--c-content) 8%, transparent);
 }
 
+.rowIgnored {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+  transition: opacity 150ms ease, filter 150ms ease;
+}
+
+.rowIgnored .description {
+  text-decoration: line-through;
+}
+
 .row:last-child {
   border-bottom: none;
 }

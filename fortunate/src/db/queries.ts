@@ -135,7 +135,10 @@ async function materializeRecurringForMonth(monthStr: string) {
     // If nextInvoice = 0, it counts for monthStr and occurred in monthStr.
     const purchaseMonth = template.nextInvoice === 1 ? prevMonthStr : monthStr;
     const purchaseDate = formatDayOfMonth(purchaseMonth, template.dayOfMonth);
-    if (purchaseDate < template.startDate || (template.endDate && purchaseDate > template.endDate)) {
+    if (
+      purchaseDate < template.startDate ||
+      (template.endDate && purchaseDate > template.endDate)
+    ) {
       continue;
     }
 
@@ -475,6 +478,7 @@ export async function updateTransaction(
     naoEntraDivisao?: boolean;
     isPrevisao?: boolean;
     transactionType?: "expense" | "income" | "transfer";
+    ignored?: boolean;
   },
   option: "only_this" | "all" | "future" = "only_this",
 ) {
@@ -482,7 +486,7 @@ export async function updateTransaction(
 
   if (!tx) throw new Error("Transaction not found");
 
-  const mappedFields: any = { ...updatedFields };
+  const mappedFields: Record<string, unknown> = { ...updatedFields };
   if (updatedFields.isCreditCard !== undefined)
     mappedFields.isCreditCard = updatedFields.isCreditCard ? 1 : 0;
   if (updatedFields.nextInvoice !== undefined)
@@ -491,11 +495,13 @@ export async function updateTransaction(
     mappedFields.naoEntraDivisao = updatedFields.naoEntraDivisao ? 1 : 0;
   if (updatedFields.isPrevisao !== undefined)
     mappedFields.isPrevisao = updatedFields.isPrevisao ? 1 : 0;
+  if (updatedFields.ignored !== undefined) mappedFields.ignored = updatedFields.ignored ? 1 : 0;
 
   const installmentMatch = tx.description.match(/^(.*) \((\d+)\/(\d+)\)$/);
   if (tx.isParcelado && tx.numParcelas && tx.parcelaNumero && installmentMatch) {
     const [, currentBase] = installmentMatch;
-    const newBase = updatedFields.description?.match(/^(.*) \((\d+)\/(\d+)\)$/)?.[1] ?? updatedFields.description;
+    const newBase =
+      updatedFields.description?.match(/^(.*) \((\d+)\/(\d+)\)$/)?.[1] ?? updatedFields.description;
     const installments = tx.recurrenceTemplateId
       ? db
           .select()
@@ -520,33 +526,41 @@ export async function updateTransaction(
           )
           .all()
           .filter(
-            (candidate) => candidate.description.match(/^(.*) \((\d+)\/(\d+)\)$/)?.[1] === currentBase,
+            (candidate) =>
+              candidate.description.match(/^(.*) \((\d+)\/(\d+)\)$/)?.[1] === currentBase,
           );
 
     for (const installment of installments) {
       const fields = { ...mappedFields };
-      if (newBase) fields.description = `${newBase} (${installment.parcelaNumero}/${tx.numParcelas})`;
+      if (newBase)
+        fields.description = `${newBase} (${installment.parcelaNumero}/${tx.numParcelas})`;
       if (updatedFields.date && installment.parcelaNumero) {
         fields.date = addMonths(updatedFields.date, installment.parcelaNumero - tx.parcelaNumero);
       }
-      db.update(schema.transactions).set(fields).where(eq(schema.transactions.id, installment.id)).run();
+      db.update(schema.transactions)
+        .set(fields)
+        .where(eq(schema.transactions.id, installment.id))
+        .run();
     }
 
     if (tx.recurrenceTemplateId) {
-      const templateFields: any = {};
+      const templateFields: Record<string, unknown> = {};
       if (newBase) templateFields.description = newBase;
       if (updatedFields.amount !== undefined) templateFields.amount = updatedFields.amount;
-      if (updatedFields.categoryId !== undefined) templateFields.categoryId = updatedFields.categoryId;
+      if (updatedFields.categoryId !== undefined)
+        templateFields.categoryId = updatedFields.categoryId;
       if (updatedFields.assignedToUserId !== undefined)
         templateFields.assignedToUserId = updatedFields.assignedToUserId;
       if (updatedFields.paraQuemUserId !== undefined)
         templateFields.paraQuemUserId = updatedFields.paraQuemUserId;
       if (updatedFields.isCreditCard !== undefined)
         templateFields.isCreditCard = mappedFields.isCreditCard;
-      if (updatedFields.nextInvoice !== undefined) templateFields.nextInvoice = mappedFields.nextInvoice;
+      if (updatedFields.nextInvoice !== undefined)
+        templateFields.nextInvoice = mappedFields.nextInvoice;
       if (updatedFields.naoEntraDivisao !== undefined)
         templateFields.naoEntraDivisao = mappedFields.naoEntraDivisao;
-      if (updatedFields.isPrevisao !== undefined) templateFields.isPrevisao = mappedFields.isPrevisao;
+      if (updatedFields.isPrevisao !== undefined)
+        templateFields.isPrevisao = mappedFields.isPrevisao;
       if (updatedFields.transactionType !== undefined)
         templateFields.transactionType = updatedFields.transactionType;
       if (updatedFields.date) {
@@ -582,7 +596,7 @@ export async function updateTransaction(
       .run();
   } else if (option === "all") {
     // 1. Update the template
-    const templateFields: any = {};
+    const templateFields: Record<string, unknown> = {};
     if (updatedFields.description !== undefined)
       templateFields.description = updatedFields.description;
     if (updatedFields.amount !== undefined) templateFields.amount = updatedFields.amount;

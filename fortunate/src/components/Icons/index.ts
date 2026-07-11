@@ -20,3 +20,5 @@ export * from "./Layers";
 export * from "./TriangleUp";
 export * from "./TriangleDown";
 export * from "./Star";
+export * from "./Eye";
+export * from "./EyeOff";

@@ -21,6 +21,7 @@ const updateTransactionSchema = z.object({
     naoEntraDivisao: z.boolean().optional(),
     isPrevisao: z.boolean().optional(),
     transactionType: z.enum(["expense", "income", "transfer"]).optional(),
+    ignored: z.boolean().optional(),
   }),
   option: recurrenceOptionSchema,
 });
@@ -47,9 +48,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { updatedFields, option } = validation.data;
     const result = await updateTransaction(id, updatedFields, option);
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
     console.error(`Error in PUT /api/transactions/${(await params).id}:`, error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -77,8 +79,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     const result = await deleteTransaction(id, validation.data);
     return NextResponse.json(result);
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
     console.error(`Error in DELETE /api/transactions/${(await params).id}:`, error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

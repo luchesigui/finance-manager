@@ -61,6 +61,7 @@ export const transactions = sqliteTable("transactions", {
   recurrenceTemplateId: text("recurrence_template_id").references(() => recurrenceTemplates.id),
   isOverridden: integer("is_overridden").notNull().default(0),
   isDeleted: integer("is_deleted").notNull().default(0),
+  ignored: integer("ignored").notNull().default(0),
 });
 
 export const settings = sqliteTable("settings", {

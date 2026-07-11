@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import React from "react";
-import { CheckCircle, Pencil, Trash } from "../Icons";
+import { CheckCircle, Eye, EyeOff, Pencil, Trash } from "../Icons";
 import { TransactionTag, type TransactionTagVariant } from "../TransactionTag/TransactionTag";
 import styles from "./TransactionRow.module.css";
 
@@ -12,9 +12,11 @@ export interface TransactionRowProps {
   amount: number;
   transactionType: "expense" | "income" | "transfer";
   pills?: TransactionTagVariant[];
+  ignored?: boolean;
   onConfirm?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onToggleIgnore?: () => void;
 }
 
 export function TransactionRow({
@@ -25,9 +27,11 @@ export function TransactionRow({
   amount,
   transactionType,
   pills,
+  ignored = false,
   onConfirm,
   onEdit,
   onDelete,
+  onToggleIgnore,
 }: TransactionRowProps) {
   const signedAmount =
     transactionType === "income" || transactionType === "transfer" ? amount : -amount;
@@ -39,7 +43,7 @@ export function TransactionRow({
   const showConfirm = onConfirm && transactionType === "expense" && pills?.includes("previsao");
 
   return (
-    <div className={styles.row}>
+    <div className={clsx(styles.row, { [styles.rowIgnored]: ignored })}>
       <div className={styles.avatar}>{avatar}</div>
       <div className={styles.body}>
         <span className={styles.description}>{description}</span>
@@ -71,6 +75,16 @@ export function TransactionRow({
               aria-label="Confirmar"
             >
               <CheckCircle />
+            </button>
+          )}
+          {onToggleIgnore && (
+            <button
+              type="button"
+              className={styles.actionBtn}
+              onClick={onToggleIgnore}
+              aria-label={ignored ? "Considerar nas contas" : "Desconsiderar nas contas"}
+            >
+              {ignored ? <EyeOff /> : <Eye />}
             </button>
           )}
           {onEdit && (

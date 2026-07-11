@@ -54,6 +54,7 @@ interface Transaction {
   assignedToUserId: string;
   pillar?: string;
   categoryId?: string | null;
+  ignored: boolean;
 }
 
 type TransactionType = "despesa" | "renda" | "transferencia";
@@ -269,6 +270,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         assignedToUserId: tx.assignedToUserId,
         pillar: matchedCategory ? matchedCategory.pillar : undefined,
         categoryId: tx.categoryId,
+        ignored: !!tx.ignored,
       };
     });
   }, [dbTxs, categories, users]);
@@ -327,6 +329,9 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const contextSum = React.useMemo(() => {
     return filteredTransactions.reduce((acc, tx) => {
       if (activeView === "expense" && tx.isPrevisao) {
+        return acc;
+      }
+      if (tx.ignored) {
         return acc;
       }
       return acc + tx.amount;
@@ -455,6 +460,15 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     }
   };
 
+  const handleToggleIgnore = async (tx: Transaction) => {
+    try {
+      await updateTransaction(tx.id, { ignored: !tx.ignored }, "only_this");
+    } catch (err) {
+      console.error("Error toggling ignore status", err);
+      toast({ variant: "error", title: "Erro ao alterar visibilidade do lançamento" });
+    }
+  };
+
   const handleEditClick = (tx: Transaction) => {
     setEditingTx(tx);
     setType(
@@ -515,7 +529,8 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const tabValues: TransactionType[] = ["despesa", "renda", "transferencia"];
   const activeTabIndex = tabValues.indexOf(type);
   const parcelasCount = Number.parseInt(numParcelas, 10);
-  const valorPorParcela = isParcelado && valor !== null && parcelasCount > 1 ? valor / parcelasCount : null;
+  const valorPorParcela =
+    isParcelado && valor !== null && parcelasCount > 1 ? valor / parcelasCount : null;
   const cardModeActive = !editingTx && type === "despesa" && cardMode;
   const cardChecked = isCard || cardModeActive;
 
@@ -578,7 +593,9 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
                   <span>Modo cartão</span>
                   <button
                     type="button"
-                    className={clsx(styles.cardModeSwitch, { [styles.cardModeSwitchActive]: cardMode })}
+                    className={clsx(styles.cardModeSwitch, {
+                      [styles.cardModeSwitchActive]: cardMode,
+                    })}
                     onClick={() => setCardMode((value) => !value)}
                     aria-label="Modo cartão"
                     aria-pressed={cardMode}
@@ -938,9 +955,11 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
                       amount={tx.amount}
                       transactionType={tx.transactionType}
                       pills={tx.pills}
+                      ignored={tx.ignored}
                       onConfirm={() => handleConfirmTransaction(tx.id)}
                       onEdit={() => handleEditClick(tx)}
                       onDelete={() => handleDeleteClick(tx)}
+                      onToggleIgnore={() => handleToggleIgnore(tx)}
                     />
                   );
                 })}

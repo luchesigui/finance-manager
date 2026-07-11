@@ -38,6 +38,7 @@ export interface UpdateTransactionFields {
   naoEntraDivisao?: boolean;
   isPrevisao?: boolean;
   transactionType?: TransactionType;
+  ignored?: boolean;
 }
 
 export async function createTransaction(payload: CreateTransactionPayload) {
