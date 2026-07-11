@@ -60,7 +60,6 @@ export function DashboardPreview() {
 
   const pillars = PILLAR_SLUGS.map((slug) => PILLAR_NAMES[slug]);
 
-
   const handleCreateCategory = async (name: string, pillarName: string) => {
     const slug = name
       .toLowerCase()
@@ -141,6 +140,15 @@ export function DashboardPreview() {
       liberdade: 0,
     };
 
+    const pilarForecasted: Record<PillarSlug, number> = {
+      essenciais: 0,
+      conforto: 0,
+      prazeres: 0,
+      conhecimento: 0,
+      planejamento: 0,
+      liberdade: 0,
+    };
+
     // Divisão de gastos do casal, por usuário
     const incomeByUser: Record<string, number> = {};
     const paidSharedByUser: Record<string, number> = {};
@@ -151,9 +159,19 @@ export function DashboardPreview() {
     }
 
     for (const tx of dbTxs) {
-      if (tx.isPrevisao) continue; // previsões ficam fora dos totais
-
       const amountFloat = tx.amount / 100;
+
+      if (tx.isPrevisao) {
+        // Apenas para as previsões de gastos, somamos no forecast
+        if (tx.transactionType === "expense") {
+          const cat = categories.find((c) => c.id === tx.categoryId);
+          const pilarSlug = (cat?.pillarSlug ?? "conforto") as PillarSlug;
+          if (pilarSlug in pilarForecasted) {
+            pilarForecasted[pilarSlug] += amountFloat;
+          }
+        }
+        continue;
+      }
 
       if (tx.transactionType === "income") {
         totalIncomes += amountFloat;
@@ -168,6 +186,9 @@ export function DashboardPreview() {
 
         if (pilarSlug in pilarUsed) {
           pilarUsed[pilarSlug] += amountFloat;
+        }
+        if (pilarSlug in pilarForecasted) {
+          pilarForecasted[pilarSlug] += amountFloat;
         }
 
         if (pilarSlug === "liberdade") {
@@ -248,6 +269,7 @@ export function DashboardPreview() {
       despesas: totalExpenses,
       investido: totalInvested,
       pilarUsed,
+      pilarForecasted,
       targetValues,
       transfer,
     };
@@ -263,31 +285,33 @@ export function DashboardPreview() {
 
   // Mapeia transações do banco para o formato de exibição
   const viewTransactions = React.useMemo(() => {
-    return dbTxs.filter((tx) => tx.transactionType === "expense").map((tx) => {
-      const displayDate = tx.date.split("-").reverse().join("/");
-      const pills: TransactionTagVariant[] = [];
-      if (tx.isPrevisao) pills.push("previsao");
-      if (tx.recurrenceTemplateId) pills.push("recorrente");
-      if (tx.isParcelado) pills.push("parcelado");
-      if (tx.isCreditCard) pills.push("cartao");
-      if (tx.nextInvoice) pills.push("proxima-fatura");
+    return dbTxs
+      .filter((tx) => tx.transactionType === "expense")
+      .map((tx) => {
+        const displayDate = tx.date.split("-").reverse().join("/");
+        const pills: TransactionTagVariant[] = [];
+        if (tx.isPrevisao) pills.push("previsao");
+        if (tx.recurrenceTemplateId) pills.push("recorrente");
+        if (tx.isParcelado) pills.push("parcelado");
+        if (tx.isCreditCard) pills.push("cartao");
+        if (tx.nextInvoice) pills.push("proxima-fatura");
 
-      const catObj = categories.find((c) => c.id === tx.categoryId);
-      const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
+        const catObj = categories.find((c) => c.id === tx.categoryId);
+        const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
 
-      return {
-        id: tx.id,
-        isPrevisao: !!tx.isPrevisao,
-        avatar: assignedUser?.avatarInitials ?? "?",
-        date: displayDate,
-        description: tx.description,
-        category: catObj?.name ?? "—",
-        amount: tx.amount / 100,
-        transactionType:
-          tx.transactionType === "income" ? ("income" as const) : ("expense" as const),
-        pills: pills.length > 0 ? pills : undefined,
-      };
-    });
+        return {
+          id: tx.id,
+          isPrevisao: !!tx.isPrevisao,
+          avatar: assignedUser?.avatarInitials ?? "?",
+          date: displayDate,
+          description: tx.description,
+          category: catObj?.name ?? "—",
+          amount: tx.amount / 100,
+          transactionType:
+            tx.transactionType === "income" ? ("income" as const) : ("expense" as const),
+          pills: pills.length > 0 ? pills : undefined,
+        };
+      });
   }, [dbTxs, categories, users]);
 
   return (
@@ -401,6 +425,7 @@ export function DashboardPreview() {
                   targetValue={stats.targetValues[slug]}
                   usedValue={stats.pilarUsed[slug]}
                   onClick={() => router.push(`/lancamentos?pilar=${slug}`)}
+                  forecastedValue={stats.pilarForecasted[slug]}
                 />
               ))}
             </div>

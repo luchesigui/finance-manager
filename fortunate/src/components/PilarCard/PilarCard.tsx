@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import React from "react";
+import type React from "react";
 import styles from "./PilarCard.module.css";
 
 export type PilarKey =
@@ -31,6 +31,8 @@ export interface PilarCardProps {
   mode?: "display" | "config";
   /** Display mode: valor monetário gasto */
   usedValue?: number;
+  /** Display mode: valor monetário gasto previsto (realizado + previsao) */
+  forecastedValue?: number;
   /** Display mode: meta monetária */
   targetValue?: number;
   /** Config mode: percentual planejado (0–100) */
@@ -44,12 +46,16 @@ export function PilarCard({
   pilar,
   mode = "display",
   usedValue = 0,
+  forecastedValue,
   targetValue = 0,
   percentTarget = 0,
   onPercentChange,
   onClick,
 }: PilarCardProps) {
   const config = pilarConfig[pilar];
+
+  // If forecastedValue is not provided, fall back to usedValue
+  const finalForecastedValue = forecastedValue !== undefined ? forecastedValue : usedValue;
 
   /* ── Config mode ── */
   if (mode === "config") {
@@ -92,6 +98,14 @@ export function PilarCard({
   const barWidth = isOverflow ? 100 : Math.max(0, progress);
   const accentColor = isOverflow ? "var(--status-negative)" : config.cssVar;
 
+  const forecastedProgress =
+    targetValue > 0 ? Math.round((finalForecastedValue / targetValue) * 100) : 0;
+  const isForecastOverflow = forecastedProgress > 100;
+  const forecastBarWidth = isForecastOverflow ? 100 : Math.max(0, forecastedProgress);
+  const stripeColor = isForecastOverflow ? "var(--status-negative)" : config.cssVar;
+
+  const hasForecast = finalForecastedValue > usedValue;
+
   return (
     <div
       className={clsx(styles.card, {
@@ -119,10 +133,31 @@ export function PilarCard({
         </div>
         <span className={clsx(styles.percent, { [styles.percentOverflow]: isOverflow })}>
           {progress}%
+          {hasForecast && (
+            <span
+              className={clsx(styles.percentForecast, {
+                [styles.percentForecastOverflow]: isForecastOverflow,
+              })}
+            >
+              {" "}
+              ({forecastedProgress}% prev.)
+            </span>
+          )}
         </span>
       </div>
 
       <div className={styles.progressBar}>
+        {hasForecast && (
+          <div
+            className={styles.progressFillForecast}
+            style={
+              {
+                width: `${forecastBarWidth}%`,
+                "--stripe-color": stripeColor,
+              } as React.CSSProperties
+            }
+          />
+        )}
         <div
           className={clsx(styles.progressFill, { [styles.progressFillOverflow]: isOverflow })}
           style={{ width: `${barWidth}%`, background: accentColor }}
@@ -132,6 +167,16 @@ export function PilarCard({
       <div className={styles.footer}>
         <span className={clsx(styles.spent, { [styles.spentOverflow]: isOverflow })}>
           {brl(usedValue)}
+          {hasForecast && (
+            <span
+              className={clsx(styles.spentForecast, {
+                [styles.spentForecastOverflow]: isForecastOverflow,
+              })}
+            >
+              {" "}
+              ({brl(finalForecastedValue)} prev.)
+            </span>
+          )}
         </span>
         <span className={styles.target}>meta {brl(targetValue)}</span>
       </div>

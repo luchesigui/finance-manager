@@ -19,6 +19,7 @@ const meta = {
     },
     targetValue: { control: "number" },
     usedValue: { control: "number" },
+    forecastedValue: { control: "number" },
     percentTarget: { control: "number" },
   },
   tags: ["autodocs"],
@@ -31,6 +32,36 @@ type Story = StoryObj<typeof meta>;
 
 export const Padrao: Story = {
   args: { pilar: "essenciais", mode: "display", targetValue: 10000, usedValue: 4800 },
+  render: (args) => (
+    <div style={{ width: 300 }}>
+      <PilarCard {...args} />
+    </div>
+  ),
+};
+
+export const ComPrevisao: Story = {
+  args: {
+    pilar: "essenciais",
+    mode: "display",
+    targetValue: 10000,
+    usedValue: 4800,
+    forecastedValue: 6500,
+  },
+  render: (args) => (
+    <div style={{ width: 300 }}>
+      <PilarCard {...args} />
+    </div>
+  ),
+};
+
+export const PrevisaoComOverflow: Story = {
+  args: {
+    pilar: "conforto",
+    mode: "display",
+    targetValue: 5000,
+    usedValue: 3500,
+    forecastedValue: 5800,
+  },
   render: (args) => (
     <div style={{ width: 300 }}>
       <PilarCard {...args} />
