@@ -12,8 +12,5 @@ services:
       - PORT=3000
       - FORTUNATE_DB_PATH=/data/fortunate.db
     volumes:
-      # Volume nomeado para o banco SQLite persistir entre restarts/updates do container.
-      - fortunate-data:/data
-
-volumes:
-  fortunate-data:
+      # Pasta local para o banco SQLite para compartilhar com o host dev local.
+      - ./data:/data

@@ -1,5 +1,8 @@
 storybook-static/
-fortunate.db
-fortunate.db-shm
-fortunate.db-wal
+fortunate.db*
+*.db
+*.db-shm
+*.db-wal
+*.bak_local
+data/
 .antigravitycli/

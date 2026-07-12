@@ -18,7 +18,7 @@ COPY . .
 # initializeDatabase() roda ao importar db.ts e cria um fortunate.db vazio
 # neste diretório durante o build (o banco real do runtime é o do volume
 # montado em /data, apontado via FORTUNATE_DB_PATH) — descarta o resíduo.
-RUN npm run build && rm -f fortunate.db fortunate.db-shm fortunate.db-wal
+RUN npm run build && rm -rf data
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

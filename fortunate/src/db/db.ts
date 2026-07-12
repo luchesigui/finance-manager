@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { DEFAULT_PILLAR_TARGETS } from "@/utils/pillars";
 import Database from "better-sqlite3";
@@ -5,7 +6,14 @@ import { eq, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 
-const dbPath = process.env.FORTUNATE_DB_PATH ?? path.resolve(process.cwd(), "fortunate.db");
+const dbPath = process.env.FORTUNATE_DB_PATH ?? path.resolve(process.cwd(), "data", "fortunate.db");
+
+// Ensure parent directory exists
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const sqlite = new Database(dbPath);
 sqlite.pragma("journal_mode = WAL");
 
@@ -36,18 +44,20 @@ export async function initializeDatabase() {
     try {
       sqlite.exec("ALTER TABLE transactions ADD COLUMN pillar_slug TEXT;");
       console.log("Migration: Added column pillar_slug to transactions table.");
-    } catch (e: any) {
-      if (!e.message.includes("duplicate column") && !e.message.includes("already exists")) {
-        console.warn("Could not add pillar_slug to transactions:", e.message);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (!message.includes("duplicate column") && !message.includes("already exists")) {
+        console.warn("Could not add pillar_slug to transactions:", message);
       }
     }
 
     try {
       sqlite.exec("ALTER TABLE recurrence_templates ADD COLUMN pillar_slug TEXT;");
       console.log("Migration: Added column pillar_slug to recurrence_templates table.");
-    } catch (e: any) {
-      if (!e.message.includes("duplicate column") && !e.message.includes("already exists")) {
-        console.warn("Could not add pillar_slug to recurrence_templates:", e.message);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (!message.includes("duplicate column") && !message.includes("already exists")) {
+        console.warn("Could not add pillar_slug to recurrence_templates:", message);
       }
     }
 

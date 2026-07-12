@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url: process.env.FORTUNATE_DB_PATH ?? "fortunate.db",
+    url: process.env.FORTUNATE_DB_PATH ?? "data/fortunate.db",
   },
 });
