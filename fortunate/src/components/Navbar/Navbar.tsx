@@ -28,29 +28,33 @@ export function Navbar({
   linkComponent: LinkComponent = "a",
 }: NavbarProps) {
   return (
-    <nav className={clsx(styles.navbar, { [styles.scrolled]: scrolled })}>
-      <div className={styles.brand}>
-        <Logo className={styles.logo} />
-        <span className={styles.brandName}>Fortunate</span>
-      </div>
-      {items.length > 0 && (
-        <div className={styles.nav}>
-          {items.map((item) => (
-            <LinkComponent
-              key={item.href}
-              href={item.href}
-              className={clsx(styles.navLink, { [styles.navLinkActive]: item.active })}
-              aria-current={item.active ? "page" : undefined}
-            >
-              {item.label}
-            </LinkComponent>
-          ))}
+    <header className={clsx(styles.header, { [styles.scrolled]: scrolled })}>
+      <nav className={styles.navbar}>
+        <div className={styles.brand}>
+          <Logo className={styles.logo} />
+          <span className={styles.brandName}>Fortunate</span>
         </div>
-      )}
-      <div className={styles.profile}>
-        <span className={styles.avatar}>{userInitial}</span>
-        <span className={styles.userName}>{userName}</span>
-      </div>
-    </nav>
+        {items.length > 0 && (
+          <div className={styles.nav}>
+            {items.map((item) => (
+              <LinkComponent
+                key={item.href}
+                href={item.href}
+                className={clsx(styles.navLink, { [styles.navLinkActive]: item.active })}
+                aria-current={item.active ? "page" : undefined}
+              >
+                {item.label}
+              </LinkComponent>
+            ))}
+          </div>
+        )}
+        <div className={styles.profile}>
+          <span className={styles.avatar}>{userInitial}</span>
+          <span className={styles.userName}>{userName}</span>
+        </div>
+      </nav>
+      {/* Container para o portal do resumo */}
+      <div id="navbar-summary-portal" className={styles.summaryContainer} />
+    </header>
   );
 }

@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
+import { createPortal } from "react-dom";
 import { Autocomplete } from "../../components/Autocomplete/Autocomplete";
 import { Button } from "../../components/Button/Button";
 import { CloudBackground } from "../../components/CloudBackground/CloudBackground";
@@ -26,11 +27,12 @@ import {
 } from "../../hooks/mutations";
 import { useCategories } from "../../hooks/useCategories";
 import { useCurrentMonth } from "../../hooks/useCurrentMonth";
-import { useSettings } from "../../hooks/useSettings";
 import { useReserves } from "../../hooks/useReserves";
+import { useSettings } from "../../hooks/useSettings";
 import { useTransactions } from "../../hooks/useTransactions";
 import { useUsers } from "../../hooks/useUsers";
 import type { RecurrenceOption } from "../../lib/types";
+import { formatBrlCurrency, parseBrazilianCurrencyToNumber } from "../../utils/currency";
 import {
   DEFAULT_PILLAR_TARGETS,
   PILLAR_NAMES,
@@ -83,8 +85,41 @@ export function DashboardPreview() {
   const { currentDate, currentMonthStr, monthLabel, handlePrevMonth, handleNextMonth } =
     useCurrentMonth();
   const [description, setDescription] = React.useState("");
-  const [amount, setAmount] = React.useState("");
+  const [amount, setAmount] = React.useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = React.useState("");
+  const [showTicker, setShowTicker] = React.useState(false);
+  const [activeTooltip, setActiveTooltip] = React.useState<{
+    text: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const pillarsRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const element = pillarsRef.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const rect = entry.boundingClientRect;
+        const isAboveViewport = rect.top < 0;
+        const active = !entry.isIntersecting && isAboveViewport;
+        setShowTicker(active);
+        document.body.classList.toggle("has-scroll-summary", active);
+      },
+      {
+        threshold: 0,
+        rootMargin: "-60px 0px 0px 0px",
+      },
+    );
+
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      document.body.classList.remove("has-scroll-summary");
+    };
+  }, []);
 
   const toast = useToast();
 
@@ -160,9 +195,7 @@ export function DashboardPreview() {
   };
 
   const handleAddTransaction = async () => {
-    if (!description.trim() || !amount.trim()) return;
-    const parsedAmount = Number.parseFloat(amount.replace(",", "."));
-    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) return;
+    if (!description.trim() || amount === null || amount <= 0) return;
 
     // Usa ano/mês selecionados e o dia atual
     const day = padZero(new Date().getDate());
@@ -171,14 +204,14 @@ export function DashboardPreview() {
     try {
       await createTransaction({
         description: description.trim(),
-        amount: Math.round(parsedAmount * 100), // cents
+        amount: Math.round(amount * 100), // cents
         categoryId: selectedCategory || null,
         date: dateStr,
         assignedToUserId: settings?.defaultPayerId ?? null,
         transactionType: "expense",
       });
       setDescription("");
-      setAmount("");
+      setAmount(null);
       setSelectedCategory("");
     } catch (err) {
       console.error("Error adding transaction", err);
@@ -419,6 +452,79 @@ export function DashboardPreview() {
     }));
   }, [categories]);
 
+  const pillarCategories = React.useMemo(() => {
+    const categoriesMap: Record<PillarSlug, Record<string, { name: string; amount: number }>> = {
+      essenciais: {},
+      conforto: {},
+      prazeres: {},
+      conhecimento: {},
+      planejamento: {},
+      liberdade: {},
+    };
+
+    const today = new Date();
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+    for (const tx of dbTxs) {
+      if (tx.ignored) continue;
+      const isFutureOrForecast = !!tx.isPrevisao || tx.date > todayStr;
+      if (isFutureOrForecast && !includeFuture) continue;
+      if (tx.isPrevisao) continue;
+
+      if (tx.transactionType === "expense") {
+        const amountFloat = tx.amount / 100;
+        const cat = categories.find((c) => c.id === tx.categoryId);
+        const pilarSlug = (tx.pillarSlug || cat?.pillarSlug || "conforto") as PillarSlug;
+        const catName = cat?.name || "Sem categoria";
+        const catId = tx.categoryId || "sem-categoria";
+
+        if (pilarSlug in categoriesMap) {
+          if (!categoriesMap[pilarSlug][catId]) {
+            categoriesMap[pilarSlug][catId] = { name: catName, amount: 0 };
+          }
+          categoriesMap[pilarSlug][catId].amount += amountFloat;
+        }
+      }
+    }
+
+    const result: Record<PillarSlug, { name: string; amount: number; percentage: number }[]> = {
+      essenciais: [],
+      conforto: [],
+      prazeres: [],
+      conhecimento: [],
+      planejamento: [],
+      liberdade: [],
+    };
+
+    for (const slug of PILLAR_SLUGS) {
+      if (slug === "planejamento") {
+        const goals = reserves.filter((r) => r.type === "goal");
+        const totalGoals = goals.reduce((acc, g) => acc + g.currentAmount / 100, 0);
+        result[slug] = goals
+          .map((g) => ({
+            name: g.name,
+            amount: g.currentAmount / 100,
+            percentage: totalGoals > 0 ? Math.round((g.currentAmount / 100 / totalGoals) * 100) : 0,
+          }))
+          .sort((a, b) => b.amount - a.amount);
+      } else {
+        const catList = Object.values(categoriesMap[slug]);
+        const totalCatList = catList.reduce((acc, c) => acc + c.amount, 0);
+
+        result[slug] = catList
+          .map((c) => ({
+            name: c.name,
+            amount: c.amount,
+            percentage: totalCatList > 0 ? Math.round((c.amount / totalCatList) * 100) : 0,
+          }))
+          .sort((a, b) => b.amount - a.amount);
+      }
+    }
+
+    return result;
+  }, [dbTxs, categories, reserves, includeFuture]);
+
   const initialPillar = React.useMemo(() => {
     if (!pilarParam) return "todos";
     // Check if it's a direct display name
@@ -552,9 +658,139 @@ export function DashboardPreview() {
     }, 0);
   }, [filteredTransactions, activeView]);
 
+  const getPillarProgress = (slug: PillarSlug) => {
+    const pilar = PILLAR_SLUG_TO_PILAR_KEY[slug];
+    const isMetas = pilar === "metas";
+    const targetValue = stats.targetValues[slug] || 0;
+    const usedValue = isMetas ? metasTotal : stats.pilarUsed[slug] || 0;
+    const forecastedValue = isMetas ? undefined : stats.pilarForecasted[slug];
+    const finalForecastedValue = forecastedValue !== undefined ? forecastedValue : usedValue;
+
+    let progress = 0;
+    let forecastedProgress = 0;
+
+    if (
+      isMetas &&
+      metasRolling.rangeStart !== undefined &&
+      metasRolling.rangeEnd !== undefined &&
+      metasRolling.rangeEnd - metasRolling.rangeStart > 0
+    ) {
+      const { rangeStart, rangeEnd } = metasRolling;
+      progress = Math.round(((usedValue - rangeStart) / (rangeEnd - rangeStart)) * 100);
+      forecastedProgress = Math.round(
+        ((finalForecastedValue - rangeStart) / (rangeEnd - rangeStart)) * 100,
+      );
+    } else {
+      progress = targetValue > 0 ? Math.round((usedValue / targetValue) * 100) : 0;
+      forecastedProgress =
+        targetValue > 0 ? Math.round((finalForecastedValue / targetValue) * 100) : 0;
+    }
+
+    const hasForecast = finalForecastedValue > usedValue;
+
+    return {
+      progress,
+      forecastedProgress,
+      hasForecast,
+      usedValue,
+      finalForecastedValue,
+      targetValue,
+    };
+  };
+
+  const portalTarget =
+    typeof document !== "undefined" ? document.getElementById("navbar-summary-portal") : null;
+
   return (
     <div className={styles.container}>
       <CloudBackground />
+
+      {/* Sticky Header Bar ao fazer Scroll (via Portal para o Header unificado) */}
+      {showTicker &&
+        portalTarget &&
+        createPortal(
+          <>
+            <div className={styles.tickerContent}>
+              {/* Left side: Total Balance */}
+              <div className={styles.tickerLeft}>
+                <span className={styles.tickerBalanceLabel}>Saldo:</span>
+                <span className={styles.tickerBalanceValue}>{formatCurrency(stats.balance)}</span>
+              </div>
+
+              {/* Right side: Pills */}
+              <div className={styles.tickerRight}>
+                {PILLAR_SLUGS.map((slug) => {
+                  const pilarKey = PILLAR_SLUG_TO_PILAR_KEY[slug];
+                  const {
+                    progress,
+                    forecastedProgress,
+                    hasForecast,
+                    usedValue,
+                    finalForecastedValue,
+                    targetValue,
+                  } = getPillarProgress(slug);
+
+                  const pilarName = PILLAR_NAMES[slug];
+                  const isMetas = slug === "planejamento";
+
+                  const tooltipText = isMetas
+                    ? `Meta: ${formatCurrency(targetValue)} • Acumulado: ${formatCurrency(usedValue)}`
+                    : hasForecast
+                      ? `Gasto: ${formatCurrency(usedValue)} (${formatCurrency(finalForecastedValue)} prev.)`
+                      : `Gasto: ${formatCurrency(usedValue)}`;
+
+                  return (
+                    <div
+                      key={slug}
+                      className={styles.tickerPill}
+                      onMouseEnter={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const container = document.getElementById("navbar-summary-portal");
+                        const containerRect = container?.getBoundingClientRect();
+                        const containerTop = containerRect ? containerRect.top : 0;
+                        setActiveTooltip({
+                          text: tooltipText,
+                          x: rect.left + rect.width / 2,
+                          y: rect.bottom - containerTop,
+                        });
+                      }}
+                      onMouseLeave={() => setActiveTooltip(null)}
+                    >
+                      <span
+                        className={styles.tickerDot}
+                        style={{ backgroundColor: `var(--pilar-${pilarKey})` }}
+                      />
+                      <span className={styles.tickerPillText}>
+                        {pilarName}: {progress}%
+                        {hasForecast && !isMetas && (
+                          <span className={styles.tickerPillPrev}>
+                            {" "}
+                            ({forecastedProgress}% prev.)
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Global floating tooltip */}
+            {activeTooltip && (
+              <div
+                className={styles.globalTooltip}
+                style={{
+                  left: `${activeTooltip.x}px`,
+                  top: `${activeTooltip.y + 4}px`,
+                }}
+              >
+                {activeTooltip.text}
+                <div className={styles.tooltipArrow} />
+              </div>
+            )}
+          </>,
+          portalTarget,
+        )}
 
       {/* Hero */}
       <header className={styles.heroHeader}>
@@ -606,7 +842,10 @@ export function DashboardPreview() {
           {/* Coluna esquerda */}
           <div className={styles.leftCol}>
             {/* Novo Lançamento */}
-            <GlassCard variant="fino" className={styles.cardPadding}>
+            <GlassCard
+              variant="fino"
+              className={clsx(styles.cardPadding, styles.novoLancamentoCard)}
+            >
               <h2 className={styles.panelTitle}>Novo Lançamento</h2>
               <div className={styles.fieldsContainer}>
                 <Input
@@ -618,10 +857,11 @@ export function DashboardPreview() {
                 <div className={styles.grid1to1}>
                   <Input
                     label="Valor"
-                    prefix="R$"
-                    placeholder="0,00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="R$ 0,00"
+                    value={amount == null ? "" : formatBrlCurrency(amount)}
+                    onChange={(e) => setAmount(parseBrazilianCurrencyToNumber(e.target.value))}
                   />
                   <Autocomplete
                     label="Categoria"
@@ -638,7 +878,7 @@ export function DashboardPreview() {
                   variant="outline"
                   onClick={() => {
                     setDescription("");
-                    setAmount("");
+                    setAmount(null);
                     setSelectedCategory("");
                   }}
                 >
@@ -651,7 +891,7 @@ export function DashboardPreview() {
             </GlassCard>
 
             {/* Transferência */}
-            <GlassCard variant="fino" className={styles.cardPadding}>
+            <GlassCard variant="fino" className={clsx(styles.cardPadding, styles.transferCard)}>
               <h2 className={styles.panelTitle}>Transferência do Mês</h2>
               {stats.transfer ? (
                 <TransferCard
@@ -669,7 +909,7 @@ export function DashboardPreview() {
           {/* Distribuição por Pilares */}
           <GlassCard variant="fino" className={styles.rightColCard}>
             <h2 className={styles.panelTitle}>Distribuição por Pilares</h2>
-            <div className={styles.pillarsGrid}>
+            <div ref={pillarsRef} className={styles.pillarsGrid}>
               {PILLAR_SLUGS.map((slug) => {
                 const pilar = PILLAR_SLUG_TO_PILAR_KEY[slug];
                 const isMetas = pilar === "metas";

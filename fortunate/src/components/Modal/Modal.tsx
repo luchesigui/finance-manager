@@ -50,10 +50,11 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   };
 
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click handles outside modal clicks which is not relevant for keyboard actions
     <dialog ref={ref} className={styles.dialog} onClick={handleClick}>
       <div className={styles.header}>
         {title && <h2 className={styles.title}>{title}</h2>}
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar">
+        <button className={styles.closeBtn} onClick={onClose} aria-label="Fechar" type="button">
           ×
         </button>
       </div>
