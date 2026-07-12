@@ -10,6 +10,7 @@ const updateTransactionSchema = z.object({
     description: z.string().min(1).optional(),
     amount: z.number().int().positive().optional(), // cents
     categoryId: z.string().nullable().optional(),
+    pillarSlug: z.string().nullable().optional(),
     date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "A data deve estar no formato YYYY-MM-DD")

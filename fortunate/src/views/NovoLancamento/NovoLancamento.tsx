@@ -53,6 +53,7 @@ interface Transaction {
   nextInvoice: boolean;
   assignedToUserId: string;
   pillar?: string;
+  pillarSlug?: string | null;
   categoryId?: string | null;
   ignored: boolean;
   pending?: boolean;
@@ -145,9 +146,18 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   const [valor, setValor] = React.useState<number | null>(null);
 
   const [selectedCategory, setSelectedCategory] = React.useState("");
+  const [pillarSlug, setPillarSlug] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [date, setDate] = React.useState(() => new Date().toISOString().split("T")[0]);
   const formWrapperRef = React.useRef<HTMLDivElement>(null);
+
+  const handleCategoryChange = (catId: string) => {
+    setSelectedCategory(catId);
+    const cat = dbCategories.find((c) => c.id === catId);
+    if (cat) {
+      setPillarSlug(cat.pillarSlug);
+    }
+  };
 
   const toast = useToast();
 
@@ -289,7 +299,10 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         isRecorrente: !!tx.recurrenceTemplateId || !!tx.isRecorrente,
         nextInvoice: !!tx.nextInvoice,
         assignedToUserId: tx.assignedToUserId,
-        pillar: matchedCategory ? matchedCategory.pillar : undefined,
+        pillarSlug: tx.pillarSlug,
+        pillar: tx.pillarSlug
+          ? (PILLAR_NAMES[tx.pillarSlug as PillarSlug] || "Outros")
+          : (matchedCategory ? matchedCategory.pillar : undefined),
         categoryId: tx.categoryId,
         ignored: !!tx.ignored,
         pending: isFutureOrForecast,
@@ -373,6 +386,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     try {
       const result = await createCategory(name, slug, pillarSlug);
       setSelectedCategory(result.id);
+      setPillarSlug(pillarSlug);
     } catch (err) {
       console.error("Error creating category", err);
       toast({ variant: "error", title: "Erro ao criar categoria" });
@@ -383,6 +397,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     setDescription("");
     setValor(null);
     setSelectedCategory("");
+    setPillarSlug("");
     setEditingTx(null);
     setIsRecorrente(false);
     setIsParcelado(false);
@@ -397,8 +412,10 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     if (!description.trim() || valor === null || valor <= 0) return;
 
     let categoryId = null;
+    let actualPillarSlug = null;
     if (type === "despesa") {
       categoryId = selectedCategory || null;
+      actualPillarSlug = pillarSlug || null;
     }
     const createAsCard = type === "despesa" && (isCard || cardMode);
 
@@ -407,6 +424,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         description: description.trim(),
         amount: Math.round(valor * 100), // convert to cents
         categoryId,
+        pillarSlug: actualPillarSlug,
         date,
         assignedToUserId: atribuirA || null,
         paraQuemUserId: type === "transferencia" ? paraQuem || null : null,
@@ -442,8 +460,10 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     if (!editingTx || valor === null) return;
 
     let categoryId = null;
+    let actualPillarSlug = null;
     if (type === "despesa") {
       categoryId = selectedCategory || null;
+      actualPillarSlug = pillarSlug || null;
     }
 
     try {
@@ -453,6 +473,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
           description: description.trim(),
           amount: Math.round(valor * 100),
           categoryId,
+          pillarSlug: actualPillarSlug,
           date,
           assignedToUserId: atribuirA || undefined,
           paraQuemUserId: type === "transferencia" ? paraQuem || null : null,
@@ -505,6 +526,8 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     setDate(tx.rawDate);
     setAtribuirA(tx.assignedToUserId);
     setSelectedCategory(tx.categoryId ?? "");
+    const initialCategory = dbCategories.find((c) => c.id === tx.categoryId);
+    setPillarSlug(tx.pillarSlug ?? initialCategory?.pillarSlug ?? "");
 
     setIsRecorrente(tx.pills?.includes("recorrente") || false);
     setIsParcelado(tx.pills?.includes("parcelado") || false);
@@ -677,14 +700,25 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
 
               {/* Categoria (despesa only) */}
               {type === "despesa" && (
-                <Autocomplete
-                  label="Categoria"
-                  value={selectedCategory}
-                  onChange={setSelectedCategory}
-                  options={categories}
-                  pillars={PILLARS}
-                  onCreateCategory={handleCreateCategory}
-                />
+                <div className={styles.grid1to1}>
+                  <Autocomplete
+                    label="Categoria"
+                    value={selectedCategory}
+                    onChange={handleCategoryChange}
+                    options={categories}
+                    pillars={PILLARS}
+                    onCreateCategory={handleCreateCategory}
+                  />
+                  <Select
+                    label="Pilar"
+                    value={pillarSlug}
+                    onChange={(e) => setPillarSlug(e.target.value)}
+                    options={PILLAR_SLUGS.map((slug) => ({
+                      value: slug,
+                      label: PILLAR_NAMES[slug],
+                    }))}
+                  />
+                </div>
               )}
 
               {/* Para quem + Data (transferência only) */}

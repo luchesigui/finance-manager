@@ -22,6 +22,7 @@ export const recurrenceTemplates = sqliteTable("recurrence_templates", {
   description: text("description").notNull(),
   amount: integer("amount").notNull(), // em centavos
   categoryId: text("category_id").references(() => categories.id),
+  pillarSlug: text("pillar_slug"),
   assignedToUserId: text("assigned_to_user_id")
     .notNull()
     .references(() => users.id),
@@ -45,6 +46,7 @@ export const transactions = sqliteTable("transactions", {
   description: text("description").notNull(),
   amount: integer("amount").notNull(), // em centavos
   categoryId: text("category_id").references(() => categories.id),
+  pillarSlug: text("pillar_slug"),
   date: text("date").notNull(), // YYYY-MM-DD (data da compra/ocorrência)
   assignedToUserId: text("assigned_to_user_id")
     .notNull()
@@ -78,4 +80,16 @@ export const apiKeys = sqliteTable("api_keys", {
   name: text("name").notNull(),
   key: text("key").notNull().unique(),
   createdAt: text("created_at").notNull(),
+});
+
+export const reserves = sqliteTable("reserves", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // emergency, goal, investment
+  currentAmount: integer("current_amount").notNull(), // centavos
+  targetAmount: integer("target_amount"), // centavos, nullable
+  monthlyContribution: integer("monthly_contribution"), // centavos, nullable
+  targetDate: text("target_date"), // YYYY-MM-DD, nullable
+  status: text("status").notNull().default("active"), // active|paused|completed
+  updatedAt: text("updated_at").notNull(),
 });

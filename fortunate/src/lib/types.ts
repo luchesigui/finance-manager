@@ -6,6 +6,7 @@ export type Transaction = typeof schema.transactions.$inferSelect;
 export type Category = typeof schema.categories.$inferSelect;
 export type User = typeof schema.users.$inferSelect;
 export type RecurrenceTemplate = typeof schema.recurrenceTemplates.$inferSelect;
+export type Reserve = typeof schema.reserves.$inferSelect;
 
 // GET /api/settings devolve pillarTargets já parseado
 export type Settings = Omit<typeof schema.settings.$inferSelect, "pillarTargets"> & {

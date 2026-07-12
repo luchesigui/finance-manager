@@ -10,6 +10,7 @@ import React from "react";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/" },
   { label: "Lançamentos", href: "/lancamentos" },
+  { label: "Reservas", href: "/reservas" },
   { label: "Configurações", href: "/configuracoes" },
 ];
 

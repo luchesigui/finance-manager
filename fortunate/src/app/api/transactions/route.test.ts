@@ -183,6 +183,28 @@ describe("POST /api/transactions — single transaction", () => {
       isParcelado: 0,
     });
   });
+
+  it("creates an expense with a custom pillarSlug override", async () => {
+    const res = await POST(
+      jsonRequest("/api/transactions", {
+        body: {
+          description: "Padaria Especial",
+          amount: 2550,
+          date: "2026-07-03",
+          categoryId: "alimentacao",
+          pillarSlug: "conforto",
+        },
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+
+    const rows = allTransactions();
+    const padaria = rows.find((r) => r.description === "Padaria Especial");
+    expect(padaria).toBeTruthy();
+    expect(padaria?.pillarSlug).toBe("conforto");
+  });
 });
 
 describe("POST /api/transactions — installments (parcelado)", () => {

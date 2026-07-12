@@ -96,6 +96,30 @@ describe("PUT /api/transactions/[id] — non-recurring", () => {
       isOverridden: 0,
     });
   });
+
+  it("updates the pillarSlug directly", async () => {
+    db.insert(schema.transactions)
+      .values({
+        id: "tx-pilar-update",
+        createdByUserId: "guilherme",
+        transactionType: "expense",
+        description: "Padaria",
+        amount: 2000,
+        date: "2026-07-03",
+        assignedToUserId: "guilherme",
+      })
+      .run();
+
+    const res = await putRequest(
+      "tx-pilar-update",
+      { pillarSlug: "prazeres" },
+      "only_this",
+    );
+    expect(res.status).toBe(200);
+    expect(getTx("tx-pilar-update")).toMatchObject({
+      pillarSlug: "prazeres",
+    });
+  });
 });
 
 describe("PUT /api/transactions/[id] — installments", () => {

@@ -17,6 +17,40 @@ export async function initializeDatabase() {
   // If the query fails, it means the table doesn't exist, which implies we need to run migrations.
   // However, we can also perform this check and insert seed data if users table is empty.
   try {
+    // Ensure tables exist
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS \`reserves\` (
+        \`id\` text PRIMARY KEY NOT NULL,
+        \`name\` text NOT NULL,
+        \`type\` text NOT NULL,
+        \`current_amount\` integer NOT NULL,
+        \`target_amount\` integer,
+        \`monthly_contribution\` integer,
+        \`target_date\` text,
+        \`status\` text DEFAULT 'active' NOT NULL,
+        \`updated_at\` text NOT NULL
+      );
+    `);
+
+    // Ensure pillar_slug exists on transactions and recurrence_templates
+    try {
+      sqlite.exec("ALTER TABLE transactions ADD COLUMN pillar_slug TEXT;");
+      console.log("Migration: Added column pillar_slug to transactions table.");
+    } catch (e: any) {
+      if (!e.message.includes("duplicate column") && !e.message.includes("already exists")) {
+        console.warn("Could not add pillar_slug to transactions:", e.message);
+      }
+    }
+
+    try {
+      sqlite.exec("ALTER TABLE recurrence_templates ADD COLUMN pillar_slug TEXT;");
+      console.log("Migration: Added column pillar_slug to recurrence_templates table.");
+    } catch (e: any) {
+      if (!e.message.includes("duplicate column") && !e.message.includes("already exists")) {
+        console.warn("Could not add pillar_slug to recurrence_templates:", e.message);
+      }
+    }
+
     const existingUsers = db.select().from(schema.users).all();
     if (existingUsers.length === 0) {
       console.log("Seeding database...");

@@ -43,4 +43,7 @@ export const apiPost = <T = { success: boolean }>(url: string, body?: unknown) =
 export const apiPut = <T = { success: boolean }>(url: string, body?: unknown) =>
   jsonRequest<T>("PUT")(url, body);
 
+export const apiPatch = <T = { success: boolean }>(url: string, body?: unknown) =>
+  jsonRequest<T>("PATCH")(url, body);
+
 export const apiDelete = <T = { success: boolean }>(url: string) => jsonRequest<T>("DELETE")(url);

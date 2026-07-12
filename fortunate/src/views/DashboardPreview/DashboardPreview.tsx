@@ -27,6 +27,7 @@ import {
 import { useCategories } from "../../hooks/useCategories";
 import { useCurrentMonth } from "../../hooks/useCurrentMonth";
 import { useSettings } from "../../hooks/useSettings";
+import { useReserves } from "../../hooks/useReserves";
 import { useTransactions } from "../../hooks/useTransactions";
 import { useUsers } from "../../hooks/useUsers";
 import type { RecurrenceOption } from "../../lib/types";
@@ -108,6 +109,7 @@ export function DashboardPreview() {
 
   const padZero = (n: number) => n.toString().padStart(2, "0");
   const { transactions: dbTxs } = useTransactions(currentMonthStr);
+  const { reserves } = useReserves(currentMonthStr);
   const { categories } = useCategories();
   const { users } = useUsers();
   const { settings } = useSettings();
@@ -231,6 +233,18 @@ export function DashboardPreview() {
     router.push("/lancamentos");
   };
 
+  const metasTotal = React.useMemo(() => {
+    return reserves
+      .filter((r) => r.type === "goal")
+      .reduce((acc, r) => acc + r.currentAmount / 100, 0);
+  }, [reserves]);
+
+  const metasRolling = React.useMemo(() => {
+    const rangeStart = Math.floor(metasTotal / 10000) * 10000;
+    const rangeEnd = rangeStart + 10000;
+    return { rangeStart, rangeEnd };
+  }, [metasTotal]);
+
   // Cálculos financeiros do mês
   const stats = React.useMemo(() => {
     let totalIncomes = 0;
@@ -281,7 +295,7 @@ export function DashboardPreview() {
         // Apenas para as previsões de gastos, somamos no forecast
         if (tx.transactionType === "expense") {
           const cat = categories.find((c) => c.id === tx.categoryId);
-          const pilarSlug = (cat?.pillarSlug ?? "conforto") as PillarSlug;
+          const pilarSlug = (tx.pillarSlug || cat?.pillarSlug || "conforto") as PillarSlug;
           if (pilarSlug in pilarForecasted) {
             pilarForecasted[pilarSlug] += amountFloat;
           }
@@ -298,7 +312,7 @@ export function DashboardPreview() {
         totalExpenses += amountFloat;
 
         const cat = categories.find((c) => c.id === tx.categoryId);
-        const pilarSlug = (cat?.pillarSlug ?? "conforto") as PillarSlug;
+        const pilarSlug = (tx.pillarSlug || cat?.pillarSlug || "conforto") as PillarSlug;
 
         if (isForecast) {
           if (pilarSlug in pilarForecasted) {
@@ -656,16 +670,25 @@ export function DashboardPreview() {
           <GlassCard variant="fino" className={styles.rightColCard}>
             <h2 className={styles.panelTitle}>Distribuição por Pilares</h2>
             <div className={styles.pillarsGrid}>
-              {PILLAR_SLUGS.map((slug) => (
-                <PilarCard
-                  key={slug}
-                  pilar={PILLAR_SLUG_TO_PILAR_KEY[slug]}
-                  targetValue={stats.targetValues[slug]}
-                  usedValue={stats.pilarUsed[slug]}
-                  onClick={() => router.push(`/lancamentos?pilar=${slug}`)}
-                  forecastedValue={stats.pilarForecasted[slug]}
-                />
-              ))}
+              {PILLAR_SLUGS.map((slug) => {
+                const pilar = PILLAR_SLUG_TO_PILAR_KEY[slug];
+                const isMetas = pilar === "metas";
+                const isLiberdade = pilar === "liberdade";
+
+                return (
+                  <PilarCard
+                    key={slug}
+                    pilar={pilar}
+                    variant={isMetas ? "rolling" : isLiberdade ? "positive" : "standard"}
+                    targetValue={stats.targetValues[slug]}
+                    usedValue={isMetas ? metasTotal : stats.pilarUsed[slug]}
+                    rangeStart={isMetas ? metasRolling.rangeStart : undefined}
+                    rangeEnd={isMetas ? metasRolling.rangeEnd : undefined}
+                    onClick={() => router.push(`/lancamentos?pilar=${slug}`)}
+                    forecastedValue={isMetas ? undefined : stats.pilarForecasted[slug]}
+                  />
+                );
+              })}
             </div>
           </GlassCard>
         </div>

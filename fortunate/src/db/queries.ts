@@ -184,6 +184,7 @@ async function materializeRecurringForMonth(monthStr: string) {
           description: template.description,
           amount: template.amount,
           categoryId: template.categoryId,
+          pillarSlug: template.pillarSlug,
           date: purchaseDate,
           assignedToUserId: template.assignedToUserId,
           paraQuemUserId: template.paraQuemUserId,
@@ -209,6 +210,7 @@ export async function createTransaction(data: {
   description: string;
   amount: number; // in cents
   categoryId?: string | null;
+  pillarSlug?: string | null;
   date: string; // YYYY-MM-DD
   assignedToUserId?: string | null;
   paraQuemUserId?: string | null;
@@ -242,6 +244,7 @@ export async function createTransaction(data: {
         description: data.description,
         amount: installmentAmount,
         categoryId: data.categoryId || null,
+        pillarSlug: data.pillarSlug || null,
         assignedToUserId: assignedTo,
         paraQuemUserId: data.paraQuemUserId || null,
         dayOfMonth: Number.parseInt(data.date.split("-")[2], 10),
@@ -269,6 +272,7 @@ export async function createTransaction(data: {
           description: `${data.description} (${i}/${numParcelas})`,
           amount: installmentAmount,
           categoryId: data.categoryId || null,
+          pillarSlug: data.pillarSlug || null,
           date: installmentDate,
           assignedToUserId: assignedTo,
           paraQuemUserId: data.paraQuemUserId || null,
@@ -298,6 +302,7 @@ export async function createTransaction(data: {
       description: data.description,
       amount: data.amount,
       categoryId: data.categoryId || null,
+      pillarSlug: data.pillarSlug || null,
       date: data.date,
       assignedToUserId: assignedTo,
       paraQuemUserId: data.paraQuemUserId || null,
@@ -323,6 +328,7 @@ export async function createRecurrenceTemplate(data: {
   description: string;
   amount: number;
   categoryId?: string | null;
+  pillarSlug?: string | null;
   assignedToUserId?: string | null;
   paraQuemUserId?: string | null;
   dayOfMonth: number;
@@ -345,6 +351,7 @@ export async function createRecurrenceTemplate(data: {
       description: data.description,
       amount: data.amount,
       categoryId: data.categoryId || null,
+      pillarSlug: data.pillarSlug || null,
       assignedToUserId: assignedTo,
       paraQuemUserId: data.paraQuemUserId || null,
       dayOfMonth: data.dayOfMonth,
@@ -470,6 +477,7 @@ export async function updateTransaction(
     description?: string;
     amount?: number; // in cents
     categoryId?: string | null;
+    pillarSlug?: string | null;
     date?: string; // YYYY-MM-DD
     assignedToUserId?: string;
     paraQuemUserId?: string | null;
@@ -549,6 +557,8 @@ export async function updateTransaction(
       if (updatedFields.amount !== undefined) templateFields.amount = updatedFields.amount;
       if (updatedFields.categoryId !== undefined)
         templateFields.categoryId = updatedFields.categoryId;
+      if (updatedFields.pillarSlug !== undefined)
+        templateFields.pillarSlug = updatedFields.pillarSlug;
       if (updatedFields.assignedToUserId !== undefined)
         templateFields.assignedToUserId = updatedFields.assignedToUserId;
       if (updatedFields.paraQuemUserId !== undefined)
@@ -602,6 +612,8 @@ export async function updateTransaction(
     if (updatedFields.amount !== undefined) templateFields.amount = updatedFields.amount;
     if (updatedFields.categoryId !== undefined)
       templateFields.categoryId = updatedFields.categoryId;
+    if (updatedFields.pillarSlug !== undefined)
+      templateFields.pillarSlug = updatedFields.pillarSlug;
     if (updatedFields.assignedToUserId !== undefined)
       templateFields.assignedToUserId = updatedFields.assignedToUserId;
     if (updatedFields.paraQuemUserId !== undefined)
@@ -677,6 +689,10 @@ export async function updateTransaction(
         updatedFields.categoryId !== undefined
           ? updatedFields.categoryId
           : currentTemplate.categoryId,
+      pillarSlug:
+        updatedFields.pillarSlug !== undefined
+          ? updatedFields.pillarSlug
+          : currentTemplate.pillarSlug,
       assignedToUserId:
         updatedFields.assignedToUserId !== undefined
           ? updatedFields.assignedToUserId
@@ -833,4 +849,87 @@ export async function deleteApiKey(id: string) {
 export async function validateApiKey(key: string): Promise<boolean> {
   const row = db.select().from(schema.apiKeys).where(eq(schema.apiKeys.key, key)).get();
   return !!row;
+}
+
+// Reserves
+export async function getReserves() {
+  return db.select().from(schema.reserves).all();
+}
+
+export async function createReserve(data: {
+  name: string;
+  type: string;
+  currentAmount: number;
+  targetAmount?: number | null;
+  monthlyContribution?: number | null;
+  targetDate?: string | null;
+  status?: string;
+}) {
+  const id = crypto.randomUUID();
+  db.insert(schema.reserves)
+    .values({
+      id,
+      name: data.name,
+      type: data.type,
+      currentAmount: data.currentAmount,
+      targetAmount: data.targetAmount ?? null,
+      monthlyContribution: data.monthlyContribution ?? null,
+      targetDate: data.targetDate ?? null,
+      status: data.status ?? "active",
+      updatedAt: new Date().toISOString(),
+    })
+    .run();
+  return { success: true, id };
+}
+
+export async function updateReserve(id: string, data: any) {
+  db.update(schema.reserves)
+    .set({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(schema.reserves.id, id))
+    .run();
+  return { success: true };
+}
+
+export async function deleteReserve(id: string) {
+  db.delete(schema.reserves).where(eq(schema.reserves.id, id)).run();
+  return { success: true };
+}
+
+export async function getEssentialExpensesAverage(currentMonth: string, windowMonths = 3) {
+  const monthsToFetch: string[] = [];
+  let tempMonth = currentMonth;
+  for (let i = 0; i < windowMonths; i++) {
+    tempMonth = getPrevMonth(tempMonth);
+    monthsToFetch.push(tempMonth);
+  }
+
+  const categories = await getCategories();
+  const essentialCategoryIds = new Set(
+    categories.filter((c) => c.pillarSlug === "essenciais").map((c) => c.id),
+  );
+
+  let totalAmount = 0;
+  let monthsWithData = 0;
+
+  for (const m of monthsToFetch) {
+    const txs = await getTransactionsForMonth(m);
+    const essentialTxs = txs.filter(
+      (tx) =>
+        tx.transactionType === "expense" &&
+        (tx.pillarSlug === "essenciais" ||
+          (!tx.pillarSlug && tx.categoryId && essentialCategoryIds.has(tx.categoryId))) &&
+        !tx.ignored,
+    );
+
+    if (txs.length > 0) {
+      const monthTotal = essentialTxs.reduce((sum, tx) => sum + tx.amount, 0);
+      totalAmount += monthTotal;
+      monthsWithData++;
+    }
+  }
+
+  return monthsWithData > 0 ? Math.round(totalAmount / monthsWithData) : 0;
 }

@@ -1,4 +1,4 @@
-import { apiDelete, apiPost, apiPut } from "@/lib/api";
+import { apiDelete, apiPatch, apiPost, apiPut } from "@/lib/api";
 import type { CreatedApiKey, RecurrenceOption, TransactionType } from "@/lib/types";
 import type { PillarTargets } from "@/utils/pillars";
 import { mutate } from "swr";
@@ -13,6 +13,7 @@ export interface CreateTransactionPayload {
   amount: number; // em centavos
   date: string; // YYYY-MM-DD
   categoryId?: string | null;
+  pillarSlug?: string | null;
   createdByUserId?: string | null;
   assignedToUserId?: string | null;
   paraQuemUserId?: string | null;
@@ -30,6 +31,7 @@ export interface UpdateTransactionFields {
   description?: string;
   amount?: number; // em centavos
   categoryId?: string | null;
+  pillarSlug?: string | null;
   date?: string;
   assignedToUserId?: string;
   paraQuemUserId?: string | null;
@@ -107,5 +109,23 @@ export async function createApiKey(name: string) {
 export async function revokeApiKey(id: string) {
   const result = await apiDelete(`/api/api-keys/${id}`);
   await mutate("/api/api-keys");
+  return result;
+}
+
+export async function createReserve(payload: any) {
+  const result = await apiPost("/api/reserves", payload);
+  await mutate((key) => typeof key === "string" && key.startsWith("/api/reserves"));
+  return result;
+}
+
+export async function updateReserve(id: string, payload: any) {
+  const result = await apiPatch(`/api/reserves/${id}`, payload);
+  await mutate((key) => typeof key === "string" && key.startsWith("/api/reserves"));
+  return result;
+}
+
+export async function deleteReserve(id: string) {
+  const result = await apiDelete(`/api/reserves/${id}`);
+  await mutate((key) => typeof key === "string" && key.startsWith("/api/reserves"));
   return result;
 }

@@ -17,11 +17,30 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
+
+    const handleClose = () => {
+      onClose();
+    };
+
+    dialog.addEventListener("close", handleClose);
+    return () => {
+      dialog.removeEventListener("close", handleClose);
+    };
+  }, [onClose]);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+
     if (open) {
-      dialog.showModal();
+      if (!dialog.open) {
+        dialog.showModal();
+      }
       document.body.style.overflow = "hidden";
     } else {
-      dialog.close();
+      if (dialog.open) {
+        dialog.close();
+      }
       document.body.style.overflow = "";
     }
   }, [open]);

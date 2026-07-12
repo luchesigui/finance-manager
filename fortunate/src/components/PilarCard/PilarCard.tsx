@@ -28,6 +28,7 @@ const brl = (value: number) =>
 
 export interface PilarCardProps {
   pilar: PilarKey;
+  variant?: "standard" | "rolling" | "positive";
   mode?: "display" | "config";
   /** Display mode: valor monetário gasto */
   usedValue?: number;
@@ -35,6 +36,10 @@ export interface PilarCardProps {
   forecastedValue?: number;
   /** Display mode: meta monetária */
   targetValue?: number;
+  /** Rolling variant: start of the current range */
+  rangeStart?: number;
+  /** Rolling variant: end of the current range */
+  rangeEnd?: number;
   /** Config mode: percentual planejado (0–100) */
   percentTarget?: number;
   /** Config mode: callback ao alterar percentual */
@@ -44,10 +49,13 @@ export interface PilarCardProps {
 
 export function PilarCard({
   pilar,
+  variant = "standard",
   mode = "display",
   usedValue = 0,
   forecastedValue,
   targetValue = 0,
+  rangeStart,
+  rangeEnd,
   percentTarget = 0,
   onPercentChange,
   onClick,
@@ -93,23 +101,45 @@ export function PilarCard({
   }
 
   /* ── Display mode ── */
-  const progress = targetValue > 0 ? Math.round((usedValue / targetValue) * 100) : 0;
-  const isOverflow = progress > 100;
-  const barWidth = isOverflow ? 100 : Math.max(0, progress);
-  const accentColor = isOverflow ? "var(--status-negative)" : config.cssVar;
+  let progress = 0;
+  if (variant === "rolling" && rangeStart !== undefined && rangeEnd !== undefined) {
+    progress = Math.round(((usedValue - rangeStart) / (rangeEnd - rangeStart)) * 100);
+  } else {
+    progress = targetValue > 0 ? Math.round((usedValue / targetValue) * 100) : 0;
+  }
 
-  const forecastedProgress =
-    targetValue > 0 ? Math.round((finalForecastedValue / targetValue) * 100) : 0;
+  const isOverflow = progress > 100;
+  const isSuccess = variant === "positive" ? progress >= 100 : (variant === "rolling" ? false : (pilar === "metas" || pilar === "liberdade") && progress >= 100);
+  const isDanger = variant === "positive" || variant === "rolling" ? false : progress > 100;
+
+  const barWidth = isOverflow ? 100 : Math.max(0, progress);
+  let accentColor = config.cssVar;
+  if (isDanger) accentColor = "var(--status-negative)";
+  else if (isSuccess) accentColor = "var(--status-positive)";
+
+  let forecastedProgress = 0;
+  if (variant === "rolling" && rangeStart !== undefined && rangeEnd !== undefined) {
+    forecastedProgress = Math.round(((finalForecastedValue - rangeStart) / (rangeEnd - rangeStart)) * 100);
+  } else {
+    forecastedProgress = targetValue > 0 ? Math.round((finalForecastedValue / targetValue) * 100) : 0;
+  }
+
   const isForecastOverflow = forecastedProgress > 100;
+  const isForecastSuccess = variant === "positive" ? forecastedProgress >= 100 : (variant === "rolling" ? false : (pilar === "metas" || pilar === "liberdade") && forecastedProgress >= 100);
+  const isForecastDanger = variant === "positive" || variant === "rolling" ? false : forecastedProgress > 100;
+
   const forecastBarWidth = isForecastOverflow ? 100 : Math.max(0, forecastedProgress);
-  const stripeColor = isForecastOverflow ? "var(--status-negative)" : config.cssVar;
+  let stripeColor = config.cssVar;
+  if (isForecastDanger) stripeColor = "var(--status-negative)";
+  else if (isForecastSuccess) stripeColor = "var(--status-positive)";
 
   const hasForecast = finalForecastedValue > usedValue;
 
   return (
     <div
       className={clsx(styles.card, {
-        [styles.cardOverflow]: isOverflow,
+        [styles.cardOverflow]: isDanger,
+        [styles.cardSuccess]: isSuccess,
         [styles.clickable]: !!onClick,
       })}
       onClick={onClick}
@@ -133,7 +163,7 @@ export function PilarCard({
         </div>
         <span className={clsx(styles.percent, { [styles.percentOverflow]: isOverflow })}>
           {progress}%
-          {hasForecast && (
+          {hasForecast && variant !== "rolling" && (
             <span
               className={clsx(styles.percentForecast, {
                 [styles.percentForecastOverflow]: isForecastOverflow,
@@ -147,7 +177,7 @@ export function PilarCard({
       </div>
 
       <div className={styles.progressBar}>
-        {hasForecast && (
+        {hasForecast && variant !== "rolling" && (
           <div
             className={styles.progressFillForecast}
             style={
@@ -167,7 +197,7 @@ export function PilarCard({
       <div className={styles.footer}>
         <span className={clsx(styles.spent, { [styles.spentOverflow]: isOverflow })}>
           {brl(usedValue)}
-          {hasForecast && (
+          {hasForecast && variant !== "rolling" && (
             <span
               className={clsx(styles.spentForecast, {
                 [styles.spentForecastOverflow]: isForecastOverflow,
@@ -178,7 +208,11 @@ export function PilarCard({
             </span>
           )}
         </span>
-        <span className={styles.target}>meta {brl(targetValue)}</span>
+        {variant === "rolling" && rangeStart !== undefined && rangeEnd !== undefined ? (
+          <span className={styles.target}>{brl(rangeStart)} – {brl(rangeEnd)}</span>
+        ) : (
+          <span className={styles.target}>meta {brl(targetValue)}</span>
+        )}
       </div>
     </div>
   );

@@ -241,6 +241,24 @@
   );
 }
 
+.cardSuccess {
+  background-color: color-mix(
+    in srgb,
+    var(--status-positive) 6%,
+    color-mix(in srgb, var(--c-glass) 12%, transparent)
+  );
+  box-shadow: var(--shadow-glass-3d),
+    inset 0 0 0 1px color-mix(in srgb, var(--status-positive) 20%, transparent);
+}
+
+.cardSuccess:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--status-positive) 9%,
+    color-mix(in srgb, var(--c-glass) 16%, transparent)
+  );
+}
+
 .clickable {
   cursor: pointer;
 }
