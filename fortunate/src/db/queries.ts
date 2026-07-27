@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { and, desc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "./schema";
 
@@ -99,7 +99,26 @@ export async function getTransactionsForMonth(monthStr: string) {
     .orderBy(desc(schema.transactions.date))
     .all();
 
-  return allTxs;
+  const allUsers = await getUsers();
+  const sanitizedTxs = allTxs.map((tx) => {
+    if (tx.transactionType === "transfer" && tx.assignedToUserId) {
+      if (!tx.paraQuemUserId || tx.paraQuemUserId === tx.assignedToUserId) {
+        const otherUser = allUsers.find((u) => u.id !== tx.assignedToUserId);
+        if (otherUser) {
+          if (tx.paraQuemUserId === tx.assignedToUserId) {
+            db.update(schema.transactions)
+              .set({ paraQuemUserId: otherUser.id })
+              .where(eq(schema.transactions.id, tx.id))
+              .run();
+          }
+          return { ...tx, paraQuemUserId: otherUser.id };
+        }
+      }
+    }
+    return tx;
+  });
+
+  return sanitizedTxs;
 }
 
 // Materialize recurring template instances for a specific month
@@ -485,6 +504,8 @@ export async function updateTransaction(
     nextInvoice?: boolean;
     naoEntraDivisao?: boolean;
     isPrevisao?: boolean;
+    isParcelado?: boolean;
+    numParcelas?: number | null;
     transactionType?: "expense" | "income" | "transfer";
     ignored?: boolean;
   },
@@ -504,7 +525,176 @@ export async function updateTransaction(
   if (updatedFields.isPrevisao !== undefined)
     mappedFields.isPrevisao = updatedFields.isPrevisao ? 1 : 0;
   if (updatedFields.ignored !== undefined) mappedFields.ignored = updatedFields.ignored ? 1 : 0;
+  if (updatedFields.isParcelado !== undefined)
+    mappedFields.isParcelado = updatedFields.isParcelado ? 1 : 0;
 
+  // Case 1: Converting a non-parcelado transaction to parcelado
+  if (
+    !tx.isParcelado &&
+    updatedFields.isParcelado &&
+    updatedFields.numParcelas &&
+    Number(updatedFields.numParcelas) > 1
+  ) {
+    const numParcelas = Number(updatedFields.numParcelas);
+    const totalAmount = updatedFields.amount !== undefined ? updatedFields.amount : tx.amount;
+    const installmentAmount = Math.round(totalAmount / numParcelas);
+    const baseDescription = (
+      updatedFields.description !== undefined ? updatedFields.description : tx.description
+    ).replace(/\s*\(\d+\/\d+\)$/, "");
+    const baseDate = updatedFields.date !== undefined ? updatedFields.date : tx.date;
+    const createdBy = tx.createdByUserId;
+    const assignedTo =
+      updatedFields.assignedToUserId !== undefined
+        ? updatedFields.assignedToUserId
+        : tx.assignedToUserId;
+    const paraQuem =
+      updatedFields.paraQuemUserId !== undefined
+        ? updatedFields.paraQuemUserId
+        : tx.paraQuemUserId;
+    const transactionType =
+      updatedFields.transactionType !== undefined
+        ? updatedFields.transactionType
+        : tx.transactionType;
+    const categoryId =
+      updatedFields.categoryId !== undefined ? updatedFields.categoryId : tx.categoryId;
+    const pillarSlug =
+      updatedFields.pillarSlug !== undefined ? updatedFields.pillarSlug : tx.pillarSlug;
+    const isCreditCard =
+      updatedFields.isCreditCard !== undefined
+        ? updatedFields.isCreditCard
+          ? 1
+          : 0
+        : tx.isCreditCard;
+    const nextInvoice =
+      updatedFields.nextInvoice !== undefined
+        ? updatedFields.nextInvoice
+          ? 1
+          : 0
+        : tx.nextInvoice;
+    const naoEntraDivisao =
+      updatedFields.naoEntraDivisao !== undefined
+        ? updatedFields.naoEntraDivisao
+          ? 1
+          : 0
+        : tx.naoEntraDivisao;
+    const isPrevisao =
+      updatedFields.isPrevisao !== undefined
+        ? updatedFields.isPrevisao
+          ? 1
+          : 0
+        : tx.isPrevisao;
+
+    const templateId = crypto.randomUUID();
+    const endDate = addMonths(baseDate, numParcelas - 1);
+
+    db.insert(schema.recurrenceTemplates)
+      .values({
+        id: templateId,
+        createdByUserId: createdBy,
+        transactionType: transactionType,
+        description: baseDescription,
+        amount: installmentAmount,
+        categoryId: categoryId || null,
+        pillarSlug: pillarSlug || null,
+        assignedToUserId: assignedTo,
+        paraQuemUserId: paraQuem || null,
+        dayOfMonth: Number.parseInt(baseDate.split("-")[2], 10),
+        startDate: baseDate,
+        endDate,
+        isActive: 0,
+        isCreditCard: isCreditCard,
+        nextInvoice: nextInvoice,
+        naoEntraDivisao: naoEntraDivisao,
+        isPrevisao: isPrevisao,
+      })
+      .run();
+
+    // Update current transaction to be Parcela 1
+    db.update(schema.transactions)
+      .set({
+        ...mappedFields,
+        description: `${baseDescription} (1/${numParcelas})`,
+        amount: installmentAmount,
+        date: baseDate,
+        isParcelado: 1,
+        numParcelas: numParcelas,
+        parcelaNumero: 1,
+        recurrenceTemplateId: templateId,
+      })
+      .where(eq(schema.transactions.id, id))
+      .run();
+
+    // Insert remaining installments (2..numParcelas)
+    for (let i = 2; i <= numParcelas; i++) {
+      const installmentDate = addMonths(baseDate, i - 1);
+
+      db.insert(schema.transactions)
+        .values({
+          id: crypto.randomUUID(),
+          createdByUserId: createdBy,
+          transactionType: transactionType,
+          description: `${baseDescription} (${i}/${numParcelas})`,
+          amount: installmentAmount,
+          categoryId: categoryId || null,
+          pillarSlug: pillarSlug || null,
+          date: installmentDate,
+          assignedToUserId: assignedTo,
+          paraQuemUserId: paraQuem || null,
+          isCreditCard: isCreditCard,
+          nextInvoice: nextInvoice,
+          naoEntraDivisao: naoEntraDivisao,
+          isPrevisao: isPrevisao,
+          isRecorrente: 0,
+          isParcelado: 1,
+          numParcelas: numParcelas,
+          parcelaNumero: i,
+          recurrenceTemplateId: templateId,
+          isOverridden: 0,
+          isDeleted: 0,
+        })
+        .run();
+    }
+
+    return { success: true, count: numParcelas };
+  }
+
+  // Case 2: Converting a parcelado transaction to single (isParcelado set to false)
+  if (tx.isParcelado && updatedFields.isParcelado === false) {
+    const baseDescription = (
+      updatedFields.description !== undefined ? updatedFields.description : tx.description
+    ).replace(/\s*\(\d+\/\d+\)$/, "");
+    const totalAmount =
+      updatedFields.amount !== undefined ? updatedFields.amount : tx.amount * (tx.numParcelas || 1);
+
+    if (tx.recurrenceTemplateId) {
+      db.update(schema.transactions)
+        .set({ isDeleted: 1 })
+        .where(
+          and(
+            eq(schema.transactions.recurrenceTemplateId, tx.recurrenceTemplateId),
+            ne(schema.transactions.id, id),
+          ),
+        )
+        .run();
+    }
+
+    db.update(schema.transactions)
+      .set({
+        ...mappedFields,
+        description: baseDescription,
+        amount: totalAmount,
+        isParcelado: 0,
+        numParcelas: null,
+        parcelaNumero: null,
+        recurrenceTemplateId: null,
+      })
+      .where(eq(schema.transactions.id, id))
+      .run();
+
+    return { success: true };
+  }
+
+  // Case 3: Updating an existing parcelado transaction
   const installmentMatch = tx.description.match(/^(.*) \((\d+)\/(\d+)\)$/);
   if (tx.isParcelado && tx.numParcelas && tx.parcelaNumero && installmentMatch) {
     const [, currentBase] = installmentMatch;
@@ -538,13 +728,28 @@ export async function updateTransaction(
               candidate.description.match(/^(.*) \((\d+)\/(\d+)\)$/)?.[1] === currentBase,
           );
 
+    const targetNumParcelas =
+      updatedFields.numParcelas !== undefined && updatedFields.numParcelas !== null
+        ? Number(updatedFields.numParcelas)
+        : tx.numParcelas;
+    const hasExplicitParceladoPayload =
+      updatedFields.isParcelado !== undefined || updatedFields.numParcelas !== undefined;
+    const installmentAmount =
+      updatedFields.amount !== undefined
+        ? hasExplicitParceladoPayload
+          ? Math.round(updatedFields.amount / targetNumParcelas)
+          : updatedFields.amount
+        : tx.amount;
+
     for (const installment of installments) {
       const fields = { ...mappedFields };
+      fields.amount = installmentAmount;
       if (newBase)
-        fields.description = `${newBase} (${installment.parcelaNumero}/${tx.numParcelas})`;
+        fields.description = `${newBase} (${installment.parcelaNumero}/${targetNumParcelas})`;
       if (updatedFields.date && installment.parcelaNumero) {
         fields.date = addMonths(updatedFields.date, installment.parcelaNumero - tx.parcelaNumero);
       }
+      fields.numParcelas = targetNumParcelas;
       db.update(schema.transactions)
         .set(fields)
         .where(eq(schema.transactions.id, installment.id))
@@ -554,7 +759,7 @@ export async function updateTransaction(
     if (tx.recurrenceTemplateId) {
       const templateFields: Record<string, unknown> = {};
       if (newBase) templateFields.description = newBase;
-      if (updatedFields.amount !== undefined) templateFields.amount = updatedFields.amount;
+      if (updatedFields.amount !== undefined) templateFields.amount = installmentAmount;
       if (updatedFields.categoryId !== undefined)
         templateFields.categoryId = updatedFields.categoryId;
       if (updatedFields.pillarSlug !== undefined)
@@ -576,7 +781,7 @@ export async function updateTransaction(
       if (updatedFields.date) {
         const startDate = addMonths(updatedFields.date, 1 - tx.parcelaNumero);
         templateFields.startDate = startDate;
-        templateFields.endDate = addMonths(startDate, tx.numParcelas - 1);
+        templateFields.endDate = addMonths(startDate, targetNumParcelas - 1);
         templateFields.dayOfMonth = Number.parseInt(startDate.split("-")[2], 10);
       }
       if (Object.keys(templateFields).length > 0) {

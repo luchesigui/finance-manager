@@ -266,6 +266,28 @@ export function DashboardPreview() {
     router.push("/lancamentos");
   };
 
+  const handleMarkTransferDone = async () => {
+    if (!stats.transfer || stats.transfer.amount <= 0) return;
+    const debtorUser = users.find((u) => u.name === stats.transfer?.debtor);
+    const creditorUser = users.find((u) => u.name === stats.transfer?.creditor);
+    if (!debtorUser || !creditorUser) return;
+
+    try {
+      await createTransaction({
+        description: `Acerto de contas (${debtorUser.name} -> ${creditorUser.name})`,
+        amount: Math.round(stats.transfer.amount * 100),
+        date: todayStr,
+        assignedToUserId: debtorUser.id,
+        paraQuemUserId: creditorUser.id,
+        transactionType: "transfer",
+      });
+      toast({ variant: "success", title: "Transferência registrada com sucesso!" });
+    } catch (err) {
+      console.error("Error marking transfer done", err);
+      toast({ variant: "error", title: "Erro ao registrar transferência" });
+    }
+  };
+
   const metasTotal = React.useMemo(() => {
     return reserves
       .filter((r) => r.type === "goal")
@@ -319,10 +341,23 @@ export function DashboardPreview() {
       if (tx.ignored) {
         continue;
       }
-      const isFutureOrForecast = !!tx.isPrevisao || tx.date > todayStr;
-      if (isFutureOrForecast && !includeFuture) continue;
       const amountFloat = tx.amount / 100;
-      const isForecast = tx.isPrevisao || tx.date > todayStr;
+
+      if (tx.transactionType === "transfer" && tx.assignedToUserId) {
+        let recipientId = tx.paraQuemUserId;
+        if (!recipientId || recipientId === tx.assignedToUserId) {
+          recipientId = users.find((u) => u.id !== tx.assignedToUserId)?.id || null;
+        }
+        if (recipientId && recipientId !== tx.assignedToUserId) {
+          const pairKey = `${tx.assignedToUserId}->${recipientId}`;
+          transferPaidByPair[pairKey] = (transferPaidByPair[pairKey] ?? 0) + amountFloat;
+        }
+        continue;
+      }
+
+      const isFutureOrForecast = !!tx.isPrevisao || (tx.date > todayStr && !tx.isParcelado);
+      if (isFutureOrForecast && !includeFuture) continue;
+      const isForecast = tx.isPrevisao || (tx.date > todayStr && !tx.isParcelado);
 
       if (tx.isPrevisao) {
         // Apenas para as previsões de gastos, somamos no forecast
@@ -367,9 +402,6 @@ export function DashboardPreview() {
         if (!tx.naoEntraDivisao && tx.assignedToUserId in paidSharedByUser) {
           paidSharedByUser[tx.assignedToUserId] += amountFloat;
         }
-      } else if (tx.transactionType === "transfer" && tx.assignedToUserId && tx.paraQuemUserId) {
-        const pairKey = `${tx.assignedToUserId}->${tx.paraQuemUserId}`;
-        transferPaidByPair[pairKey] = (transferPaidByPair[pairKey] ?? 0) + amountFloat;
       }
     }
 
@@ -392,43 +424,51 @@ export function DashboardPreview() {
     } | null = null;
 
     if (userA && userB) {
-      const paidA = paidSharedByUser[userA.id];
-      const paidB = paidSharedByUser[userB.id];
+      const paidA = paidSharedByUser[userA.id] ?? 0;
+      const paidB = paidSharedByUser[userB.id] ?? 0;
       const totalShared = paidA + paidB;
-      const totalNetIncome = incomeByUser[userA.id] + incomeByUser[userB.id];
+      const totalNetIncome = (incomeByUser[userA.id] ?? 0) + (incomeByUser[userB.id] ?? 0);
 
-      transfer = {
-        debtor: userA.name,
-        debtorInitial: userA.avatarInitials[0],
-        creditor: userB.name,
-        creditorInitial: userB.avatarInitials[0],
-        amount: 0,
-      };
+      const shareA =
+        totalShared > 0
+          ? totalNetIncome > 0
+            ? totalShared * ((incomeByUser[userA.id] ?? 0) / totalNetIncome)
+            : totalShared / 2
+          : 0;
 
-      if (totalShared > 0) {
-        const shareA =
-          totalNetIncome > 0
-            ? totalShared * (incomeByUser[userA.id] / totalNetIncome)
-            : totalShared / 2;
+      const diffA = paidA - shareA;
+      // targetSignedAmount: > 0 means A owes B; < 0 means B owes A
+      const targetSignedAmount = -diffA;
+      const existingSignedTransfers =
+        (transferPaidByPair[`${userA.id}->${userB.id}`] ?? 0) -
+        (transferPaidByPair[`${userB.id}->${userA.id}`] ?? 0);
+      const remainingSignedAmount = targetSignedAmount - existingSignedTransfers;
 
-        const diffA = paidA - shareA;
-        const targetSignedAmount = diffA < 0 ? Math.abs(diffA) : -diffA;
-        const existingSignedTransfers =
-          (transferPaidByPair[`${userA.id}->${userB.id}`] ?? 0) -
-          (transferPaidByPair[`${userB.id}->${userA.id}`] ?? 0);
-        const remainingSignedAmount = targetSignedAmount - existingSignedTransfers;
-
-        if (remainingSignedAmount > 0) {
-          transfer.amount = remainingSignedAmount;
-        } else if (remainingSignedAmount < 0) {
-          transfer = {
-            debtor: userB.name,
-            debtorInitial: userB.avatarInitials[0],
-            creditor: userA.name,
-            creditorInitial: userA.avatarInitials[0],
-            amount: Math.abs(remainingSignedAmount),
-          };
-        }
+      if (remainingSignedAmount > 0) {
+        transfer = {
+          debtor: userA.name,
+          debtorInitial: userA.avatarInitials[0],
+          creditor: userB.name,
+          creditorInitial: userB.avatarInitials[0],
+          amount: remainingSignedAmount,
+        };
+      } else if (remainingSignedAmount < 0) {
+        transfer = {
+          debtor: userB.name,
+          debtorInitial: userB.avatarInitials[0],
+          creditor: userA.name,
+          creditorInitial: userA.avatarInitials[0],
+          amount: Math.abs(remainingSignedAmount),
+        };
+      } else {
+        const debtorIsA = targetSignedAmount >= 0;
+        transfer = {
+          debtor: debtorIsA ? userA.name : userB.name,
+          debtorInitial: debtorIsA ? userA.avatarInitials[0] : userB.avatarInitials[0],
+          creditor: debtorIsA ? userB.name : userA.name,
+          creditorInitial: debtorIsA ? userB.avatarInitials[0] : userA.avatarInitials[0],
+          amount: 0,
+        };
       }
     }
 
@@ -468,7 +508,7 @@ export function DashboardPreview() {
 
     for (const tx of dbTxs) {
       if (tx.ignored) continue;
-      const isFutureOrForecast = !!tx.isPrevisao || tx.date > todayStr;
+      const isFutureOrForecast = !!tx.isPrevisao || (tx.date > todayStr && !tx.isParcelado);
       if (isFutureOrForecast && !includeFuture) continue;
       if (tx.isPrevisao) continue;
 
@@ -590,7 +630,7 @@ export function DashboardPreview() {
         pillar: matchedCategory ? matchedCategory.pillar : undefined,
         categoryId: tx.categoryId,
         ignored: !!tx.ignored,
-        pending: !!tx.isPrevisao || tx.date > todayStr,
+        pending: !!tx.isPrevisao || (tx.date > todayStr && !tx.isParcelado),
       };
     });
   }, [dbTxs, autocompleteOptions, users, todayStr]);
@@ -899,6 +939,7 @@ export function DashboardPreview() {
                   to={{ name: stats.transfer.creditor, initial: stats.transfer.creditorInitial }}
                   amount={stats.transfer.amount}
                   status={stats.transfer.amount > 0 ? "pending" : "done"}
+                  onMarkDone={handleMarkTransferDone}
                 />
               ) : (
                 <TransferCard empty />

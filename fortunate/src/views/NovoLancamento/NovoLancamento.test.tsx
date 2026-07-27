@@ -345,3 +345,31 @@ describe("NovoLancamento — confirmação de previsão", () => {
     });
   });
 });
+
+describe("NovoLancamento — lançamentos parcelados vs recorrentes futuros", () => {
+  it("inclui lançamento parcelado futuro na soma como ocorrido, mas exclui lançamento recorrente futuro", async () => {
+    const { page } = await renderView([
+      makeApiTransaction({
+        id: "tx-parcelado-futuro",
+        description: "iPhone Parcelado",
+        amount: 50000,
+        date: "2099-12-31",
+        isParcelado: 1,
+        isRecorrente: 0,
+      }),
+      makeApiTransaction({
+        id: "tx-recorrente-futuro",
+        description: "Serviço Recorrente Futuro",
+        amount: 30000,
+        date: "2099-12-31",
+        isRecorrente: 1,
+        isParcelado: 0,
+      }),
+    ]);
+
+    // O lançamento parcelado em data futura deve ser somado (-500,00) pois é considerado ocorrido
+    // O lançamento recorrente em data futura deve ser ignorado da soma atual (pois fica como pending)
+    expect(page.sumValue()).toBe(brl(-500));
+  });
+});
+

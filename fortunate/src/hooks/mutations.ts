@@ -39,6 +39,8 @@ export interface UpdateTransactionFields {
   nextInvoice?: boolean;
   naoEntraDivisao?: boolean;
   isPrevisao?: boolean;
+  isParcelado?: boolean;
+  numParcelas?: number | null;
   transactionType?: TransactionType;
   ignored?: boolean;
 }

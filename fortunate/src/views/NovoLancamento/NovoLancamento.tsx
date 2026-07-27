@@ -57,6 +57,9 @@ interface Transaction {
   categoryId?: string | null;
   ignored: boolean;
   pending?: boolean;
+  isParcelado?: boolean;
+  numParcelas?: number | null;
+  parcelaNumero?: number | null;
 }
 
 type TransactionType = "despesa" | "renda" | "transferencia";
@@ -219,9 +222,11 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
   }, [users, settings, atribuirA]);
 
   React.useEffect(() => {
-    if (!paraQuem && atribuirA && users.length > 1) {
-      const other = users.find((u) => u.id !== atribuirA);
-      if (other) setParaQuem(other.id);
+    if (atribuirA && users.length > 1) {
+      if (!paraQuem || paraQuem === atribuirA) {
+        const other = users.find((u) => u.id !== atribuirA);
+        if (other) setParaQuem(other.id);
+      }
     }
   }, [users, atribuirA, paraQuem]);
 
@@ -281,7 +286,7 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
       const matchedCategory = categories.find((c) => c.value === tx.categoryId);
       const assignedUser = users.find((u) => u.id === tx.assignedToUserId);
 
-      const isFutureOrForecast = !!tx.isPrevisao || tx.date > todayStr;
+      const isFutureOrForecast = !!tx.isPrevisao || (tx.date > todayStr && !tx.isParcelado);
 
       return {
         id: tx.id,
@@ -306,6 +311,9 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         categoryId: tx.categoryId,
         ignored: !!tx.ignored,
         pending: isFutureOrForecast,
+        isParcelado: tx.isParcelado === 1,
+        numParcelas: tx.numParcelas,
+        parcelaNumero: tx.parcelaNumero,
       };
     });
   }, [dbTxs, categories, users, todayStr]);
@@ -427,7 +435,12 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
         pillarSlug: actualPillarSlug,
         date,
         assignedToUserId: atribuirA || null,
-        paraQuemUserId: type === "transferencia" ? paraQuem || null : null,
+        paraQuemUserId:
+          type === "transferencia"
+            ? paraQuem && paraQuem !== atribuirA
+              ? paraQuem
+              : users.find((u) => u.id !== atribuirA)?.id || null
+            : null,
         isCreditCard: createAsCard,
         nextInvoice: createAsCard && proximaFatura,
         naoEntraDivisao: type === "despesa" && naoEntraDivisao,
@@ -476,11 +489,18 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
           pillarSlug: actualPillarSlug,
           date,
           assignedToUserId: atribuirA || undefined,
-          paraQuemUserId: type === "transferencia" ? paraQuem || null : null,
+          paraQuemUserId:
+            type === "transferencia"
+              ? paraQuem && paraQuem !== atribuirA
+                ? paraQuem
+                : users.find((u) => u.id !== atribuirA)?.id || null
+              : null,
           isCreditCard: type === "despesa" && isCard,
           nextInvoice: type === "despesa" && isCard && proximaFatura,
           naoEntraDivisao: type === "despesa" && naoEntraDivisao,
           isPrevisao: previsao,
+          isParcelado: isParcelado,
+          numParcelas: isParcelado && numParcelas ? Number.parseInt(numParcelas, 10) : null,
           transactionType:
             type === "despesa" ? "expense" : type === "renda" ? "income" : "transfer",
         },
@@ -522,7 +542,11 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
           : "transferencia",
     );
     setDescription(tx.description);
-    setValor(tx.amount);
+    const isTxParcelado = Boolean(tx.isParcelado) || tx.pills?.includes("parcelado") || false;
+    setIsParcelado(isTxParcelado);
+    setNumParcelas(tx.numParcelas ? String(tx.numParcelas) : "");
+    const initialValor = isTxParcelado && tx.numParcelas ? tx.amount * tx.numParcelas : tx.amount;
+    setValor(initialValor);
     setDate(tx.rawDate);
     setAtribuirA(tx.assignedToUserId);
     setSelectedCategory(tx.categoryId ?? "");
@@ -530,7 +554,6 @@ export function NovoLancamento({ initialType = "despesa" }: NovoLancamentoProps)
     setPillarSlug(tx.pillarSlug ?? initialCategory?.pillarSlug ?? "");
 
     setIsRecorrente(tx.pills?.includes("recorrente") || false);
-    setIsParcelado(tx.pills?.includes("parcelado") || false);
     setIsCard(tx.pills?.includes("cartao") || false);
     setProximaFatura(tx.nextInvoice);
     setPrevisao(tx.isPrevisao);

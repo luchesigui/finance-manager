@@ -21,6 +21,8 @@ const updateTransactionSchema = z.object({
     nextInvoice: z.boolean().optional(),
     naoEntraDivisao: z.boolean().optional(),
     isPrevisao: z.boolean().optional(),
+    isParcelado: z.boolean().optional(),
+    numParcelas: z.union([z.number(), z.string()]).nullable().optional(),
     transactionType: z.enum(["expense", "income", "transfer"]).optional(),
     ignored: z.boolean().optional(),
   }),
@@ -47,7 +49,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const { updatedFields, option } = validation.data;
-    const result = await updateTransaction(id, updatedFields, option);
+    const formattedFields = {
+      ...updatedFields,
+      numParcelas:
+        updatedFields.numParcelas !== undefined && updatedFields.numParcelas !== null
+          ? Number(updatedFields.numParcelas)
+          : updatedFields.numParcelas,
+    };
+    const result = await updateTransaction(id, formattedFields, option);
     return NextResponse.json(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Internal Server Error";

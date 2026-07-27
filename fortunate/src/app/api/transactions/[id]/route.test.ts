@@ -212,6 +212,96 @@ describe("PUT /api/transactions/[id] — installments", () => {
       endDate: "2026-09-15",
     });
   });
+
+  it("converts a single transaction into a parcelado series", async () => {
+    db.insert(schema.transactions)
+      .values({
+        id: "tx-single-to-parc",
+        createdByUserId: "guilherme",
+        transactionType: "expense",
+        description: "Seguro viagem",
+        amount: 58809,
+        date: "2026-07-11",
+        assignedToUserId: "guilherme",
+        isParcelado: 0,
+      })
+      .run();
+
+    const res = await putRequest(
+      "tx-single-to-parc",
+      {
+        description: "Seguro viagem",
+        amount: 58809,
+        date: "2026-07-11",
+        isParcelado: true,
+        numParcelas: 3,
+      },
+      "only_this",
+    );
+
+    expect(res.status).toBe(200);
+
+    const tx1 = getTx("tx-single-to-parc");
+    expect(tx1).toMatchObject({
+      description: "Seguro viagem (1/3)",
+      amount: 19603,
+      isParcelado: 1,
+      numParcelas: 3,
+      parcelaNumero: 1,
+    });
+
+    const month2 = await getTransactionsForMonth("2026-08");
+    const month3 = await getTransactionsForMonth("2026-09");
+
+    const tx2 = month2.find((t) => t.recurrenceTemplateId === tx1?.recurrenceTemplateId && t.parcelaNumero === 2);
+    const tx3 = month3.find((t) => t.recurrenceTemplateId === tx1?.recurrenceTemplateId && t.parcelaNumero === 3);
+
+    expect(tx2).toBeDefined();
+    expect(tx2?.description).toBe("Seguro viagem (2/3)");
+    expect(tx2?.amount).toBe(19603);
+
+    expect(tx3).toBeDefined();
+    expect(tx3?.description).toBe("Seguro viagem (3/3)");
+    expect(tx3?.amount).toBe(19603);
+  });
+
+  it("converts a parcelado transaction into a single transaction", async () => {
+    db.insert(schema.transactions)
+      .values({
+        id: "tx-parc-to-single",
+        createdByUserId: "guilherme",
+        transactionType: "expense",
+        description: "Seguro viagem (1/3)",
+        amount: 19603,
+        date: "2026-07-11",
+        assignedToUserId: "guilherme",
+        isParcelado: 1,
+        numParcelas: 3,
+        parcelaNumero: 1,
+      })
+      .run();
+
+    const res = await putRequest(
+      "tx-parc-to-single",
+      {
+        description: "Seguro viagem",
+        amount: 58809,
+        isParcelado: false,
+      },
+      "only_this",
+    );
+
+    expect(res.status).toBe(200);
+
+    const updatedTx = getTx("tx-parc-to-single");
+    expect(updatedTx).toMatchObject({
+      description: "Seguro viagem",
+      amount: 58809,
+      isParcelado: 0,
+      numParcelas: null,
+      parcelaNumero: null,
+    });
+  });
 });
 
 describe("PUT /api/transactions/[id] — recurring scopes", () => {
